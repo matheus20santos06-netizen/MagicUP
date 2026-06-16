@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cyber Fight Evolution: Horda RPG</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+        body { background: #020205; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        #gameContainer { position: relative; width: 100%; max-width: 1024px; aspect-ratio: 16/9; background: #000; border: 4px solid #00f0ff; box-shadow: 0 0 35px rgba(0, 240, 255, 0.3); border-radius: 12px; overflow: hidden; }
+        canvas { width: 100%; height: 100%; display: block; }
+        
+        /* HUD Style */
+        .hud { position: absolute; top: 15px; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 25px; pointer-events: none; z-index: 5; }
+        .p-panel { width: 28%; display: flex; flex-direction: column; gap: 4px; background: rgba(5,5,15,0.6); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
+        .p1-color { color: #ff0055; text-shadow: 0 0 5px #ff0055; font-size: 13px; font-weight: bold; }
+        .p2-color { color: #00ff66; text-shadow: 0 0 5px #00ff66; font-size: 13px; font-weight: bold; text-align: right; }
+        .bar-bg { width: 100%; background: rgba(0, 0, 0, 0.6); height: 16px; border: 1px solid #fff; border-radius: 4px; overflow: hidden; }
+        .bar { height: 100%; width: 100%; transition: width 0.1s; background: linear-gradient(90deg, #ff0055, #ffaa00); }
+        #p2H { background: linear-gradient(270deg, #00ff66, #00ffff); }
+        .stats-lbl { font-size: 11px; color: #aaa; display: flex; justify-content: space-between; margin-top: 2px; }
+        
+        #centerInfo { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        #waveInfo { background: rgba(10, 10, 25, 0.85); padding: 6px 16px; border: 2px solid #ffaa00; border-radius: 8px; color: #ffaa00; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(255, 170, 0, 0.2); }
+        #coinCounter { background: #ffcc00; color: #000; font-weight: bold; padding: 2px 10px; border-radius: 20px; font-size: 14px; box-shadow: 0 0 8px #ffcc00; }
+        
+        /* Telas de Overlay */
+        .overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 3, 10, 0.9); flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
+        #over h1 { font-size: 46px; font-weight: bold; margin-bottom: 10px; letter-spacing: 3px; }
+        
+        /* Sistema de Loja Cyberpunk */
+        #shop { background: rgba(6, 6, 20, 0.95); border: 2px solid #ffcc00; box-shadow: 0 0 30px rgba(255, 204, 0, 0.3); border-radius: 12px; width: 85%; height: 80%; padding: 20px; color: #fff; display: none; flex-direction: column; align-items: center; justify-content: space-between; z-index: 11; position: absolute; top: 10%; left: 7.5%; }
+        .shop-title { color: #ffcc00; font-size: 28px; font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,204,0,0.5); }
+        .shop-container { display: flex; gap: 15px; width: 100%; justify-content: center; margin: 15px 0; }
+        .shop-item { background: #111126; border: 2px solid #00f0ff; border-radius: 8px; width: 22%; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; transition: 0.2s; }
+        .shop-item:hover { background: #16163a; transform: translateY(-3px); }
+        .item-name { font-weight: bold; color: #fff; font-size: 15px; margin-bottom: 5px; }
+        .item-desc { font-size: 11px; color: #888; margin-bottom: 10px; height: 35px; }
+        .buy-btn { background: #ffcc00; color: #000; border: none; font-weight: bold; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; width: 100%; transition: 0.1s; }
+        .buy-btn:hover { background: #fff; box-shadow: 0 0 10px #fff; }
+        .close-shop { background: #ff0055; color: #fff; border: none; padding: 8px 25px; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+
+        /* Controles Virtuais Mobile */
+        #ctrls { position: absolute; bottom: 0; left: 0; width: 100%; height: 115px; display: flex; justify-content: space-between; padding: 10px 20px; pointer-events: none; z-index: 5; }
+        .pad { display: flex; gap: 8px; pointer-events: auto; align-items: center; }
+        .btn { width: 48px; height: 48px; background: rgba(12, 12, 30, 0.75); border: 2px solid #00f0ff; border-radius: 50%; color: #00f0ff; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .btn:active { background: #00f0ff; color: #000; box-shadow: 0 0 15px #00f0ff; }
+        .atk-b { width: 56px; height: 56px; border-radius: 12px; font-size: 22px; border-color: #ff0055; color: #ff0055; }
+        .atk-b:active { background: #ff0055; color: #fff; box-shadow: 0 0 15px #ff0055; }
+    </style>
+</head>
+<body>
+
+<div id="gameContainer">
+    <div class="hud">
+        <div class="p-panel">
+            <span class="p1-color">CYBER-P1 [A/D/W/Espaço]</span>
+            <div class="bar-bg"><div id="p1H" class="bar"></div></div>
+            <div class="stats-lbl"><span id="p1AtkLbl">Dano: ATK x1.0</span><span id="p1HpLbl">HP: 100/100</span></div>
+        </div>
+        <div id="centerInfo">
+            <div id="waveInfo">HORDA 1<br><span id="enemyCount">Bots: 0</span></div>
+            <div id="coinCounter">🪙 <span id="coinVal">0</span></div>
+        </div>
+        <div class="p-panel">
+            <span class="p2-color">[Setas / Enter] CYBER-P2</span>
+            <div class="bar-bg"><div id="p2H" class="bar"></div></div>
+            <div class="stats-lbl"><span id="p2HpLbl">HP: 100/100</span><span id="p2AtkLbl">Dano: ATK x1.0</span></div>
+        </div>
+    </div>
+    
+    <div id="over" class="overlay">
+        <h1 id="winTxt">SISTEMA ONLINE</h1>
+        <div id="subTxt" style="color: #66efec">Clique para carregar a matriz de combate...</div>
+    </div>
+
+    <div id="shop">
+        <div class="shop-title">⚡ MATRIX MODIFICATION SHOP ⚡</div>
+        <div style="font-size: 14px; color: #ffcc00">Seu Saldo: 🪙 <span id="shopCoinVal">0</span></div>
+        <div class="shop-container">
+            <div class="shop-item">
+                <div class="item-name">🔥 Nano-Dano P1</div>
+                <div class="item-desc">Aumenta permanentemente o ataque do Jogador 1 (+25%)</div>
+                <button class="buy-btn" onclick="buyUpgrade('p1_atk', 15)">Custo: 15</button>
+            </div>
+            <div class="shop-item">
+                <div class="item-name">❤️ Núcleo Vital P1</div>
+                <div class="item-desc">Aumenta a Vida Máxima e cura o Jogador 1 completo</div>
+                <button class="buy-btn" onclick="buyUpgrade('p1_hp', 12)">Custo: 12</button>
+            </div>
+            <div class="shop-item">
+                <div class="item-name">⚡ Nano-Dano P2</div>
+                <div class="item-desc">Aumenta permanentemente o ataque do Jogador 2 (+25%)</div>
+                <button class="buy-btn" onclick="buyUpgrade('p2_atk', 15)">Custo: 15</button>
+            </div>
+            <div class="shop-item">
+                <div class="item-name">💚 Núcleo Vital P2</div>
+                <div class="item-desc">Aumenta a Vida Máxima e cura o Jogador 2 completo</div>
+                <button class="buy-btn" onclick="buyUpgrade('p2_hp', 12)">Custo: 12</button>
+            </div>
+        </div>
+        <button class="close-shop" onclick="closeShop()">PRÓXIMA HORDA ➔</button>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ctrls">
+        <div class="pad">
+            <div class="btn" id="p1L">◀</div>
+            <div class="btn" id="p1R">▶</div>
+            <div class="btn" id="p1J">▲</div>
+            <div class="btn atk-b" id="p1A">👊</div>
+        </div>
+        <div class="pad">
+            <div class="btn atk-b" id="p2A">👊</div>
+            <div class="btn" id="p2J">▲</div>
+            <div class="btn" id="p2L">◀</div>
+            <div class="btn" id="p2R">▶</div>
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = 1024; canvas.height = 576;
+
+const gravity = 0.65;
+let gameActive = true;
+let horda = 1;
+let moedas = 0;
+let audioCtx = null;
+let synthInterval = null;
+let shakeTime = 0;
+
+// Inputs Teclado e Mobile
+const keys = { a: false, d: false, w: false, ' ': false, ArrowLeft: false, ArrowRight: false, ArrowUp: false, Enter: false };
+const input = { p1L: false, p1R: false, p2L: false, p2R: false };
+
+// Projéteis e Efeitos Visuais
+let projectiles = [];
+let particles = [];
+
+function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let notes = [98, 98, 116, 116, 87, 87, 110, 130]; let step = 0;
+    synthInterval = setInterval(() => {
+        if (!gameActive || audioCtx.state === 'suspended') return;
+        let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.02, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.2); step++;
+    }, 240);
+}
+
+function playSound(type) {
+    if (!audioCtx || audioCtx.state === 'suspended') return;
+    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    if (type === 'hit') {
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.12); gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    } else if (type === 'jump') {
+        osc.type = 'sine'; osc.frequency.setValueAtTime(170, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.14); gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    } else if (type === 'atk') {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.08); gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    } else if (type === 'laser') {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.25); gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    }
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2); osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+}
+
+class Fighter {
+    constructor({ x, color, id, isBot = false, type = 'normal' }) {
+        this.pos = { x, y: 0 }; this.vel = { x: 0, y: 0 }; this.w = 55; this.h = 132;
+        this.color = color; this.id = id; this.isBot = isBot; this.type = type;
+        this.hp = 100; this.maxHp = 100; this.atkMult = 1.0;
+        this.isAtk = false; this.facing = id === 1 ? 'right' : 'left';
+        this.state = 'idle'; this.stTimer = 0;
+        this.atkBox = { pos: { x: 0, y: 0 }, w: 100, h: 45 };
+        
+        // Controle de combos interno
+        this.lastAtkTime = 0; this.comboCount = 0; this.comboChainActive = false;
+        
+        // Customização baseada no tipo de bot
+        if (this.isBot) {
+            if (type === 'ninja') { this.maxHp = 70; this.hp = 70; this.color = '#bf00ff'; }
+            if (type === 'goliath') { this.maxHp = 220; this.hp = 220; this.w = 80; this.h = 160; this.color = '#ffcc00'; }
+        }
+    }
+
+    draw() {
+        ctx.save();
+        ctx.shadowBlur = this.state === 'hit' ? 22 : 12;
+        ctx.shadowColor = this.color;
+        
+        let grad = ctx.createLinearGradient(this.pos.x, this.pos.y, this.pos.x, this.pos.y + this.h);
+        grad.addColorStop(0, this.state === 'hit' ? '#fff' : this.color);
+        grad.addColorStop(1, '#050510');
+        
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.roundRect(this.pos.x, this.pos.y, this.w, this.h, 8); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Expressões dos Rostos Digitais
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 15px monospace';
+        let fx = this.pos.x + (this.facing === 'right' ? 15 : 10), fy = this.pos.y + 35;
+        let face = "•_•";
+        if (this.state === 'hit') face = "✕_✕";
+        else if (this.state === 'atk') face = "⚙_O";
+        if (this.type === 'goliath') face = "💀_💀";
+        ctx.fillText(face, fx, fy);
+
+        // Feedback visual do braço/punho estendido esticado
+        if (this.isAtk) {
+            ctx.fillStyle = '#fff';
+            let ax = this.facing === 'right' ? this.pos.x + this.w : this.pos.x - 35;
+            ctx.fillRect(ax, this.pos.y + 40, 35, 18);
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.facing === 'right' ? ax+20 : ax, this.pos.y + 37, 15, 24);
+        }
+        ctx.restore();
+    }
+
+    update() {
+        this.draw();
+        this.atkBox.pos.x = this.facing === 'right' ? this.pos.x + this.w - 10 : this.pos.x - this.atkBox.w + 10;
+        this.atkBox.pos.y = this.pos.y + 35;
+
+        if (this.stTimer > 0) { this.stTimer--; if (this.stTimer === 0) this.state = 'idle'; }
+        this.pos.x += this.vel.x; this.pos.y += this.vel.y;
+
+        let floorY = canvas.height - 90 - this.h;
+        if (this.pos.y >= floorY) { this.vel.y = 0; this.pos.y = floorY; } else { this.vel.y += gravity; }
+        this.pos.x = Math.max(0, Math.min(canvas.width - this.w, this.pos.x));
+    }
+
+    attack() {
+        if (this.isAtk || this.state === 'hit') return;
+        
+        let now = Date.now();
+        if (now - this.lastAtkTime < 450) {
+            this.comboCount++;
+        } else {
+            this.comboCount = 1;
+        }
+        this.lastAtkTime = now;
+
+        this.state = 'atk'; this.isAtk = true; this.stTimer = 12;
+        playSound('atk');
+
+        // LÓGICA DE COMBO AUTOMÁTICA: Se apertar 3 vezes rápido, executa investida violenta
+        if (this.comboCount >= 3) {
+            this.comboChainActive = true;
+            this.vel.x = this.facing === 'right' ? 16 : -16; // Avanço rápido automático do combo
+            this.stTimer = 18;
+            this.comboCount = 0;
+            createExplosion(this.pos.x + this.w/2, this.pos.y + 40, this.color);
+        }
+
+        // Ataques especiais de bosses/inimigos goliaths
+        if (this.type === 'goliath' && Math.random() < 0.4) {
+            playSound('laser');
+            projectiles.push({
+                x: this.facing === 'right' ? this.pos.x + this.w : this.pos.x - 40,
+                y: this.pos.y + 50,
+                vx: this.facing === 'right' ? 7 : -7, w: 40, h: 15, color: '#ffcc00'
+            });
+        }
+
+        setTimeout(() => { this.isAtk = false; this.comboChainActive = false; }, 130);
+    }
+
+    damage(amt) {
+        this.hp = Math.max(0, this.hp - amt); this.state = 'hit'; this.stTimer = 15;
+        playSound('hit');
+        createExplosion(this.pos.x + this.w/2, this.pos.y + 50, '#fff');
+    }
+}
+
+// Criação dos Lutadores Aliados
+const p1 = new Fighter({ x: 220, color: '#ff0055', id: 1 });
+const p2 = new Fighter({ x: 340, color: '#00ff66', id: 2 });
+let enemies = [];
+
+function createExplosion(x, y, color) {
+    for (let i = 0; i < 8; i++) {
+        particles.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
+            r: Math.random() * 4 + 2, alpha: 1, color
+        });
+    }
+}
+
+function spawnHorda() {
+    enemies = [];
+    projectiles = [];
+    let count = horda + 2;
+    let currentType = 'normal';
+    
+    if (horda >= 3 && horda < 5) currentType = 'ninja';
+    else if (horda >= 5) currentType = Math.random() < 0.4 ? 'goliath' : 'ninja';
+
+    for (let i = 0; i < count; i++) {
+        let side = i % 2 === 0 ? 40 : canvas.width - 120;
+        let delayOffset = Math.floor(i / 2) * -170;
+        enemies.push(new Fighter({
+            x: side + (Math.random() * 50 - 25), y: delayOffset - 60,
+            color: '#707085', id: 10 + i, isBot: true, type: i === 0 && horda >= 4 ? 'goliath' : currentType
+        }));
+    }
+    document.getElementById('waveInfo').innerHTML = `HORDA ${horda}<br><span id="enemyCount">Bots: ${enemies.length}</span>`;
+}
+
+// Vinculação de Eventos Mobile e cliques de áudio
+function bind(id, start, endAction) {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); initAudio(); start(); });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); endAction(); });
+    el.addEventListener('mousedown', () => { initAudio(); start(); }); el.addEventListener('mouseup', endAction);
+}
+
+bind('p1L', () => input.p1L = true, () => input.p1L = false);
+bind('p1R', () => input.p1R = true, () => input.p1R = false);
+bind('p1J', () => { if (p1.vel.y === 0 && gameActive && p1.hp > 0) { p1.vel.y = -15; playSound('jump'); } }, () => {});
+bind('p1A', () => { if (gameActive && p1.hp > 0) p1.attack(); }, () => {});
+
+bind('p2L', () => input.p2L = true, () => input.p2L = false);
+bind('p2R', () => input.p2R = true, () => input.p2R = false);
+bind('p2J', () => { if (p2.vel.y === 0 && gameActive && p2.hp > 0) { p2.vel.y = -15; playSound('jump'); } }, () => {});
+bind('p2A', () => { if (gameActive && p2.hp > 0) p2.attack(); }, () => {});
+
+window.addEventListener('keydown', (e) => {
+    initAudio(); if (e.key in keys) keys[e.key] = true;
+    if (e.key.toLowerCase() === 'a') keys.a = true;
+    if (e.key.toLowerCase() === 'd') keys.d = true;
+    if (e.key.toLowerCase() === 'w') { if(p1.vel.y === 0 && gameActive && p1.hp > 0) { p1.vel.y = -15; playSound('jump'); } }
+    if (e.key === ' ') { if(gameActive && p1.hp > 0) p1.attack(); }
+    if (e.key === 'ArrowUp') { if(p2.vel.y === 0 && gameActive && p2.hp > 0) { p2.vel.y = -15; playSound('jump'); } }
+    if (e.key === 'Enter') { if(gameActive && p2.hp > 0) p2.attack(); }
+});
+window.addEventListener('keyup', (e) => {
+    if (e.key in keys) keys[e.key] = false;
+    if (e.key.toLowerCase() === 'a') keys.a = false;
+    if (e.key.toLowerCase() === 'd') keys.d = false;
+});
+
+function checkCol(r1, r2) {
+    return (r1.atkBox.pos.x + r1.atkBox.w >= r2.pos.x && r1.atkBox.pos.x <= r2.pos.x + r2.w && r1.atkBox.pos.y + r1.atkBox.h >= r2.pos.y && r1.atkBox.pos.y <= r2.pos.y + r2.h);
+}
+
+function updateBots() {
+    enemies.forEach(bot => {
+        if (bot.state === 'hit' || bot.pos.y < 0) { bot.vel.x = 0; return; }
+        
+        let target = (p1.hp > 0 && (p2.hp <= 0 || Math.abs(p1.pos.x - bot.pos.x) < Math.abs(p2.pos.x - bot.pos.x))) ? p1 : p2;
+        if (target.hp <= 0) { bot.vel.x = 0; return; }
+        
+        let dx = target.pos.x - bot.pos.x;
+        bot.facing = dx > 0 ? 'right' : 'left';
+
+        let speed = bot.type === 'ninja' ? 4.2 : (bot.type === 'goliath' ? 1.6 : 2.6);
+        let range = bot.type === 'goliath' ? 180 : 65;
+
+        if (Math.abs(dx) > range) {
+            bot.vel.x = dx > 0 ? speed : -speed;
+            if (bot.type === 'ninja' && Math.random() < 0.02 && bot.vel.y === 0) bot.vel.y = -14; 
+        } else {
+            bot.vel.x = 0;
+            let rate = bot.type === 'ninja' ? 0.08 : 0.04;
+            if (Math.random() < rate) bot.attack();
+        }
+    });
+}
+
+function updateHUDLabels() {
+    document.getElementById('coinVal').innerText = moedas;
+    document.getElementById('p1HpLbl').innerText = `HP: ${p1.hp}/${p1.maxHp}`;
+    document.getElementById('p2HpLbl').innerText = `HP: ${p2.hp}/${p2.maxHp}`;
+    document.getElementById('p1AtkLbl').innerText = `Dano: ATK x${p1.atkMult.toFixed(1)}`;
+    document.getElementById('p2AtkLbl').innerText = `Dano: ATK x${p2.atkMult.toFixed(1)}`;
+}
+
+function endRound(win) {
+    gameActive = false;
+    const o = document.getElementById('over'), w = document.getElementById('winTxt'), s = document.getElementById('subTxt');
+    
+    if (win) {
+        w.innerText = "HORDA DIZIMADA!"; w.style.color = "#ffaa00";
+        s.innerText = "Abrindo conexões da loja de modificações...";
+        setTimeout(() => {
+            o.style.display = 'none';
+            document.getElementById('shopCoinVal').innerText = moedas;
+            document.getElementById('shop').style.display = 'flex';
+        }, 1500);
+    } else {
+        w.innerText = "SISTEMA CORROMPIDO"; w.style.color = "#ff0055";
+        s.innerText = "Recarregando simulação básica de teste..."; horda = 1; moedas = 0;
+        p1.maxHp = p1.hp = 100; p2.maxHp = p2.hp = 100; p1.atkMult = 1.0; p2.atkMult = 1.0;
+        setTimeout(() => { window.location.reload(); }, 3000);
+    }
+    o.style.display = 'flex';
+}
+
+function buyUpgrade(type, cost) {
+    if (moedas >= cost) {
+        moedas -= cost;
+        if (type === 'p1_atk') p1.atkMult += 0.25;
+        if (type === 'p2_atk') p2.atkMult += 0.25;
+        if (type === 'p1_hp') { p1.maxHp += 20; p1.hp = p1.maxHp; document.getElementById('p1H').style.width = '100%'; }
+        if (type === 'p2_hp') { p2.maxHp += 20; p2.hp = p2.maxHp; document.getElementById('p2H').style.width = '100%'; }
+        document.getElementById('shopCoinVal').innerText = moedas;
+        updateHUDLabels();
+        playSound('jump');
+    } else {
+        alert("Créditos insuficientes na carteira digital!");
+    }
+}
+
+function closeShop() {
+    document.getElementById('shop').style.display = 'none';
+    horda++; gameActive = true; spawnHorda();
+}
+
+// Loop de Execução Contínua da Aplicação
+function loop() {
+    window.requestAnimationFrame(loop);
+    
+    // Processamento de Screen Shake (Trepidação de impacto)
+    ctx.save();
+    if (shakeTime > 0) {
+        let dx = (Math.random() - 0.5) * 7, dy = (Math.random() - 0.5) * 7;
+        ctx.translate(dx, dy); shakeTime--;
+    }
+
+    // Desenho do Cenário Cyberpunk Avançado (Grid Dinâmico + Néon)
+    let fillG = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, canvas.width);
+    fillG.addColorStop(0, '#0a0518'); fillG.addColorStop(1, '#020106');
+    ctx.fillStyle = fillG; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.06)'; ctx.lineWidth = 1.5;
+    for (let i = 0; i < canvas.width; i += 45) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+    
+    // Piso de neon tecnológico
+    ctx.fillStyle = '#070714'; ctx.fillRect(0, canvas.height - 90, canvas.width, 90);
+    ctx.strokeStyle = '#00f0ff'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(0, canvas.height - 90); ctx.lineTo(canvas.width, canvas.height - 90); ctx.stroke();
+    
+    // Render de Partículas
+    particles.forEach((p, idx) => {
+        p.x += p.vx; p.y += p.vy; p.alpha -= 0.02;
+        if (p.alpha <= 0) particles.splice(idx, 1);
+        else {
+            ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill(); ctx.restore();
+        }
+    });
+
+    // Render de Projéteis dos Inimigos Fortes
+    projectiles.forEach((proj, idx) => {
+        proj.x += proj.vx;
+        ctx.fillStyle = proj.color; ctx.shadowBlur = 10; ctx.shadowColor = proj.color;
+        ctx.fillRect(proj.x, proj.y, proj.w, proj.h); ctx.shadowBlur = 0;
+        
+        if (proj.x < 0 || proj.x > canvas.width) projectiles.splice(idx, 1);
+        
+        // Colisão do laser com Jogadores
+        if (p1.hp > 0 && proj.x + proj.w >= p1.pos.x && proj.x <= p1.pos.x + p1.w && proj.y + proj.h >= p1.pos.y && proj.y <= p1.pos.y + p1.h) {
+            p1.damage(12); document.getElementById('p1H').style.width = (p1.hp / p1.maxHp * 100) + '%';
+            projectiles.splice(idx, 1);
+        }
+        if (p2.hp > 0 && proj.x + proj.w >= p2.pos.x && proj.x <= p2.pos.x + p2.w && proj.y + proj.h >= p2.pos.y && proj.y <= p2.pos.y + p2.h) {
+            p2.damage(12); document.getElementById('p2H').style.width = (p2.hp / p2.maxHp * 100) + '%';
+            projectiles.splice(idx, 1);
+        }
+    });
+
+    // Atualização dos Jogadores
+    if (p1.hp > 0) p1.update(); if (p2.hp > 0) p2.update();
+    
+    // Tratamento de eliminação de bots e recompensa em moedas
+    enemies.forEach((bot, bIdx) => {
+        if (bot.hp <= 0) {
+            let bounty = bot.type === 'goliath' ? 5 : (bot.type === 'ninja' ? 3 : 1);
+            moedas += bounty; updateHUDLabels();
+            shakeTime = 8;
+            enemies.splice(bIdx, 1);
+        } else {
+            bot.update();
+        }
+    });
+    
+    document.getElementById('enemyCount').innerText = `Bots: ${enemies.length}`;
+    updateHUDLabels();
+
+    if (gameActive) {
+        updateBots();
+        
+        // Movimentação P1
+        p1.vel.x = 0;
+        if (p1.hp > 0 && p1.state !== 'hit' && !p1.comboChainActive) {
+            if (keys.a || input.p1L) { p1.vel.x = -5.8; p1.facing = 'left'; }
+            else if (keys.d || input.p1R) { p1.vel.x = 5.8; p1.facing = 'right'; }
+        }
+        // Movimentação P2
+        p2.vel.x = 0;
+        if (p2.hp > 0 && p2.state !== 'hit' && !p2.comboChainActive) {
+            if (keys.ArrowLeft || input.p2L) { p2.vel.x = -5.8; p2.facing = 'left'; }
+            else if (keys.ArrowRight || input.p2R) { p2.vel.x = 5.8; p2.facing = 'right'; }
+        }
+
+        // Checagem das caixas de colisão de ataques melee
+        enemies.forEach(bot => {
+            if (bot.pos.y < -10) return;
+            
+            // Ataque do P1 (Garante bônus de dano se for aéreo ou combo)
+            if (p1.hp > 0 && p1.isAtk && checkCol(p1, bot)) {
+                let damageAmt = 16 * p1.atkMult;
+                if (p1.vel.y !== 0) damageAmt *= 1.4; // Golpe Crítico de Queda Aérea!
+                bot.damage(damageAmt); p1.isAtk = false;
+            }
+            // Ataque do P2
+            if (p2.hp > 0 && p2.isAtk && checkCol(p2, bot)) {
+                let damageAmt = 16 * p2.atkMult;
+                if (p2.vel.y !== 0) damageAmt *= 1.4;
+                bot.damage(damageAmt); p2.isAtk = false;
+            }
+            // Ataques dos Bots nos Jogadores
+            if (bot.isAtk) {
+                let botDmg = bot.type === 'goliath' ? 14 : (bot.type === 'ninja' ? 5 : 7);
+                if (p1.hp > 0 && checkCol(bot, p1)) {
+                    p1.damage(botDmg); document.getElementById('p1H').style.width = (p1.hp / p1.maxHp * 100) + '%';
+                    bot.isAtk = false;
+                }
+                if (p2.hp > 0 && checkCol(bot, p2)) {
+                    p2.damage(botDmg); document.getElementById('p2H').style.width = (p2.hp / p2.maxHp * 100) + '%';
+                    bot.isAtk = false;
+                }
+            }
+        });
+
+        if (enemies.length === 0) endRound(true);
+        if (p1.hp <= 0 && p2.hp <= 0) endRound(false);
+    }
+    ctx.restore();
+}
+
+window.addEventListener('click', () => { initAudio(); });
+spawnHorda(); loop();
+</script>
+</body>
+</html>
