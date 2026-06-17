@@ -3,55 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cyber Fight Evolution: Horda RPG</title>
+    <title>Cyber Split-Screen Arena RPG</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        body { background: #020205; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
-        #gameContainer { position: relative; width: 100%; max-width: 1024px; aspect-ratio: 16/9; background: #000; border: 4px solid #00f0ff; box-shadow: 0 0 35px rgba(0, 240, 255, 0.3); border-radius: 12px; overflow: hidden; }
+        body { background: #010103; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        
+        #gameContainer { position: relative; width: 100%; max-width: 1100px; aspect-ratio: 16/9; background: #000; border: 4px solid #00f0ff; box-shadow: 0 0 30px rgba(0, 240, 255, 0.3); border-radius: 12px; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
         
-        /* HUD Style */
-        .hud { position: absolute; top: 15px; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 25px; pointer-events: none; z-index: 5; }
-        .p-panel { width: 28%; display: flex; flex-direction: column; gap: 4px; background: rgba(5,5,15,0.6); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
-        .p1-color { color: #ff0055; text-shadow: 0 0 5px #ff0055; font-size: 13px; font-weight: bold; }
-        .p2-color { color: #00ff66; text-shadow: 0 0 5px #00ff66; font-size: 13px; font-weight: bold; text-align: right; }
-        .bar-bg { width: 100%; background: rgba(0, 0, 0, 0.6); height: 16px; border: 1px solid #fff; border-radius: 4px; overflow: hidden; }
+        /* HUD Superior Global */
+        .hud { position: absolute; top: 12px; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; pointer-events: none; z-index: 5; }
+        .p-panel { width: 25%; display: flex; flex-direction: column; gap: 3px; background: rgba(4,4,12,0.75); padding: 6px; border-radius: 6px; border: 1px solid rgba(0,240,255,0.2); pointer-events: auto; }
+        .p1-color { color: #ff0055; text-shadow: 0 0 5px #ff0055; font-size: 12px; font-weight: bold; }
+        .p2-color { color: #00ff66; text-shadow: 0 0 5px #00ff66; font-size: 12px; font-weight: bold; text-align: right; }
+        .bar-bg { width: 100%; background: #000; height: 14px; border: 1px solid #fff; border-radius: 3px; overflow: hidden; }
         .bar { height: 100%; width: 100%; transition: width 0.1s; background: linear-gradient(90deg, #ff0055, #ffaa00); }
         #p2H { background: linear-gradient(270deg, #00ff66, #00ffff); }
-        .stats-lbl { font-size: 11px; color: #aaa; display: flex; justify-content: space-between; margin-top: 2px; }
+        .stats-lbl { font-size: 10px; color: #bbb; display: flex; justify-content: space-between; margin-top: 1px; }
         
-        #centerInfo { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-        #waveInfo { background: rgba(10, 10, 25, 0.85); padding: 6px 16px; border: 2px solid #ffaa00; border-radius: 8px; color: #ffaa00; font-size: 15px; font-weight: bold; text-align: center; box-shadow: 0 0 15px rgba(255, 170, 0, 0.2); }
-        #coinCounter { background: #ffcc00; color: #000; font-weight: bold; padding: 2px 10px; border-radius: 20px; font-size: 14px; box-shadow: 0 0 8px #ffcc00; }
+        #centerInfo { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+        #waveInfo { background: rgba(5, 5, 15, 0.9); padding: 4px 12px; border: 2px solid #ffaa00; border-radius: 6px; color: #ffaa00; font-size: 13px; font-weight: bold; text-align: center; }
+        #coinCounter { background: #ffcc00; color: #000; font-weight: bold; padding: 1px 8px; border-radius: 12px; font-size: 12px; }
         
-        /* Telas de Overlay */
-        .overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 3, 10, 0.9); flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
-        #over h1 { font-size: 46px; font-weight: bold; margin-bottom: 10px; letter-spacing: 3px; }
-        
-        /* Sistema de Loja Cyberpunk */
-        #shop { background: rgba(6, 6, 20, 0.95); border: 2px solid #ffcc00; box-shadow: 0 0 30px rgba(255, 204, 0, 0.3); border-radius: 12px; width: 85%; height: 80%; padding: 20px; color: #fff; display: none; flex-direction: column; align-items: center; justify-content: space-between; z-index: 11; position: absolute; top: 10%; left: 7.5%; }
-        .shop-title { color: #ffcc00; font-size: 28px; font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,204,0,0.5); }
-        .shop-container { display: flex; gap: 15px; width: 100%; justify-content: center; margin: 15px 0; }
-        .shop-item { background: #111126; border: 2px solid #00f0ff; border-radius: 8px; width: 22%; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; transition: 0.2s; }
-        .shop-item:hover { background: #16163a; transform: translateY(-3px); }
-        .item-name { font-weight: bold; color: #fff; font-size: 15px; margin-bottom: 5px; }
-        .item-desc { font-size: 11px; color: #888; margin-bottom: 10px; height: 35px; }
-        .buy-btn { background: #ffcc00; color: #000; border: none; font-weight: bold; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; width: 100%; transition: 0.1s; }
-        .buy-btn:hover { background: #fff; box-shadow: 0 0 10px #fff; }
-        .close-shop { background: #ff0055; color: #fff; border: none; padding: 8px 25px; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        /* Botões Superiores do Sistema */
+        #sysControls { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 6; }
+        .sys-btn { background: #111; border: 1px solid #00f0ff; color: #00f0ff; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
+        .sys-btn:hover { background: #00f0ff; color: #000; }
 
-        /* Controles Virtuais Mobile */
-        #ctrls { position: absolute; bottom: 0; left: 0; width: 100%; height: 115px; display: flex; justify-content: space-between; padding: 10px 20px; pointer-events: none; z-index: 5; }
-        .pad { display: flex; gap: 8px; pointer-events: auto; align-items: center; }
-        .btn { width: 48px; height: 48px; background: rgba(12, 12, 30, 0.75); border: 2px solid #00f0ff; border-radius: 50%; color: #00f0ff; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .btn:active { background: #00f0ff; color: #000; box-shadow: 0 0 15px #00f0ff; }
-        .atk-b { width: 56px; height: 56px; border-radius: 12px; font-size: 22px; border-color: #ff0055; color: #ff0055; }
-        .atk-b:active { background: #ff0055; color: #fff; box-shadow: 0 0 15px #ff0055; }
+        /* Overlays / Telas Modais */
+        .overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(2, 2, 6, 0.9); flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
+        #over h1 { font-size: 38px; font-weight: bold; margin-bottom: 8px; letter-spacing: 2px; }
+        
+        /* Menu de Customização de Controles */
+        #ctrlConfigModal { display: none; position: absolute; top: 15%; left: 15%; width: 70%; height: 70%; background: rgba(10,10,25,0.95); border: 2px solid #00f0ff; border-radius: 10px; z-index: 12; padding: 20px; flex-direction: column; align-items: center; justify-content: space-between; }
+        .cfg-row { display: flex; gap: 20px; width: 100%; justify-content: center; }
+        .cfg-box { background: #161633; border: 1px solid rgba(255,255,255,0.2); padding: 10px; border-radius: 6px; width: 45%; text-align: center; }
+        .cfg-select { background: #000; color: #00f0ff; border: 1px solid #00f0ff; padding: 5px; width: 90%; font-family: monospace; margin-top: 8px; }
+
+        /* Loja Virtual */
+        #shop { background: rgba(5, 5, 15, 0.98); border: 2px solid #ffcc00; box-shadow: 0 0 25px rgba(255, 204, 0, 0.25); border-radius: 12px; width: 85%; height: 75%; padding: 15px; color: #fff; display: none; flex-direction: column; align-items: center; justify-content: space-between; z-index: 11; position: absolute; top: 12.5%; left: 7.5%; }
+        .shop-container { display: flex; gap: 10px; width: 100%; justify-content: center; margin: 10px 0; }
+        .shop-item { background: #0f0f20; border: 2px solid #00f0ff; border-radius: 6px; width: 23%; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; }
+        .buy-btn { background: #ffcc00; color: #000; border: none; font-weight: bold; padding: 6px; border-radius: 4px; cursor: pointer; font-size: 11px; width: 100%; }
+        .close-shop { background: #ff0055; color: #fff; border: none; padding: 6px 20px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+
+        /* Joysticks Virtuais Movevíveis */
+        .pad-layer { position: absolute; display: flex; gap: 6px; align-items: center; pointer-events: auto; z-index: 4; }
+        #padP1 { bottom: 15px; left: 15px; }
+        #padP2 { bottom: 15px; right: 15px; }
+        .btn { width: 44px; height: 44px; background: rgba(10, 10, 25, 0.85); border: 2px solid #00f0ff; border-radius: 50%; color: #00f0ff; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .btn:active { background: #00f0ff; color: #000; }
+        .atk-b { width: 50px; height: 50px; border-radius: 10px; border-color: #ff0055; color: #ff0055; font-size: 18px; }
+        .atk-b:active { background: #ff0055; color: #fff; }
     </style>
 </head>
 <body>
 
 <div id="gameContainer">
+    <!-- HUD Placar Geral -->
     <div class="hud">
         <div class="p-panel">
             <span class="p1-color">CYBER-P1 [A/D/W/Espaço]</span>
@@ -69,54 +78,83 @@
         </div>
     </div>
     
-    <div id="over" class="overlay">
-        <h1 id="winTxt">SISTEMA ONLINE</h1>
-        <div id="subTxt" style="color: #66efec">Clique para carregar a matriz de combate...</div>
+    <!-- Botões Globais de Utilidades -->
+    <div id="sysControls">
+        <button class="sys-btn" id="pauseBtn" onclick="togglePause()">⏸ PAUSAR</button>
+        <button class="sys-btn" onclick="openConfig()">⚙️ AJUSTAR CONTROLES</button>
     </div>
 
-    <div id="shop">
-        <div class="shop-title">⚡ MATRIX MODIFICATION SHOP ⚡</div>
-        <div style="font-size: 14px; color: #ffcc00">Seu Saldo: 🪙 <span id="shopCoinVal">0</span></div>
-        <div class="shop-container">
-            <div class="shop-item">
-                <div class="item-name">🔥 Nano-Dano P1</div>
-                <div class="item-desc">Aumenta permanentemente o ataque do Jogador 1 (+25%)</div>
-                <button class="buy-btn" onclick="buyUpgrade('p1_atk', 15)">Custo: 15</button>
+    <!-- Modais e Telas de Status -->
+    <div id="over" class="overlay">
+        <h1 id="winTxt">SISTEMA EM SPLIT-SCREEN</h1>
+        <div id="subTxt" style="color: #ffaa00">Toque na tela para iniciar e ligar som sincronizado...</div>
+    </div>
+
+    <!-- Modal de Posição dos Controles Virtuais -->
+    <div id="ctrlConfigModal">
+        <div style="font-size: 18px; color: #00f0ff; font-weight: bold;">CONFIGURAÇÕES DE LAYOUT MOBILE</div>
+        <div class="cfg-row">
+            <div class="cfg-box">
+                <div style="color: #ff0055; font-weight: bold;">Posição Painel P1</div>
+                <select id="posP1Select" class="cfg-select" onchange="applyControlPositions()">
+                    <option value="bottom-left">Inferior Esquerdo (Padrão)</option>
+                    <option value="top-left">Superior Esquerdo</option>
+                    <option value="bottom-right">Inferior Direito</option>
+                </select>
             </div>
-            <div class="shop-item">
-                <div class="item-name">❤️ Núcleo Vital P1</div>
-                <div class="item-desc">Aumenta a Vida Máxima e cura o Jogador 1 completo</div>
-                <button class="buy-btn" onclick="buyUpgrade('p1_hp', 12)">Custo: 12</button>
-            </div>
-            <div class="shop-item">
-                <div class="item-name">⚡ Nano-Dano P2</div>
-                <div class="item-desc">Aumenta permanentemente o ataque do Jogador 2 (+25%)</div>
-                <button class="buy-btn" onclick="buyUpgrade('p2_atk', 15)">Custo: 15</button>
-            </div>
-            <div class="shop-item">
-                <div class="item-name">💚 Núcleo Vital P2</div>
-                <div class="item-desc">Aumenta a Vida Máxima e cura o Jogador 2 completo</div>
-                <button class="buy-btn" onclick="buyUpgrade('p2_hp', 12)">Custo: 12</button>
+            <div class="cfg-box">
+                <div style="color: #00ff66; font-weight: bold;">Posição Painel P2</div>
+                <select id="posP2Select" class="cfg-select" onchange="applyControlPositions()">
+                    <option value="bottom-right">Inferior Direito (Padrão)</option>
+                    <option value="top-right">Superior Direito</option>
+                    <option value="bottom-left">Inferior Esquerdo</option>
+                </select>
             </div>
         </div>
-        <button class="close-shop" onclick="closeShop()">PRÓXIMA HORDA ➔</button>
+        <button class="sys-btn" style="padding: 10px 30px;" onclick="closeConfig()">SALVAR E FECHAR</button>
+    </div>
+
+    <!-- Loja Modificações -->
+    <div id="shop">
+        <div style="color: #ffcc00; font-size: 22px; font-weight: bold;">⚡ MATRIX SPLIT LOJA ⚡</div>
+        <div style="font-size: 13px;">Saldo Atual: 🪙 <span id="shopCoinVal">0</span></div>
+        <div class="shop-container">
+            <div class="shop-item">
+                <div>🔥 Upgrade Dano P1</div>
+                <button class="buy-btn" onclick="buyUpgrade('p1_atk', 12)">Custo: 12</button>
+            </div>
+            <div class="shop-item">
+                <div>❤️ Matriz HP P1</div>
+                <button class="buy-btn" onclick="buyUpgrade('p1_hp', 10)">Custo: 10</button>
+            </div>
+            <div class="shop-item">
+                <div>⚡ Upgrade Dano P2</div>
+                <button class="buy-btn" onclick="buyUpgrade('p2_atk', 12)">Custo: 12</button>
+            </div>
+            <div class="shop-item">
+                <div>💚 Matriz HP P2</div>
+                <button class="buy-btn" onclick="buyUpgrade('p2_hp', 10)">Custo: 10</button>
+            </div>
+        </div>
+        <button class="close-shop" onclick="closeShop()">AVANÇAR COMBATE ➔</button>
     </div>
     
     <canvas id="gameCanvas"></canvas>
     
-    <div id="ctrls">
-        <div class="pad">
-            <div class="btn" id="p1L">◀</div>
-            <div class="btn" id="p1R">▶</div>
-            <div class="btn" id="p1J">▲</div>
-            <div class="btn atk-b" id="p1A">👊</div>
-        </div>
-        <div class="pad">
-            <div class="btn atk-b" id="p2A">👊</div>
-            <div class="btn" id="p2J">▲</div>
-            <div class="btn" id="p2L">◀</div>
-            <div class="btn" id="p2R">▶</div>
-        </div>
+    <!-- Painel Virtual P1 -->
+    <div class="pad-layer" id="padP1">
+        <div class="btn" id="p1L">◀</div>
+        <div class="btn" id="p1R">▶</div>
+        <div class="btn" id="p1J">▲</div>
+        <div class="btn atk-b" id="p1A">👊</div>
+    </div>
+    
+    <!-- Painel Virtual P2 -->
+    <div class="pad-layer" id="padP2">
+        <div class="btn atk-b" id="p2A">👊</div>
+        <div class="btn" id="p2J">▲</div>
+        <div class="btn" id="p2L">◀</div>
+        <div class="btn" id="p2R">▶</div>
     </div>
 </div>
 
@@ -127,114 +165,128 @@ canvas.width = 1024; canvas.height = 576;
 
 const gravity = 0.65;
 let gameActive = true;
-let horda = 1;
-let moedas = 0;
-let audioCtx = null;
-let synthInterval = null;
+let isPaused = false;
+let horda = 1; let moedas = 0;
 let shakeTime = 0;
 
-// Inputs Teclado e Mobile
+// Sistema de Audio Estabilizado Sem Queda de Conexão
+let audioCtx = null;
+let musicNode = null;
+let musicGain = null;
+
 const keys = { a: false, d: false, w: false, ' ': false, ArrowLeft: false, ArrowRight: false, ArrowUp: false, Enter: false };
 const input = { p1L: false, p1R: false, p2L: false, p2R: false };
-
-// Projéteis e Efeitos Visuais
-let projectiles = [];
-let particles = [];
+let projectiles = []; let particles = [];
 
 function initAudio() {
-    if (audioCtx) return;
+    if (audioCtx) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        return;
+    }
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    let notes = [98, 98, 116, 116, 87, 87, 110, 130]; let step = 0;
-    synthInterval = setInterval(() => {
-        if (!gameActive || audioCtx.state === 'suspended') return;
-        let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.02, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
-        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.2); step++;
-    }, 240);
+    
+    // Engine de Trilha Sonora Contínua Sincronizada por Nós Fixos
+    musicGain = audioCtx.createGain();
+    musicGain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+    musicGain.connect(audioCtx.destination);
+    
+    let notes = [110, 110, 130, 98, 110, 110, 146, 87];
+    let step = 0;
+    setInterval(() => {
+        if (!gameActive || isPaused || audioCtx.state === 'suspended') return;
+        let osc = audioCtx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
+        let noteGain = audioCtx.createGain();
+        noteGain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+        noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
+        osc.connect(noteGain);
+        noteGain.connect(musicGain);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.22);
+        step++;
+    }, 250);
 }
 
 function playSound(type) {
-    if (!audioCtx || audioCtx.state === 'suspended') return;
-    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    let osc = audioCtx.createOscillator();
+    let gainNode = audioCtx.createGain();
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
     if (type === 'hit') {
-        osc.type = 'triangle'; osc.frequency.setValueAtTime(140, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.12); gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(45, audioCtx.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
     } else if (type === 'jump') {
-        osc.type = 'sine'; osc.frequency.setValueAtTime(170, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.14); gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(420, audioCtx.currentTime + 0.12);
+        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
     } else if (type === 'atk') {
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(320, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.08); gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(130, audioCtx.currentTime + 0.07);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
     } else if (type === 'laser') {
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-        osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.25); gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(380, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(90, audioCtx.currentTime + 0.2);
+        gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
     }
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2); osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.15);
 }
 
 class Fighter {
     constructor({ x, color, id, isBot = false, type = 'normal' }) {
-        this.pos = { x, y: 0 }; this.vel = { x: 0, y: 0 }; this.w = 55; this.h = 132;
+        this.pos = { x, y: 0 }; this.vel = { x: 0, y: 0 }; this.w = 52; this.h = 125;
         this.color = color; this.id = id; this.isBot = isBot; this.type = type;
         this.hp = 100; this.maxHp = 100; this.atkMult = 1.0;
         this.isAtk = false; this.facing = id === 1 ? 'right' : 'left';
         this.state = 'idle'; this.stTimer = 0;
-        this.atkBox = { pos: { x: 0, y: 0 }, w: 100, h: 45 };
+        this.atkBox = { pos: { x: 0, y: 0 }, w: 90, h: 40 };
+        this.comboCount = 0; this.lastAtkTime = 0; this.comboChainActive = false;
         
-        // Controle de combos interno
-        this.lastAtkTime = 0; this.comboCount = 0; this.comboChainActive = false;
-        
-        // Customização baseada no tipo de bot
         if (this.isBot) {
-            if (type === 'ninja') { this.maxHp = 70; this.hp = 70; this.color = '#bf00ff'; }
-            if (type === 'goliath') { this.maxHp = 220; this.hp = 220; this.w = 80; this.h = 160; this.color = '#ffcc00'; }
+            if (type === 'ninja') { this.maxHp = 75; this.hp = 75; this.color = '#bd00ff'; }
+            if (type === 'goliath') { this.maxHp = 200; this.hp = 200; this.w = 75; this.h = 150; this.color = '#ffcc00'; }
         }
     }
 
-    draw() {
+    draw(offsetX = 0) {
         ctx.save();
-        ctx.shadowBlur = this.state === 'hit' ? 22 : 12;
+        ctx.shadowBlur = this.state === 'hit' ? 20 : 10;
         ctx.shadowColor = this.color;
         
-        let grad = ctx.createLinearGradient(this.pos.x, this.pos.y, this.pos.x, this.pos.y + this.h);
+        let grad = ctx.createLinearGradient(this.pos.x + offsetX, this.pos.y, this.pos.x + offsetX, this.pos.y + this.h);
         grad.addColorStop(0, this.state === 'hit' ? '#fff' : this.color);
-        grad.addColorStop(1, '#050510');
+        grad.addColorStop(1, '#03030a');
         
         ctx.fillStyle = grad;
-        ctx.beginPath(); ctx.roundRect(this.pos.x, this.pos.y, this.w, this.h, 8); ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.beginPath(); ctx.roundRect(this.pos.x + offsetX, this.pos.y, this.w, this.h, 6); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // Expressões dos Rostos Digitais
-        ctx.fillStyle = '#fff'; ctx.font = 'bold 15px monospace';
-        let fx = this.pos.x + (this.facing === 'right' ? 15 : 10), fy = this.pos.y + 35;
-        let face = "•_•";
-        if (this.state === 'hit') face = "✕_✕";
-        else if (this.state === 'atk') face = "⚙_O";
-        if (this.type === 'goliath') face = "💀_💀";
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 14px monospace';
+        let fx = this.pos.x + offsetX + (this.facing === 'right' ? 14 : 8), fy = this.pos.y + 30;
+        let face = "•_•"; if (this.state === 'hit') face = "✕_✕"; else if (this.state === 'atk') face = "⚙_⚙";
+        if (this.type === 'goliath') face = "🤖_🤖";
         ctx.fillText(face, fx, fy);
 
-        // Feedback visual do braço/punho estendido esticado
         if (this.isAtk) {
             ctx.fillStyle = '#fff';
-            let ax = this.facing === 'right' ? this.pos.x + this.w : this.pos.x - 35;
-            ctx.fillRect(ax, this.pos.y + 40, 35, 18);
-            ctx.fillStyle = this.color;
-            ctx.fillRect(this.facing === 'right' ? ax+20 : ax, this.pos.y + 37, 15, 24);
+            let ax = this.facing === 'right' ? this.pos.x + offsetX + this.w : this.pos.x + offsetX - 30;
+            ctx.fillRect(ax, this.pos.y + 35, 30, 16);
         }
         ctx.restore();
     }
 
     update() {
-        this.draw();
         this.atkBox.pos.x = this.facing === 'right' ? this.pos.x + this.w - 10 : this.pos.x - this.atkBox.w + 10;
-        this.atkBox.pos.y = this.pos.y + 35;
-
+        this.atkBox.pos.y = this.pos.y + 30;
         if (this.stTimer > 0) { this.stTimer--; if (this.stTimer === 0) this.state = 'idle'; }
+        
         this.pos.x += this.vel.x; this.pos.y += this.vel.y;
-
         let floorY = canvas.height - 90 - this.h;
         if (this.pos.y >= floorY) { this.vel.y = 0; this.pos.y = floorY; } else { this.vel.y += gravity; }
         this.pos.x = Math.max(0, Math.min(canvas.width - this.w, this.pos.x));
@@ -242,141 +294,134 @@ class Fighter {
 
     attack() {
         if (this.isAtk || this.state === 'hit') return;
-        
         let now = Date.now();
-        if (now - this.lastAtkTime < 450) {
-            this.comboCount++;
-        } else {
-            this.comboCount = 1;
-        }
+        this.comboCount = (now - this.lastAtkTime < 400) ? this.comboCount + 1 : 1;
         this.lastAtkTime = now;
 
-        this.state = 'atk'; this.isAtk = true; this.stTimer = 12;
-        playSound('atk');
+        this.state = 'atk'; this.isAtk = true; this.stTimer = 12; playSound('atk');
 
-        // LÓGICA DE COMBO AUTOMÁTICA: Se apertar 3 vezes rápido, executa investida violenta
         if (this.comboCount >= 3) {
             this.comboChainActive = true;
-            this.vel.x = this.facing === 'right' ? 16 : -16; // Avanço rápido automático do combo
-            this.stTimer = 18;
+            this.vel.x = this.facing === 'right' ? 14 : -14;
             this.comboCount = 0;
             createExplosion(this.pos.x + this.w/2, this.pos.y + 40, this.color);
         }
 
-        // Ataques especiais de bosses/inimigos goliaths
         if (this.type === 'goliath' && Math.random() < 0.4) {
             playSound('laser');
             projectiles.push({
-                x: this.facing === 'right' ? this.pos.x + this.w : this.pos.x - 40,
-                y: this.pos.y + 50,
-                vx: this.facing === 'right' ? 7 : -7, w: 40, h: 15, color: '#ffcc00'
+                x: this.facing === 'right' ? this.pos.x + this.w : this.pos.x - 40, y: this.pos.y + 45,
+                vx: this.facing === 'right' ? 6.5 : -6.5, w: 35, h: 12, color: '#ffcc00'
             });
         }
-
         setTimeout(() => { this.isAtk = false; this.comboChainActive = false; }, 130);
     }
 
     damage(amt) {
-        this.hp = Math.max(0, this.hp - amt); this.state = 'hit'; this.stTimer = 15;
-        playSound('hit');
-        createExplosion(this.pos.x + this.w/2, this.pos.y + 50, '#fff');
+        this.hp = Math.max(0, this.hp - amt); this.state = 'hit'; this.stTimer = 14; playSound('hit');
+        createExplosion(this.pos.x + this.w/2, this.pos.y + 45, '#fff');
     }
 }
 
-// Criação dos Lutadores Aliados
-const p1 = new Fighter({ x: 220, color: '#ff0055', id: 1 });
-const p2 = new Fighter({ x: 340, color: '#00ff66', id: 2 });
+const p1 = new Fighter({ x: 180, color: '#ff0055', id: 1 });
+const p2 = new Fighter({ x: 280, color: '#00ff66', id: 2 });
 let enemies = [];
 
 function createExplosion(x, y, color) {
-    for (let i = 0; i < 8; i++) {
-        particles.push({
-            x, y,
-            vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
-            r: Math.random() * 4 + 2, alpha: 1, color
-        });
+    for (let i = 0; i < 6; i++) {
+        particles.push({ x, y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, r: Math.random() * 3 + 1.5, alpha: 1, color });
     }
 }
 
 function spawnHorda() {
-    enemies = [];
-    projectiles = [];
+    enemies = []; projectiles = [];
     let count = horda + 2;
-    let currentType = 'normal';
-    
-    if (horda >= 3 && horda < 5) currentType = 'ninja';
-    else if (horda >= 5) currentType = Math.random() < 0.4 ? 'goliath' : 'ninja';
+    let botType = horda >= 3 ? 'ninja' : 'normal';
+    if (horda >= 5) botType = Math.random() < 0.5 ? 'goliath' : 'ninja';
 
     for (let i = 0; i < count; i++) {
-        let side = i % 2 === 0 ? 40 : canvas.width - 120;
-        let delayOffset = Math.floor(i / 2) * -170;
-        enemies.push(new Fighter({
-            x: side + (Math.random() * 50 - 25), y: delayOffset - 60,
-            color: '#707085', id: 10 + i, isBot: true, type: i === 0 && horda >= 4 ? 'goliath' : currentType
-        }));
+        let side = i % 2 === 0 ? 50 : canvas.width - 110;
+        let stagger = Math.floor(i / 2) * -150;
+        enemies.push(new Fighter({ x: side + (Math.random() * 40 - 20), y: stagger - 50, color: '#686878', id: 10 + i, isBot: true, type: i === 0 && horda >= 4 ? 'goliath' : botType }));
     }
     document.getElementById('waveInfo').innerHTML = `HORDA ${horda}<br><span id="enemyCount">Bots: ${enemies.length}</span>`;
 }
 
-// Vinculação de Eventos Mobile e cliques de áudio
-function bind(id, start, endAction) {
-    const el = document.getElementById(id);
-    el.addEventListener('touchstart', (e) => { e.preventDefault(); initAudio(); start(); });
-    el.addEventListener('touchend', (e) => { e.preventDefault(); endAction(); });
-    el.addEventListener('mousedown', () => { initAudio(); start(); }); el.addEventListener('mouseup', endAction);
+// Funções do Menu de Customização das Telas dos Controles
+function applyControlPositions() {
+    const p1Pos = document.getElementById('posP1Select').value;
+    const p2Pos = document.getElementById('posP2Select').value;
+    const pad1 = document.getElementById('padP1');
+    const pad2 = document.getElementById('padP2');
+
+    // Reset de estilos de posicionamento para P1
+    pad1.style.top = pad1.style.bottom = pad1.style.left = pad1.style.right = 'auto';
+    if (p1Pos === 'bottom-left') { pad1.style.bottom = '15px'; pad1.style.left = '15px'; }
+    else if (p1Pos === 'top-left') { pad1.style.top = '140px'; pad1.style.left = '15px'; }
+    else if (p1Pos === 'bottom-right') { pad1.style.bottom = '15px'; pad1.style.right = '15px'; }
+
+    // Reset de estilos de posicionamento para P2
+    pad2.style.top = pad2.style.bottom = pad2.style.left = pad2.style.right = 'auto';
+    if (p2Pos === 'bottom-right') { pad2.style.bottom = '15px'; pad2.style.right = '15px'; }
+    else if (p2Pos === 'top-right') { pad2.style.top = '140px'; pad2.style.right = '15px'; }
+    else if (p2Pos === 'bottom-left') { pad2.style.bottom = '15px'; pad2.style.left = '15px'; }
 }
 
-bind('p1L', () => input.p1L = true, () => input.p1L = false);
-bind('p1R', () => input.p1R = true, () => input.p1R = false);
-bind('p1J', () => { if (p1.vel.y === 0 && gameActive && p1.hp > 0) { p1.vel.y = -15; playSound('jump'); } }, () => {});
-bind('p1A', () => { if (gameActive && p1.hp > 0) p1.attack(); }, () => {});
+function openConfig() { isPaused = true; document.getElementById('ctrlConfigModal').style.display = 'flex'; }
+function closeConfig() { isPaused = false; document.getElementById('ctrlConfigModal').style.display = 'none'; }
+function togglePause() {
+    isPaused = !isPaused;
+    document.getElementById('pauseBtn').innerText = isPaused ? "▶ RETOMAR" : "⏸ PAUSAR";
+}
 
-bind('p2L', () => input.p2L = true, () => input.p2L = false);
-bind('p2R', () => input.p2R = true, () => input.p2R = false);
-bind('p2J', () => { if (p2.vel.y === 0 && gameActive && p2.hp > 0) { p2.vel.y = -15; playSound('jump'); } }, () => {});
+function bind(id, start, endAction) {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); initAudio(); if(!isPaused) start(); });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); endAction(); });
+    el.addEventListener('mousedown', () => { initAudio(); if(!isPaused) start(); }); el.addEventListener('mouseup', endAction);
+}
+
+bind('p1L', () => input.p1L = true, () => input.p1L = false); bind('p1R', () => input.p1R = true, () => input.p1R = false);
+bind('p1J', () => { if (p1.vel.y === 0 && gameActive && p1.hp > 0) { p1.vel.y = -14.5; playSound('jump'); } }, () => {});
+bind('p1A', () => { if (gameActive && p1.hp > 0) p1.attack(); }, () => {});
+bind('p2L', () => input.p2L = true, () => input.p2L = false); bind('p2R', () => input.p2R = true, () => input.p2R = false);
+bind('p2J', () => { if (p2.vel.y === 0 && gameActive && p2.hp > 0) { p2.vel.y = -14.5; playSound('jump'); } }, () => {});
 bind('p2A', () => { if (gameActive && p2.hp > 0) p2.attack(); }, () => {});
 
 window.addEventListener('keydown', (e) => {
     initAudio(); if (e.key in keys) keys[e.key] = true;
-    if (e.key.toLowerCase() === 'a') keys.a = true;
-    if (e.key.toLowerCase() === 'd') keys.d = true;
-    if (e.key.toLowerCase() === 'w') { if(p1.vel.y === 0 && gameActive && p1.hp > 0) { p1.vel.y = -15; playSound('jump'); } }
-    if (e.key === ' ') { if(gameActive && p1.hp > 0) p1.attack(); }
-    if (e.key === 'ArrowUp') { if(p2.vel.y === 0 && gameActive && p2.hp > 0) { p2.vel.y = -15; playSound('jump'); } }
-    if (e.key === 'Enter') { if(gameActive && p2.hp > 0) p2.attack(); }
+    if (e.key.toLowerCase() === 'a') keys.a = true; if (e.key.toLowerCase() === 'd') keys.d = true;
+    if (e.key.toLowerCase() === 'w') { if(p1.vel.y === 0 && gameActive && p1.hp > 0 && !isPaused) { p1.vel.y = -14.5; playSound('jump'); } }
+    if (e.key === ' ') { if(gameActive && p1.hp > 0 && !isPaused) p1.attack(); }
+    if (e.key === 'ArrowUp') { if(p2.vel.y === 0 && gameActive && p2.hp > 0 && !isPaused) { p2.vel.y = -14.5; playSound('jump'); } }
+    if (e.key === 'Enter') { if(gameActive && p2.hp > 0 && !isPaused) p2.attack(); }
 });
 window.addEventListener('keyup', (e) => {
     if (e.key in keys) keys[e.key] = false;
-    if (e.key.toLowerCase() === 'a') keys.a = false;
-    if (e.key.toLowerCase() === 'd') keys.d = false;
+    if (e.key.toLowerCase() === 'a') keys.a = false; if (e.key.toLowerCase() === 'd') keys.d = false;
 });
-
-function checkCol(r1, r2) {
-    return (r1.atkBox.pos.x + r1.atkBox.w >= r2.pos.x && r1.atkBox.pos.x <= r2.pos.x + r2.w && r1.atkBox.pos.y + r1.atkBox.h >= r2.pos.y && r1.atkBox.pos.y <= r2.pos.y + r2.h);
-}
 
 function updateBots() {
     enemies.forEach(bot => {
         if (bot.state === 'hit' || bot.pos.y < 0) { bot.vel.x = 0; return; }
-        
         let target = (p1.hp > 0 && (p2.hp <= 0 || Math.abs(p1.pos.x - bot.pos.x) < Math.abs(p2.pos.x - bot.pos.x))) ? p1 : p2;
         if (target.hp <= 0) { bot.vel.x = 0; return; }
         
-        let dx = target.pos.x - bot.pos.x;
-        bot.facing = dx > 0 ? 'right' : 'left';
-
-        let speed = bot.type === 'ninja' ? 4.2 : (bot.type === 'goliath' ? 1.6 : 2.6);
-        let range = bot.type === 'goliath' ? 180 : 65;
+        let dx = target.pos.x - bot.pos.x; bot.facing = dx > 0 ? 'right' : 'left';
+        let spd = bot.type === 'ninja' ? 4.0 : (bot.type === 'goliath' ? 1.5 : 2.5);
+        let range = bot.type === 'goliath' ? 170 : 65;
 
         if (Math.abs(dx) > range) {
-            bot.vel.x = dx > 0 ? speed : -speed;
-            if (bot.type === 'ninja' && Math.random() < 0.02 && bot.vel.y === 0) bot.vel.y = -14; 
+            bot.vel.x = dx > 0 ? spd : -spd;
         } else {
             bot.vel.x = 0;
-            let rate = bot.type === 'ninja' ? 0.08 : 0.04;
-            if (Math.random() < rate) bot.attack();
+            if (Math.random() < (bot.type === 'ninja' ? 0.07 : 0.04)) bot.attack();
         }
     });
+}
+
+function checkCol(r1, r2) {
+    return (r1.atkBox.pos.x + r1.atkBox.w >= r2.pos.x && r1.atkBox.pos.x <= r2.pos.x + r2.w && r1.atkBox.pos.y + r1.atkBox.h >= r2.pos.y && r1.atkBox.pos.y <= r2.pos.y + r2.h);
 }
 
 function updateHUDLabels() {
@@ -388,113 +433,75 @@ function updateHUDLabels() {
 }
 
 function endRound(win) {
-    gameActive = false;
-    const o = document.getElementById('over'), w = document.getElementById('winTxt'), s = document.getElementById('subTxt');
-    
+    gameActive = false; const o = document.getElementById('over'), w = document.getElementById('winTxt'), s = document.getElementById('subTxt');
+    o.style.display = 'flex';
     if (win) {
-        w.innerText = "HORDA DIZIMADA!"; w.style.color = "#ffaa00";
-        s.innerText = "Abrindo conexões da loja de modificações...";
-        setTimeout(() => {
-            o.style.display = 'none';
-            document.getElementById('shopCoinVal').innerText = moedas;
-            document.getElementById('shop').style.display = 'flex';
-        }, 1500);
+        w.innerText = "HORDA DIZIMADA!"; s.innerText = "Conectando ao mercado de upgrades virtuais...";
+        setTimeout(() => { o.style.display = 'none'; document.getElementById('shopCoinVal').innerText = moedas; document.getElementById('shop').style.display = 'flex'; }, 1500);
     } else {
-        w.innerText = "SISTEMA CORROMPIDO"; w.style.color = "#ff0055";
-        s.innerText = "Recarregando simulação básica de teste..."; horda = 1; moedas = 0;
-        p1.maxHp = p1.hp = 100; p2.maxHp = p2.hp = 100; p1.atkMult = 1.0; p2.atkMult = 1.0;
+        w.innerText = "FALHA DE ENGINE"; s.innerText = "Reiniciando matriz operacional principal..."; horda = 1; moedas = 0;
+        p1.maxHp = p1.hp = 100; p2.maxHp = p2.hp = 100; p1.atkMult = p2.atkMult = 1.0;
         setTimeout(() => { window.location.reload(); }, 3000);
     }
-    o.style.display = 'flex';
 }
 
 function buyUpgrade(type, cost) {
     if (moedas >= cost) {
         moedas -= cost;
-        if (type === 'p1_atk') p1.atkMult += 0.25;
-        if (type === 'p2_atk') p2.atkMult += 0.25;
+        if (type === 'p1_atk') p1.atkMult += 0.2;
+        if (type === 'p2_atk') p2.atkMult += 0.2;
         if (type === 'p1_hp') { p1.maxHp += 20; p1.hp = p1.maxHp; document.getElementById('p1H').style.width = '100%'; }
         if (type === 'p2_hp') { p2.maxHp += 20; p2.hp = p2.maxHp; document.getElementById('p2H').style.width = '100%'; }
-        document.getElementById('shopCoinVal').innerText = moedas;
-        updateHUDLabels();
-        playSound('jump');
-    } else {
-        alert("Créditos insuficientes na carteira digital!");
+        document.getElementById('shopCoinVal').innerText = moedas; updateHUDLabels(); playSound('jump');
     }
 }
+function closeShop() { document.getElementById('shop').style.display = 'none'; horda++; gameActive = true; spawnHorda(); }
 
-function closeShop() {
-    document.getElementById('shop').style.display = 'none';
-    horda++; gameActive = true; spawnHorda();
-}
-
-// Loop de Execução Contínua da Aplicação
-function loop() {
-    window.requestAnimationFrame(loop);
-    
-    // Processamento de Screen Shake (Trepidação de impacto)
+// Renderizador com Câmeras Compartilhadas (Split Screen Esquerda/Direita Inteligente)
+function renderScene(offsetX, centerTarget) {
     ctx.save();
-    if (shakeTime > 0) {
-        let dx = (Math.random() - 0.5) * 7, dy = (Math.random() - 0.5) * 7;
-        ctx.translate(dx, dy); shakeTime--;
-    }
+    // Clipa a renderização da câmera na metade correspondente da tela
+    ctx.beginPath();
+    if(offsetX === 0) ctx.rect(0, 0, canvas.width / 2, canvas.height);
+    else ctx.rect(canvas.width / 2, 0, canvas.width / 2, canvas.height);
+    ctx.clip();
 
-    // Desenho do Cenário Cyberpunk Avançado (Grid Dinâmico + Néon)
-    let fillG = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, canvas.width);
-    fillG.addColorStop(0, '#0a0518'); fillG.addColorStop(1, '#020106');
-    ctx.fillStyle = fillG; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.06)'; ctx.lineWidth = 1.5;
+    // Fundo Grid Dinâmico Estilizado
+    ctx.fillStyle = '#05050f'; ctx.fillRect(offsetX === 0 ? 0 : canvas.width/2, 0, canvas.width/2, canvas.height);
+    ctx.strokeStyle = 'rgba(0,240,255,0.05)'; ctx.lineWidth = 1;
     for (let i = 0; i < canvas.width; i += 45) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
     
-    // Piso de neon tecnológico
-    ctx.fillStyle = '#070714'; ctx.fillRect(0, canvas.height - 90, canvas.width, 90);
-    ctx.strokeStyle = '#00f0ff'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(0, canvas.height - 90); ctx.lineTo(canvas.width, canvas.height - 90); ctx.stroke();
+    // Solo Tecnológico
+    ctx.fillStyle = '#080816'; ctx.fillRect(offsetX === 0 ? 0 : canvas.width/2, canvas.height - 90, canvas.width/2, 90);
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(offsetX === 0 ? 0 : canvas.width/2, canvas.height - 90); ctx.lineTo(offsetX === 0 ? canvas.width/2 : canvas.width, canvas.height - 90); ctx.stroke();
+
+    // Renderizadores de Entidades na Câmera Relativa
+    particles.forEach(p => {
+        ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill(); ctx.restore();
+    });
+
+    projectiles.forEach(proj => {
+        ctx.fillStyle = proj.color; ctx.fillRect(proj.x, proj.y, proj.w, proj.h);
+    });
+
+    if (p1.hp > 0) p1.draw(0);
+    if (p2.hp > 0) p2.draw(0);
+    enemies.forEach(bot => bot.draw(0));
+
+    ctx.restore();
+}
+
+function loop() {
+    window.requestAnimationFrame(loop);
+    if (isPaused) return;
+
+    ctx.clearRect(0,0, canvas.width, canvas.height);
     
-    // Render de Partículas
-    particles.forEach((p, idx) => {
-        p.x += p.vx; p.y += p.vy; p.alpha -= 0.02;
-        if (p.alpha <= 0) particles.splice(idx, 1);
-        else {
-            ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill(); ctx.restore();
-        }
-    });
-
-    // Render de Projéteis dos Inimigos Fortes
-    projectiles.forEach((proj, idx) => {
-        proj.x += proj.vx;
-        ctx.fillStyle = proj.color; ctx.shadowBlur = 10; ctx.shadowColor = proj.color;
-        ctx.fillRect(proj.x, proj.y, proj.w, proj.h); ctx.shadowBlur = 0;
-        
-        if (proj.x < 0 || proj.x > canvas.width) projectiles.splice(idx, 1);
-        
-        // Colisão do laser com Jogadores
-        if (p1.hp > 0 && proj.x + proj.w >= p1.pos.x && proj.x <= p1.pos.x + p1.w && proj.y + proj.h >= p1.pos.y && proj.y <= p1.pos.y + p1.h) {
-            p1.damage(12); document.getElementById('p1H').style.width = (p1.hp / p1.maxHp * 100) + '%';
-            projectiles.splice(idx, 1);
-        }
-        if (p2.hp > 0 && proj.x + proj.w >= p2.pos.x && proj.x <= p2.pos.x + p2.w && proj.y + proj.h >= p2.pos.y && proj.y <= p2.pos.y + p2.h) {
-            p2.damage(12); document.getElementById('p2H').style.width = (p2.hp / p2.maxHp * 100) + '%';
-            projectiles.splice(idx, 1);
-        }
-    });
-
-    // Atualização dos Jogadores
+    // Atualiza lógica dos lutadores
     if (p1.hp > 0) p1.update(); if (p2.hp > 0) p2.update();
-    
-    // Tratamento de eliminação de bots e recompensa em moedas
-    enemies.forEach((bot, bIdx) => {
-        if (bot.hp <= 0) {
-            let bounty = bot.type === 'goliath' ? 5 : (bot.type === 'ninja' ? 3 : 1);
-            moedas += bounty; updateHUDLabels();
-            shakeTime = 8;
-            enemies.splice(bIdx, 1);
-        } else {
-            bot.update();
-        }
-    });
+    enemies.forEach((bot, idx) => { if(bot.hp <= 0) { moedas += bot.type==='goliath'?5:2; enemies.splice(idx,1); } else { bot.update(); } });
     
     document.getElementById('enemyCount').innerText = `Bots: ${enemies.length}`;
     updateHUDLabels();
@@ -502,57 +509,56 @@ function loop() {
     if (gameActive) {
         updateBots();
         
-        // Movimentação P1
+        // Comandos Ativos P1
         p1.vel.x = 0;
         if (p1.hp > 0 && p1.state !== 'hit' && !p1.comboChainActive) {
-            if (keys.a || input.p1L) { p1.vel.x = -5.8; p1.facing = 'left'; }
-            else if (keys.d || input.p1R) { p1.vel.x = 5.8; p1.facing = 'right'; }
+            if (keys.a || input.p1L) { p1.vel.x = -5.5; p1.facing = 'left'; }
+            else if (keys.d || input.p1R) { p1.vel.x = 5.5; p1.facing = 'right'; }
         }
-        // Movimentação P2
+        // Comandos Ativos P2
         p2.vel.x = 0;
         if (p2.hp > 0 && p2.state !== 'hit' && !p2.comboChainActive) {
-            if (keys.ArrowLeft || input.p2L) { p2.vel.x = -5.8; p2.facing = 'left'; }
-            else if (keys.ArrowRight || input.p2R) { p2.vel.x = 5.8; p2.facing = 'right'; }
+            if (keys.ArrowLeft || input.p2L) { p2.vel.x = -5.5; p2.facing = 'left'; }
+            else if (keys.ArrowRight || input.p2R) { p2.vel.x = 5.5; p2.facing = 'right'; }
         }
 
-        // Checagem das caixas de colisão de ataques melee
+        // Atualização e Tratamento de Lasers/Balas
+        projectiles.forEach((proj, idx) => {
+            proj.x += proj.vx;
+            if(proj.x < 0 || proj.x > canvas.width) projectiles.splice(idx,1);
+            if(p1.hp > 0 && proj.x >= p1.pos.x && proj.x <= p1.pos.x+p1.w && proj.y >= p1.pos.y && proj.y <= p1.pos.y+p1.h) { p1.damage(10); projectiles.splice(idx,1); }
+            if(p2.hp > 0 && proj.x >= p2.pos.x && proj.x <= p2.pos.x+p2.w && proj.y >= p2.pos.y && proj.y <= p2.pos.y+p2.h) { p2.damage(10); projectiles.splice(idx,1); }
+        });
+
+        // Colisões corpo a corpo
         enemies.forEach(bot => {
-            if (bot.pos.y < -10) return;
-            
-            // Ataque do P1 (Garante bônus de dano se for aéreo ou combo)
-            if (p1.hp > 0 && p1.isAtk && checkCol(p1, bot)) {
-                let damageAmt = 16 * p1.atkMult;
-                if (p1.vel.y !== 0) damageAmt *= 1.4; // Golpe Crítico de Queda Aérea!
-                bot.damage(damageAmt); p1.isAtk = false;
-            }
-            // Ataque do P2
-            if (p2.hp > 0 && p2.isAtk && checkCol(p2, bot)) {
-                let damageAmt = 16 * p2.atkMult;
-                if (p2.vel.y !== 0) damageAmt *= 1.4;
-                bot.damage(damageAmt); p2.isAtk = false;
-            }
-            // Ataques dos Bots nos Jogadores
+            if (p1.hp > 0 && p1.isAtk && checkCol(p1, bot)) { bot.damage(15 * p1.atkMult); p1.isAtk = false; }
+            if (p2.hp > 0 && p2.isAtk && checkCol(p2, bot)) { bot.damage(15 * p2.atkMult); p2.isAtk = false; }
             if (bot.isAtk) {
-                let botDmg = bot.type === 'goliath' ? 14 : (bot.type === 'ninja' ? 5 : 7);
-                if (p1.hp > 0 && checkCol(bot, p1)) {
-                    p1.damage(botDmg); document.getElementById('p1H').style.width = (p1.hp / p1.maxHp * 100) + '%';
-                    bot.isAtk = false;
-                }
-                if (p2.hp > 0 && checkCol(bot, p2)) {
-                    p2.damage(botDmg); document.getElementById('p2H').style.width = (p2.hp / p2.maxHp * 100) + '%';
-                    bot.isAtk = false;
-                }
+                let d = bot.type === 'goliath' ? 12 : 6;
+                if (p1.hp > 0 && checkCol(bot, p1)) { p1.damage(d); bot.isAtk = false; }
+                if (p2.hp > 0 && checkCol(bot, p2)) { p2.damage(d); bot.isAtk = false; }
             }
         });
 
         if (enemies.length === 0) endRound(true);
         if (p1.hp <= 0 && p2.hp <= 0) endRound(false);
     }
-    ctx.restore();
+
+    // DESENHO EM SPLIT SCREEN (Lado Esquerdo foca P1, Lado Direito foca P2)
+    renderScene(0, p1);
+    renderScene(canvas.width / 2, p2);
+
+    // Divisor central de Neon
+    ctx.strokeStyle = '#00f0ff'; ctx.lineWidth = 5;
+    ctx.shadowBlur = 15; ctx.shadowColor = '#00f0ff';
+    ctx.beginPath(); ctx.moveTo(canvas.width / 2, 0); ctx.lineTo(canvas.width / 2, canvas.height); ctx.stroke();
+    ctx.shadowBlur = 0;
 }
 
-window.addEventListener('click', () => { initAudio(); });
+window.addEventListener('click', () => { initAudio(); const o = document.getElementById('over'); if(o.style.display !== 'none' && gameActive) o.style.display = 'none'; });
 spawnHorda(); loop();
+applyControlPositions();
 </script>
 </body>
 </html>
