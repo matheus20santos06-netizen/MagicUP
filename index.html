@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cyber Quantum Link Arena</title>
+    <title>Cyber Quantum Link Arena - Overdrive Edition</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
         body { background: #010103; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
@@ -13,7 +13,7 @@
         
         /* HUD Superior */
         .hud { position: absolute; top: 12px; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; pointer-events: none; z-index: 5; }
-        .p-panel { width: 28%; display: flex; flex-direction: column; gap: 3px; background: rgba(4,4,12,0.8); padding: 8px; border-radius: 6px; border: 1px solid rgba(0,240,255,0.2); pointer-events: auto; }
+        .p-panel { width: 28%; display: flex; flex-direction: column; gap: 3px; background: rgba(4,4,12,0.85); padding: 8px; border-radius: 6px; border: 1px solid rgba(0,240,255,0.2); pointer-events: auto; }
         .p1-color { color: #ff0055; text-shadow: 0 0 5px #ff0055; font-size: 12px; font-weight: bold; }
         .p2-color { color: #00ff66; text-shadow: 0 0 5px #00ff66; font-size: 12px; font-weight: bold; text-align: right; }
         .bar-bg { width: 100%; background: #000; height: 14px; border: 1px solid #fff; border-radius: 3px; overflow: hidden; }
@@ -82,7 +82,7 @@
 
     <div id="over" class="overlay">
         <h1 id="winTxt">LINK QUÂNTICO ATIVO</h1>
-        <div id="subTxt" style="color: #ffaa00">Cuidado: O dano sofrido pelas réplicas afeta ambos! Clique para iniciar...</div>
+        <div id="subTxt" style="color: #ffaa00">Bata nos robôs ou em seus espelhos para salvar seu parceiro! Clique para iniciar...</div>
     </div>
 
     <div id="ctrlConfigModal">
@@ -158,6 +158,7 @@ const gravity = 0.65;
 let gameActive = true;
 let isPaused = false;
 let horda = 1; let moedas = 0;
+let shakeAmount = 0;
 
 let audioCtx = null;
 let musicGain = null;
@@ -205,9 +206,26 @@ function playSound(type) {
     } else if (type === 'atk') {
         osc.type = 'sawtooth'; osc.frequency.setValueAtTime(280, audioCtx.currentTime);
         gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    } else if (type === 'combo') {
+        osc.type = 'square'; osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.15);
+        gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
     }
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.12);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+}
+
+function createExplosion(x, y, color, count = 6) {
+    for (let i = 0; i < count; i++) {
+        particles.push({ 
+            x, y, 
+            vx: (Math.random() - 0.5) * 8, 
+            vy: (Math.random() - 0.5) * 8, 
+            r: Math.random() * 4 + 2, 
+            alpha: 1, 
+            color 
+        });
+    }
 }
 
 class Fighter {
@@ -217,43 +235,91 @@ class Fighter {
         this.hp = 100; this.maxHp = 100; this.atkMult = 1.0;
         this.isAtk = false; this.facing = side === 'left' ? 'right' : 'left';
         this.state = 'idle'; this.stTimer = 0;
-        this.atkBox = { pos: { x: 0, y: 0 }, w: 85, h: 40 };
+        this.atkBox = { pos: { x: 0, y: 0 }, w: 90, h: 45 };
+        
+        // Sistema de Combo Animado Avançado
+        this.comboHits = 0;
+        this.lastHitTime = 0;
+        this.overdriveMode = false;
+        this.overdriveTimer = 0;
+        this.trail = [];
     }
 
     draw(isReplica = false) {
         ctx.save();
         if (isReplica) {
-            ctx.globalAlpha = 0.35; // Deixa a réplica visível e estilizada
+            ctx.globalAlpha = 0.35;
             ctx.setLineDash([4, 4]);
         }
+
+        // Desenhar Rastro de Movimento do Combo
+        if (this.trail.length > 0) {
+            this.trail.forEach((t, i) => {
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = (i / this.trail.length) * 0.15;
+                ctx.fillRect(t.x, t.y, this.w, this.h);
+            });
+        }
         
-        ctx.shadowBlur = this.state === 'hit' ? 15 : 8;
-        ctx.shadowColor = this.color;
+        ctx.shadowBlur = this.state === 'hit' ? 20 : (this.overdriveMode ? 25 : 8);
+        ctx.shadowColor = this.overdriveMode ? '#ffffff' : this.color;
         
         let grad = ctx.createLinearGradient(this.pos.x, this.pos.y, this.pos.x, this.pos.y + this.h);
-        grad.addColorStop(0, this.state === 'hit' ? '#fff' : this.color);
+        grad.addColorStop(0, this.state === 'hit' ? '#fff' : (this.overdriveMode ? '#fff' : this.color));
         grad.addColorStop(1, '#050515');
         
         ctx.fillStyle = grad;
         ctx.beginPath(); ctx.roundRect(this.pos.x, this.pos.y, this.w, this.h, 6); ctx.fill();
-        ctx.strokeStyle = isReplica ? this.color : '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = isReplica ? this.color : '#fff'; ctx.lineWidth = this.overdriveMode ? 3 : 2; ctx.stroke();
 
         ctx.fillStyle = '#fff'; ctx.font = 'bold 13px monospace';
-        let face = "•_•"; if (this.state === 'hit') face = "✕_✕"; else if (this.state === 'atk') face = "⚙_⚙";
+        let face = "•_•"; 
+        if (this.state === 'hit') face = "✕_✕"; 
+        else if (this.overdriveMode) face = "⚡_⚡";
+        else if (this.isAtk) face = "⚙_⚙";
         ctx.fillText(face, this.pos.x + (this.facing === 'right' ? 14 : 6), this.pos.y + 30);
 
+        // Feedback visual do Combo na cabeça do jogador
+        if (this.comboHits > 0 && !this.isBot && !isReplica) {
+            ctx.fillStyle = '#ffaa00';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(`${this.comboHits} HIT`, this.pos.x + 5, this.pos.y - 15);
+        }
+
         if (this.isAtk) {
-            ctx.fillStyle = this.color;
-            let ax = this.facing === 'right' ? this.pos.x + this.w : this.pos.x - 25;
-            ctx.fillRect(ax, this.pos.y + 35, 25, 15);
+            ctx.fillStyle = this.overdriveMode ? '#fff' : this.color;
+            let ax = this.facing === 'right' ? this.pos.x + this.w : this.pos.x - 30;
+            
+            // Animação diferenciada dependendo do tamanho do combo
+            let atkHeight = this.comboHits >= 3 ? 30 : 15;
+            let atkY = this.comboHits >= 3 ? this.pos.y + 25 : this.pos.y + 35;
+            ctx.fillRect(ax, atkY, 30, atkHeight);
         }
         ctx.restore();
     }
 
     update() {
         this.atkBox.pos.x = this.facing === 'right' ? this.pos.x + this.w - 10 : this.pos.x - this.atkBox.w + 10;
-        this.atkBox.pos.y = this.pos.y + 30;
+        this.atkBox.pos.y = this.pos.y + 25;
         if (this.stTimer > 0) { this.stTimer--; if (this.stTimer === 0) this.state = 'idle'; }
+        
+        // Timer do multiplicador de combo decai com o tempo
+        if (Date.now() - this.lastHitTime > 800) {
+            this.comboHits = 0;
+        }
+
+        if (this.overdriveMode) {
+            this.overdriveTimer--;
+            if (this.overdriveTimer <= 0) this.overdriveMode = false;
+        }
+
+        // Salvar posições para o rastro visual
+        if (Math.abs(this.vel.x) > 1) {
+            this.trail.push({ x: this.pos.x, y: this.pos.y });
+            if (this.trail.length > 5) this.trail.shift();
+        } else {
+            this.trail = [];
+        }
         
         this.pos.x += this.vel.x; this.pos.y += this.vel.y;
         let floorY = canvas.height - 90 - this.h;
@@ -268,12 +334,33 @@ class Fighter {
 
     attack() {
         if (this.isAtk || this.state === 'hit') return;
-        this.state = 'atk'; this.isAtk = true; this.stTimer = 12; playSound('atk');
+        this.state = 'atk'; this.isAtk = true; this.stTimer = 12; 
+        playSound('atk');
         setTimeout(() => { this.isAtk = false; }, 130);
+    }
+
+    registerHit() {
+        this.comboHits++;
+        this.lastHitTime = Date.now();
+        
+        if (this.comboHits === 3) {
+            playSound('combo');
+            // Impulso pra frente animado
+            this.vel.x = this.facing === 'right' ? 15 : -15;
+            createExplosion(this.pos.x + this.w/2, this.pos.y + 50, '#ffcc00', 12);
+        } else if (this.comboHits >= 5) {
+            playSound('combo');
+            this.overdriveMode = true;
+            this.overdriveTimer = 180; // 3 segundos de fúria
+            shakeAmount = 10;
+            createExplosion(this.pos.x + this.w/2, this.pos.y + 50, '#ffffff', 20);
+            this.comboHits = 0;
+        }
     }
 
     damage(amt) {
         this.hp = Math.max(0, this.hp - amt); this.state = 'hit'; this.stTimer = 14; playSound('hit');
+        createExplosion(this.pos.x + this.w/2, this.pos.y + 40, '#ff0000', 8);
     }
 }
 
@@ -286,10 +373,10 @@ function spawnHorda() {
     let countPerSide = Math.ceil((horda + 1) / 2);
 
     for (let i = 0; i < countPerSide; i++) {
-        enemies.push(new Fighter({ x: 20 + (Math.random() * 120), color: '#707080', id: 10+i, isBot: true, side: 'left' }));
+        enemies.push(new Fighter({ x: 40 + (Math.random() * 120), color: '#707080', id: 10+i, isBot: true, side: 'left' }));
     }
     for (let i = 0; i < countPerSide; i++) {
-        enemies.push(new Fighter({ x: canvas.width - 150 - (Math.random() * 120), color: '#707080', id: 20+i, isBot: true, side: 'right' }));
+        enemies.push(new Fighter({ x: canvas.width - 180 - (Math.random() * 120), color: '#707080', id: 20+i, isBot: true, side: 'right' }));
     }
 }
 
@@ -343,16 +430,19 @@ window.addEventListener('keyup', (e) => {
 function updateBots() {
     enemies.forEach(bot => {
         if (bot.state === 'hit' || bot.pos.y < 0) { bot.vel.x = 0; return; }
-        // Inteligência: O bot segue o lutador real ou a réplica que estiver do lado dele!
+        
+        // O bot decide atacar o alvo mais próximo do mesmo lado (seja o real ou a réplica fantasma)
         let targetX = bot.side === 'left' ? p1.pos.x : p2.pos.x;
-        // Posição calculada das réplicas
         let replicaX = bot.side === 'left' ? p2.pos.x - (canvas.width / 2) : p1.pos.x + (canvas.width / 2);
+        
         let targetHp = bot.side === 'left' ? p1.hp : p2.hp;
         let replicaHp = bot.side === 'left' ? p2.hp : p1.hp;
 
-        // Determina quem está mais perto do bot no mesmo espaço físico
-        let useReplica = (replicaHp > 0 && Math.abs(replicaX - bot.pos.x) < Math.abs(targetX - bot.pos.x));
+        let useReplica = (replicaHp > 0 && (targetHp <= 0 || Math.abs(replicaX - bot.pos.x) < Math.abs(targetX - bot.pos.x)));
         let finalTargetX = useReplica ? replicaX : targetX;
+
+        // Se ambos jogadores daquele lado morreram, o bot para
+        if (targetHp <= 0 && replicaHp <= 0) { bot.vel.x = 0; return; }
 
         let dx = finalTargetX - bot.pos.x; bot.facing = dx > 0 ? 'right' : 'left';
         if (Math.abs(dx) > 60) {
@@ -364,7 +454,6 @@ function updateBots() {
     });
 }
 
-// Detector de Colisão Geométrico Adaptado para as Caixas de Hit
 function checkCol(r1, r2) {
     return (r1.atkBox.pos.x + r1.atkBox.w >= r2.pos.x && r1.atkBox.pos.x <= r2.pos.x + r2.w && r1.atkBox.pos.y + r1.atkBox.h >= r2.pos.y && r1.atkBox.pos.y <= r2.pos.y + r2.h);
 }
@@ -379,7 +468,7 @@ function endRound(win) {
         document.getElementById('shopCoinVal').innerText = moedas;
         document.getElementById('shop').style.display = 'flex';
     } else {
-        document.getElementById('winTxt').innerText = "LINK ENERGÉTICO ROMPIDO";
+        document.getElementById('winTxt').innerText = "EQUIPE DIZIMADA";
         document.getElementById('over').style.display = 'flex';
         setTimeout(() => { window.location.reload(); }, 2500);
     }
@@ -401,11 +490,28 @@ function loop() {
     window.requestAnimationFrame(loop);
     if (isPaused) return;
 
+    ctx.save();
+    // Efeito Screen Shake (Tremor de Tela) funcional
+    if (shakeAmount > 0) {
+        let dx = (Math.random() - 0.5) * shakeAmount;
+        let dy = (Math.random() - 0.5) * shakeAmount;
+        ctx.translate(dx, dy);
+        shakeAmount *= 0.9;
+        if (shakeAmount < 0.5) shakeAmount = 0;
+    }
+
     ctx.clearRect(0,0, canvas.width, canvas.height);
     
     if (p1.hp > 0) p1.update(); if (p2.hp > 0) p2.update();
+    
     enemies.forEach((bot, idx) => { 
-        if(bot.hp <= 0) { moedas += 3; enemies.splice(idx,1); } else { bot.update(); } 
+        if(bot.hp <= 0) { 
+            moedas += 4; 
+            createExplosion(bot.pos.x + bot.w/2, bot.pos.y + 40, '#00ffff', 15);
+            enemies.splice(idx,1); 
+        } else { 
+            bot.update(); 
+        } 
     });
     
     document.getElementById('enemyCount').innerText = `Bots: ${enemies.length}`;
@@ -416,48 +522,69 @@ function loop() {
     if (gameActive) {
         updateBots();
         
-        // Movimentos P1
+        // Movimento do P1 vivo
         p1.vel.x = 0;
         if (p1.hp > 0 && p1.state !== 'hit') {
             if (keys.a || input.p1L) { p1.vel.x = -5; p1.facing = 'left'; }
             else if (keys.d || input.p1R) { p1.vel.x = 5; p1.facing = 'right'; }
         }
-        // Movimentos P2
+        // Movimento do P2 vivo
         p2.vel.x = 0;
         if (p2.hp > 0 && p2.state !== 'hit') {
             if (keys.ArrowLeft || input.p2L) { p2.vel.x = -5; p2.facing = 'left'; }
             else if (keys.ArrowRight || input.p2R) { p2.vel.x = 5; p2.facing = 'right'; }
         }
 
-        // --- SISTEMA DE COMBATE COM CRUZA-DANO INTEGRADO ---
+        // --- SISTEMA INTERATIVO DE COMBATE CRUZADO ---
         enemies.forEach(bot => {
-            // Jogadores atacam bots do seu próprio lado
-            if (bot.side === 'left' && p1.hp > 0 && p1.isAtk && checkCol(p1, bot)) { bot.damage(20 * p1.atkMult); p1.isAtk = false; }
-            if (bot.side === 'right' && p2.hp > 0 && p2.isAtk && checkCol(p2, bot)) { bot.damage(20 * p2.atkMult); p2.isAtk = false; }
+            // P1 batendo nos bots diretos dele (Lado Esquerdo)
+            if (bot.side === 'left' && p1.hp > 0 && p1.isAtk && checkCol(p1, bot)) {
+                let dmg = (p1.overdriveMode ? 35 : 20) * p1.atkMult;
+                bot.damage(dmg); p1.registerHit(); p1.isAtk = false; shakeAmount = 5;
+            }
+            // P1 também consegue atingir as réplicas dos bots da Direita
+            if (bot.side === 'right' && p1.hp > 0 && p1.isAtk) {
+                let botReplicaBox = { pos: { x: bot.pos.x - (canvas.width / 2), y: bot.pos.y }, w: bot.w, h: bot.h };
+                if (checkBodyCol(p1.atkBox.pos, p1.atkBox.w, p1.atkBox.h, botReplicaBox)) {
+                    let dmg = (p1.overdriveMode ? 35 : 20) * p1.atkMult;
+                    bot.damage(dmg); p1.registerHit(); p1.isAtk = false; shakeAmount = 5;
+                }
+            }
+
+            // P2 batendo nos bots diretos dele (Lado Direito)
+            if (bot.side === 'right' && p2.hp > 0 && p2.isAtk && checkCol(p2, bot)) {
+                let dmg = (p2.overdriveMode ? 35 : 20) * p2.atkMult;
+                bot.damage(dmg); p2.registerHit(); p2.isAtk = false; shakeAmount = 5;
+            }
+            // P2 também consegue atingir as réplicas dos bots da Esquerda
+            if (bot.side === 'left' && p2.hp > 0 && p2.isAtk) {
+                let botReplicaBox = { pos: { x: bot.pos.x + (canvas.width / 2), y: bot.pos.y }, w: bot.w, h: bot.h };
+                if (checkBodyCol(p2.atkBox.pos, p2.atkBox.w, p2.atkBox.h, botReplicaBox)) {
+                    let dmg = (p2.overdriveMode ? 35 : 20) * p2.atkMult;
+                    bot.damage(dmg); p2.registerHit(); p2.isAtk = false; shakeAmount = 5;
+                }
+            }
             
-            // Quando os bots atacam: o perigo cruza as dimensões!
+            // Quando os inimigos atacam reais ou espelhos
             if (bot.isAtk) {
                 if (bot.side === 'left') {
-                    // Bot da esquerda ataca o corpo real do P1
-                    if (p1.hp > 0 && checkBodyCol(p1.pos, p1.w, p1.h, bot)) { p1.damage(8); bot.isAtk = false; }
-                    // Bot da esquerda ataca a Réplica do P2 (Dano vai pro P2 real!)
+                    if (p1.hp > 0 && checkBodyCol(p1.pos, p1.w, p1.h, bot)) { p1.damage(7); bot.isAtk = false; }
                     let p2ReplicaPos = { x: p2.pos.x - (canvas.width / 2), y: p2.pos.y };
-                    if (p2.hp > 0 && checkBodyCol(p2ReplicaPos, p2.w, p2.h, bot)) { p2.damage(8); bot.isAtk = false; }
+                    if (p2.hp > 0 && checkBodyCol(p2ReplicaPos, p2.w, p2.h, bot)) { p2.damage(7); bot.isAtk = false; }
                 } else {
-                    // Bot da direita ataca o corpo real do P2
-                    if (p2.hp > 0 && checkBodyCol(p2.pos, p2.w, p2.h, bot)) { p2.damage(8); bot.isAtk = false; }
-                    // Bot da direita ataca a Réplica do P1 (Dano vai pro P1 real!)
+                    if (p2.hp > 0 && checkBodyCol(p2.pos, p2.w, p2.h, bot)) { p2.damage(7); bot.isAtk = false; }
                     let p1ReplicaPos = { x: p1.pos.x + (canvas.width / 2), y: p1.pos.y };
-                    if (p1.hp > 0 && checkBodyCol(p1ReplicaPos, p1.w, p1.h, bot)) { p1.damage(8); bot.isAtk = false; }
+                    if (p1.hp > 0 && checkBodyCol(p1ReplicaPos, p1.w, p1.h, bot)) { p1.damage(7); bot.isAtk = false; }
                 }
             }
         });
 
         if (enemies.length === 0) endRound(true);
-        if (p1.hp <= 0 || p2.hp <= 0) endRound(false); // Game over se qualquer um dos dois morrer
+        // O jogo só acaba se AMBOS estiverem mortos
+        if (p1.hp <= 0 && p2.hp <= 0) endRound(false);
     }
 
-    // Cenários e Grids
+    // Render Geral do Espaço
     ctx.fillStyle = '#04040c'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = 'rgba(0,240,255,0.04)'; ctx.lineWidth = 1;
     for (let i = 0; i < canvas.width; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
@@ -466,12 +593,22 @@ function loop() {
     ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(0, canvas.height - 90); ctx.lineTo(canvas.width, canvas.height - 90); ctx.stroke();
 
-    // Render Real
+    // Render das Partículas de Explosão e Impacto
+    particles.forEach((p, idx) => {
+        p.x += p.vx; p.y += p.vy; p.alpha -= 0.02;
+        if (p.alpha <= 0) particles.splice(idx, 1);
+        else {
+            ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill(); ctx.restore();
+        }
+    });
+
+    // Render Real das Entidades Vivas
     if (p1.hp > 0) p1.draw(false);
     if (p2.hp > 0) p2.draw(false);
     enemies.forEach(bot => bot.draw(false));
 
-    // --- PROJEÇÃO DAS RÉPLICAS ---
+    // --- PROJEÇÃO DE CÓPIAS EM REALIDADE PARALELA ---
     if (p1.hp > 0) {
         ctx.save(); ctx.translate(canvas.width / 2, 0); p1.draw(true); ctx.restore();
     }
@@ -479,11 +616,21 @@ function loop() {
         ctx.save(); ctx.translate(-canvas.width / 2, 0); p2.draw(true); ctx.restore();
     }
 
-    // Linha de Divisão Central
+    // Desenha réplicas fantasmas dos BOTS para que os jogadores possam acertá-los
+    enemies.forEach(bot => {
+        ctx.save();
+        ctx.translate(bot.side === 'left' ? canvas.width / 2 : -canvas.width / 2, 0);
+        bot.draw(true);
+        ctx.restore();
+    });
+
+    // Barra de Neon Central de Segurança
     ctx.strokeStyle = '#00f0ff'; ctx.lineWidth = 6;
     ctx.shadowBlur = 15; ctx.shadowColor = '#00f0ff';
     ctx.beginPath(); ctx.moveTo(canvas.width / 2, 0); ctx.lineTo(canvas.width / 2, canvas.height); ctx.stroke();
     ctx.shadowBlur = 0;
+
+    ctx.restore();
 }
 
 window.addEventListener('click', () => { initAudio(); const o = document.getElementById('over'); if(o.style.display !== 'none' && gameActive) o.style.display = 'none'; });
