@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cyber Quantum Link - Arcade Edition</title>
+    <title>Cyber Quantum Link - Complete Edition</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; touch-action: none; }
         body { background: #010103; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; }
@@ -153,9 +153,9 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 const gravity = 0.55;
-let gameActive = false; // Começa falso para esperar o menu
+let gameActive = false;
 let isPaused = false;
-let gameMode = '2P'; // '1P' ou '2P'
+let gameMode = '2P';
 let horda = 1; let moedas = 0;
 let shakeAmount = 0;
 
@@ -229,7 +229,6 @@ function startGameMode(mode) {
     
     if (mode === '1P') {
         document.getElementById('p2TitleTxt').innerText = "IA QUANTICA (P2)";
-        // Oculta botões do P2 no modo Solo para limpar a tela do topo
         document.getElementById('p2L_btn').style.display = 'none';
         document.getElementById('p2R_btn').style.display = 'none';
         document.getElementById('p2J_btn').style.display = 'none';
@@ -285,9 +284,7 @@ class Fighter {
         this.hp = 100; this.maxHp = 100; this.atkMult = 1.0; this.speedBase = 5.0;
         this.isAtk = false; this.facing = side === 'bottom' ? 'up' : 'down';
         this.state = 'idle'; this.stTimer = 0;
-        this.atkBox = { pos: { x: 0, y: 0 }, w: 50, h: 50 };
-        this.comboHits = 0;
-        this.lastHitTime = 0;
+        this.atkBox = { pos: { x: 0, y: 0 }, w: 60, h: 40 };
     }
 
     draw(isReplica = false, invertView = false) {
@@ -310,20 +307,27 @@ class Fighter {
         let face = "•_•"; if (this.state === 'hit') face = "✕_✕";
         ctx.fillText(face, this.pos.x + 10, this.pos.y + 25);
 
+        // Animação de Bater Estilizada e Bonitinha Reativada!
         if (this.isAtk) {
             ctx.fillStyle = this.color;
-            let ay = this.facing === 'up' ? this.pos.y - 20 : this.pos.y + this.h;
-            ctx.fillRect(this.pos.x - 5, ay, this.w + 10, 20);
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = this.color;
+            if (this.side === 'bottom') {
+                ctx.fillRect(this.atkBox.pos.x, this.atkBox.pos.y, this.atkBox.w, this.atkBox.h);
+            } else {
+                // Ajuste geométrico para renderizar o efeito no lado invertido do topo
+                ctx.fillRect(this.atkBox.pos.x, this.atkBox.pos.y, this.atkBox.w, this.atkBox.h);
+            }
         }
         ctx.restore();
     }
 
     update() {
-        this.atkBox.pos.x = this.pos.x - 5;
-        this.atkBox.pos.y = this.facing === 'up' ? this.pos.y - 30 : this.pos.y + this.h;
+        // Caixa de ataque agora projeta-se corretamente para frente/lados
+        this.atkBox.pos.x = this.facing === 'up' ? this.pos.x - 10 : this.pos.x - 10;
+        this.atkBox.pos.y = this.side === 'bottom' ? this.pos.y - 25 : this.pos.y + this.h - 15;
         
         if (this.stTimer > 0) { this.stTimer--; if (this.stTimer === 0) this.state = 'idle'; }
-        if (Date.now() - this.lastHitTime > 900) this.comboHits = 0;
 
         this.pos.x += this.vel.x; this.pos.y += this.vel.y;
         
@@ -343,13 +347,14 @@ class Fighter {
 
     attack() {
         if (this.isAtk || this.state === 'hit') return;
-        this.state = 'atk'; this.isAtk = true; this.stTimer = 12; playSound('atk');
-        setTimeout(() => { this.isAtk = false; }, 140);
+        this.state = 'atk'; this.isAtk = true; this.stTimer = 14; playSound('atk');
+        setTimeout(() => { this.isAtk = false; }, 180);
     }
 
     damage(amt) {
+        if (this.hp <= 0) return;
         this.hp = Math.max(0, this.hp - amt); this.state = 'hit'; this.stTimer = 12; playSound('hit');
-        createExplosion(this.pos.x + this.w/2, this.pos.y + this.h/2, '#ff0055', 6);
+        createExplosion(this.pos.x + this.w/2, this.pos.y + this.h/2, this.color, 8);
     }
 }
 
@@ -376,31 +381,27 @@ makeDraggable(document.getElementById('p2R_btn'), () => input.p2R = true, () => 
 makeDraggable(document.getElementById('p2J_btn'), () => { if (p2.vel.y === 0 && p2.hp > 0) { p2.vel.y = 12; playSound('jump'); } }, () => {});
 makeDraggable(document.getElementById('p2A_btn'), () => { if (p2.hp > 0) p2.attack(); }, () => {});
 
-// Inteligência Artificial para controlar o P2 quando estiver jogando no Modo 1 Player
 function updatePartnerIA() {
     if (p2.hp <= 0 || p2.state === 'hit') { p2.vel.x = 0; return; }
     
-    // Procura o inimigo mais próximo no teto ou espelho
     let alvo = null;
     let menorDist = 9999;
     
     enemies.forEach(bot => {
-        let dist = Math.abs(bot.pos.x - p2.pos.x);
-        if (dist < menorDist) { menorDist = dist; alvo = bot; }
+        if(bot.hp > 0 && bot.side === 'top') {
+            let dist = Math.abs(bot.pos.x - p2.pos.x);
+            if (dist < menorDist) { menorDist = dist; alvo = bot; }
+        }
     });
     
     if (alvo) {
         let dx = alvo.pos.x - p2.pos.x;
-        if (Math.abs(dx) > 25) {
-            // Se move na direção do inimigo simulando a inversão de controles do topo
+        if (Math.abs(dx) > 20) {
             p2.vel.x = dx > 0 ? p2.speedBase : -p2.speedBase;
         } else {
             p2.vel.x = 0;
-            if (Math.random() < 0.15) p2.attack();
+            if (Math.random() < 0.18) p2.attack();
         }
-        
-        // Pulo aleatório se o inimigo estiver longe verticalmente
-        if (Math.random() < 0.02 && p2.vel.y === 0) { p2.vel.y = 12; }
     } else {
         p2.vel.x = 0;
     }
@@ -408,7 +409,7 @@ function updatePartnerIA() {
 
 function updateBots() {
     enemies.forEach(bot => {
-        if (bot.state === 'hit') { bot.vel.x = 0; return; }
+        if (bot.hp <= 0 || bot.state === 'hit') { bot.vel.x = 0; return; }
         
         let targetX = bot.side === 'bottom' ? p1.pos.x : p2.pos.x;
         let replicaX = bot.side === 'bottom' ? p2.pos.x : p1.pos.x;
@@ -418,14 +419,12 @@ function updateBots() {
         let useReplica = (replicaHp > 0 && (targetHp <= 0 || Math.abs(replicaX - bot.pos.x) < Math.abs(targetX - bot.pos.x)));
         let finalTargetX = useReplica ? replicaX : targetX;
 
-        if (targetHp <= 0 && replicaHp <= 0) { bot.vel.x = 0; return; }
-
         let dx = finalTargetX - bot.pos.x;
         if (Math.abs(dx) > 30) {
-            bot.vel.x = dx > 0 ? 1.8 : -1.8;
+            bot.vel.x = dx > 0 ? 1.9 : -1.9;
         } else {
             bot.vel.x = 0;
-            if (Math.random() < 0.03) bot.attack();
+            if (Math.random() < 0.04) bot.attack();
         }
     });
 }
@@ -475,11 +474,6 @@ function loop() {
     if (isPaused || !gameActive) return;
 
     ctx.save();
-    if (shakeAmount > 0) {
-        ctx.translate((Math.random()-0.5)*shakeAmount, (Math.random()-0.5)*shakeAmount);
-        shakeAmount *= 0.9;
-    }
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#020208'; ctx.fillRect(0,0, canvas.width, canvas.height);
     
@@ -488,9 +482,16 @@ function loop() {
 
     if (p1.hp > 0) p1.update(); if (p2.hp > 0) p2.update();
     
-    enemies.forEach((bot, idx) => { 
-        if(bot.hp <= 0) { moedas += 5; enemies.splice(idx,1); } else { bot.update(); } 
-    });
+    // Varredura segura consertando o bug do bot imortal/fantasma
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        let bot = enemies[i];
+        if (bot.hp <= 0) {
+            moedas += 5;
+            enemies.splice(i, 1);
+        } else {
+            bot.update();
+        }
+    }
     
     document.getElementById('enemyCount').innerText = `Bots: ${enemies.length}`;
     document.getElementById('coinVal').innerText = moedas;
@@ -499,50 +500,47 @@ function loop() {
 
     if (gameActive) {
         updateBots();
-        
-        // Ativa inteligência artificial parceira se o modo for solo 1 Player
-        if (gameMode === '1P') {
-            updatePartnerIA();
-        }
+        if (gameMode === '1P') updatePartnerIA();
 
-        // Movimentação Humana do P1
+        // Inputs P1
         p1.vel.x = 0;
         if (p1.hp > 0 && p1.state !== 'hit') {
-            if (input.p1L) { p1.vel.x = -p1.speedBase; p1.facing = 'up'; }
-            else if (input.p1R) { p1.vel.x = p1.speedBase; p1.facing = 'up'; }
+            if (input.p1L) { p1.vel.x = -p1.speedBase; }
+            else if (input.p1R) { p1.vel.x = p1.speedBase; }
         }
         
-        // Movimentação Humana do P2 (Só funciona se for modo 2 Players)
+        // Inputs P2
         if (gameMode === '2P') {
             p2.vel.x = 0;
             if (p2.hp > 0 && p2.state !== 'hit') {
-                if (input.p2L) { p2.vel.x = p2.speedBase; p2.facing = 'down'; }
-                else if (input.p2R) { p2.vel.x = -p2.speedBase; p2.facing = 'down'; }
+                if (input.p2L) { p2.vel.x = p2.speedBase; }
+                else if (input.p2R) { p2.vel.x = -p2.speedBase; }
             }
         }
 
+        // Sistema Limpo de Hitboxes Combinadas
         enemies.forEach(bot => {
-            if (bot.side === 'bottom' && p1.hp > 0 && p1.isAtk && checkCol(p1, bot)) { bot.damage(25 * p1.atkMult); p1.isAtk = false; }
-            if (bot.side === 'top' && p2.hp > 0 && p2.isAtk && checkCol(p2, bot)) { bot.damage(25 * p2.atkMult); p2.isAtk = false; }
+            if (bot.hp <= 0) return;
+
+            if (bot.side === 'bottom' && p1.hp > 0 && p1.isAtk && checkCol(p1, bot)) { bot.damage(25 * p1.atkMult); }
+            if (bot.side === 'top' && p2.hp > 0 && p2.isAtk && checkCol(p2, bot)) { bot.damage(25 * p2.atkMult); }
             
+            // Ataques Cruzados no Espelho
             if (bot.side === 'top' && p1.hp > 0 && p1.isAtk) {
                 let mirrorBox = { pos: { x: bot.pos.x, y: bot.pos.y + (canvas.height/2) }, w: bot.w, h: bot.h };
-                if (checkBodyCol(p1.atkBox.pos, p1.atkBox.w, p1.atkBox.h, mirrorBox)) { bot.damage(25 * p1.atkMult); p1.isAtk = false; }
+                if (checkBodyCol(p1.atkBox.pos, p1.atkBox.w, p1.atkBox.h, mirrorBox)) { bot.damage(25 * p1.atkMult); }
             }
             if (bot.side === 'bottom' && p2.hp > 0 && p2.isAtk) {
                 let mirrorBox = { pos: { x: bot.pos.x, y: bot.pos.y - (canvas.height/2) }, w: bot.w, h: bot.h };
-                if (checkBodyCol(p2.atkBox.pos, p2.atkBox.w, p2.atkBox.h, mirrorBox)) { bot.damage(25 * p2.atkMult); p2.isAtk = false; }
+                if (checkBodyCol(p2.atkBox.pos, p2.atkBox.w, p2.atkBox.h, mirrorBox)) { bot.damage(25 * p2.atkMult); }
             }
 
+            // Dano causado pelos robôs
             if (bot.isAtk) {
                 if (bot.side === 'bottom') {
                     if (p1.hp > 0 && checkBodyCol(p1.pos, p1.w, p1.h, bot)) { p1.damage(6); bot.isAtk = false; }
-                    let p2Mirror = { x: p2.pos.x, y: p2.pos.y + (canvas.height/2) };
-                    if (p2.hp > 0 && checkBodyCol(p2Mirror, p2.w, p2.h, bot)) { p2.damage(6); bot.isAtk = false; }
                 } else {
                     if (p2.hp > 0 && checkBodyCol(p2.pos, p2.w, p2.h, bot)) { p2.damage(6); bot.isAtk = false; }
-                    let p1Mirror = { x: p1.pos.x, y: p1.pos.y - (canvas.height/2) };
-                    if (p1.hp > 0 && checkBodyCol(p1Mirror, p1.w, p1.h, bot)) { p1.damage(6); bot.isAtk = false; }
                 }
             }
         });
@@ -560,6 +558,7 @@ function loop() {
         }
     });
 
+    // Renderizações
     if (p1.hp > 0) p1.draw(false, false);
     if (p2.hp > 0) p2.draw(false, true);
     
