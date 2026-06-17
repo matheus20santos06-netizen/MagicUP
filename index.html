@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cyber Quantum Link - Complete Edition</title>
+    <title>Cyber Quantum Link - Definitive Edition</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; touch-action: none; }
         body { background: #010103; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; }
@@ -39,20 +39,26 @@
         .menu-btn:active { background: #00f0ff; color: #000; }
         .menu-desc { font-size: 11px; color: #888; margin-top: -5px; margin-bottom: 10px; width: 80%; text-align: center; }
 
+        /* Painel de Configuração de Controles das Fotos */
+        #configPanel { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; background: rgba(5, 5, 20, 0.95); border: 2px solid #00f0ff; border-radius: 10px; padding: 20px; z-index: 12; flex-direction: column; gap: 15px; }
+        .config-title { text-align: center; color: #00f0ff; font-weight: bold; font-size: 14px; letter-spacing: 1px; }
+        .config-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; }
+        .config-select { background: #000; color: #00f0ff; border: 1px solid #00f0ff; padding: 5px; font-family: monospace; border-radius: 4px; }
+
         /* Loja */
         #shop { background: rgba(5, 5, 15, 0.98); border: 2px solid #ffcc00; border-radius: 12px; width: 90%; height: 80%; padding: 15px; color: #fff; display: none; flex-direction: column; align-items: center; justify-content: space-between; z-index: 11; position: absolute; top: 10%; left: 5%; }
         .shop-container { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; justify-content: center; margin: 10px 0; }
         .shop-item { background: #0f0f20; border: 1px solid #00f0ff; border-radius: 6px; width: 45%; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; font-size: 11px; }
         .buy-btn { background: #ffcc00; color: #000; border: none; font-weight: bold; padding: 5px; border-radius: 4px; cursor: pointer; font-size: 10px; width: 100%; margin-top: 4px; }
 
-        /* Botões Virtuais */
+        /* Botões Virtuais Modulares */
         .drag-btn { position: absolute; width: 50px; height: 50px; background: rgba(20, 20, 45, 0.85); border: 2px solid #00f0ff; border-radius: 50%; color: #00f0ff; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: move; z-index: 8; box-shadow: 0 0 10px rgba(0,240,255,0.2); }
         .drag-btn:active { background: #00f0ff; color: #000; }
         .p1-btn { border-color: #ff0055; color: #ff0055; }
-        .p2-btn { border-color: #00ff66; color: #00ff66; transform: rotate(180deg); }
+        .p2-btn { border-color: #00ff66; color: #00ff66; }
         .atk-b { border-radius: 10px; font-weight: bold; }
         
-        #dragNotice { position: absolute; top: 40%; width: 100%; text-align: center; font-size: 11px; color: #aaa; pointer-events: none; z-index: 4; }
+        #dragNotice { position: absolute; top: 43%; width: 100%; text-align: center; font-size: 10px; color: #666; pointer-events: none; z-index: 4; }
     </style>
 </head>
 <body>
@@ -62,83 +68,85 @@
         <div class="menu-title">CYBER QUANTUM LINK<br><span style="font-size:14px; color:#ffcc00;">SELECT MODE</span></div>
         
         <button class="menu-btn" onclick="startGameMode('1P')">👤 1 PLAYER (SOLO)</button>
-        <div class="menu-desc">Você joga como P1 embaixo e uma IA controla o P2 em cima para te ajudar!</div>
+        <div class="menu-desc">Você joga embaixo (P1) e uma IA Avançada assume o topo (P2) sem inverter sua cabeça!</div>
         
         <button class="menu-btn" style="border-color:#00ff66; color:#00ff66;" onclick="startGameMode('2P')">👥 2 PLAYERS (TABLETOP)</button>
-        <div class="menu-desc">Modo clássico de mesa. Tela de cima invertida para jogar com seu amigo.</div>
+        <div class="menu-desc">Modo clássico de mesa para dois jogadores com telas invertidas.</div>
+    </div>
+
+    <div id="configPanel">
+        <div class="config-title">POSICIONAMENTO DOS CONTROLES</div>
+        <div class="config-row">
+            <span style="color:#ff0055; font-size:11px;">Painel P1 (Lado Esquerdo):</span>
+            <select id="p1PosSelect" class="config-select" onchange="applyLayout()">
+                <option value="inf_esq">Inferior Esquerdo (Padrão)</option>
+                <option value="sup_esq">Superior Esquerdo</option>
+            </select>
+        </div>
+        <div class="config-row">
+            <span style="color:#00ff66; font-size:11px;">Painel P2 (Lado Direito):</span>
+            <select id="p2PosSelect" class="config-select" onchange="applyLayout()">
+                <option value="sup_dir">Superior Direito (Padrão)</option>
+                <option value="inf_dir">Inferior Direito</option>
+            </select>
+        </div>
+        <button class="sys-btn" style="border-color:#ffcc00; color:#ffcc00; padding:10px;" onclick="closeConfig()">RETORNAR AO JOGO</button>
     </div>
 
     <div class="hud-p1">
-        <span class="p1-color">SUA TELA (P1)</span>
+        <span class="p1-color">MUNDO P1 [A/D/W/Espaço]</span>
         <div class="bar-bg"><div id="p1H" class="bar"></div></div>
         <div class="stats-lbl"><span id="p1AtkLbl">Dano: x1.0</span><span id="p1VelLbl">Vel: 5.0</span><span id="p1HpLbl">HP: 100/100</span></div>
     </div>
     
-    <div class="hud-p2">
-        <span class="p2-color" id="p2TitleTxt">SUA TELA (P2)</span>
+    <div class="hud-p2" id="hudP2Container">
+        <span class="p2-color" id="p2TitleTxt">[Setas / Enter] MUNDO P2</span>
         <div class="bar-bg"><div id="p2H" class="bar"></div></div>
         <div class="stats-lbl"><span id="p2HpLbl">HP: 100/100</span><span id="p2VelLbl">Vel: 5.0</span><span id="p2AtkLbl">Dano: x1.0</span></div>
     </div>
     
     <div id="centerInfo">
-        <div id="waveInfo">HORDA 1<br><span id="enemyCount">Bots: 0</span></div>
+        <div id="waveInfo">HORDA 1<br><span id="enemyCount">Bots: 2</span></div>
         <div id="coinCounter">🪙 <span id="coinVal">0</span></div>
     </div>
     
     <div id="sysControls">
         <button class="sys-btn" id="pauseBtn" onclick="togglePause()">⏸ PAUSA</button>
+        <button class="sys-btn" style="border-color:#ffcc00; color:#ffcc00;" onclick="openConfig()">⚙️ LAYOUT</button>
     </div>
 
-    <div id="dragNotice">Touch & Drag: Arraste os botões para onde quiser!</div>
+    <div id="dragNotice">Arraste os botões livremente se preferir customizar!</div>
 
     <div id="over" class="overlay">
-        <h1 id="winTxt">MODO MESA ATIVO</h1>
-        <div style="color: #ffaa00; font-size: 12px; margin-top: 10px;">Defenda o seu lado e ajude batendo nos clones do seu parceiro! Clique para reiniciar...</div>
+        <h1 id="winTxt">SISTEMA REINICIANDO</h1>
+        <div style="color: #ffaa00; font-size: 12px; margin-top: 10px;">Clique na tela para continuar...</div>
     </div>
 
     <div id="shop">
         <div style="color: #ffcc00; font-size: 18px; font-weight: bold; text-align: center;">⚡ MATRIX SUPER SHOP ⚡</div>
         <div style="font-size: 11px; text-align: center;">Saldo: 🪙 <span id="shopCoinVal">0</span></div>
         <div class="shop-container">
-            <div class="shop-item">
-                <div>⚔️ Força P1</div>
-                <button class="buy-btn" onclick="buyUpgrade('p1_atk', 12)">Custo: 12</button>
-            </div>
-            <div class="shop-item">
-                <div>👟 Velocidade P1</div>
-                <button class="buy-btn" onclick="buyUpgrade('p1_vel', 15)">Custo: 15</button>
-            </div>
-            <div class="shop-item">
-                <div>❤️ Curar P1</div>
-                <button class="buy-btn" onclick="buyUpgrade('p1_hp', 10)">Custo: 10</button>
-            </div>
-            <div class="shop-item">
-                <div>⚔️ Força P2</div>
-                <button class="buy-btn" onclick="buyUpgrade('p2_atk', 12)">Custo: 12</button>
-            </div>
-            <div class="shop-item">
-                <div>👟 Velocidade P2</div>
-                <button class="buy-btn" onclick="buyUpgrade('p2_vel', 15)">Custo: 15</button>
-            </div>
-            <div class="shop-item">
-                <div>💚 Curar P2</div>
-                <button class="buy-btn" onclick="buyUpgrade('p2_hp', 10)">Custo: 10</button>
-            </div>
+            <div class="shop-item"><div>⚔️ Força P1</div><button class="buy-btn" onclick="buyUpgrade('p1_atk', 12)">Custo: 12</button></div>
+            <div class="shop-item"><div>👟 Vel P1</div><button class="buy-btn" onclick="buyUpgrade('p1_vel', 15)">Custo: 15</button></div>
+            <div class="shop-item"><div>❤️ Curar P1</div><button class="buy-btn" onclick="buyUpgrade('p1_hp', 10)">Custo: 10</button></div>
+            <div class="shop-item"><div>⚔️ Força P2</div><button class="buy-btn" onclick="buyUpgrade('p2_atk', 12)">Custo: 12</button></div>
+            <div class="shop-item"><div>👟 Vel P2</div><button class="buy-btn" onclick="buyUpgrade('p2_vel', 15)">Custo: 15</button></div>
+            <div class="shop-item"><div>💚 Curar P2</div><button class="buy-btn" onclick="buyUpgrade('p2_hp', 10)">Custo: 10</button></div>
         </div>
         <button class="sys-btn" style="background:#ffcc00; color:#000; padding: 8px 25px; width: 80%;" onclick="closeShop()">PRÓXIMA HORDA ➔</button>
     </div>
     
     <canvas id="gameCanvas"></canvas>
     
-    <div class="drag-btn p1-btn" id="p1L_btn" style="bottom: 80px; left: 20px;">◀</div>
-    <div class="drag-btn p1-btn" id="p1R_btn" style="bottom: 80px; left: 85px;">▶</div>
-    <div class="drag-btn p1-btn" id="p1J_btn" style="bottom: 145px; left: 52px;">▲</div>
-    <div class="drag-btn p1-btn atk-b" id="p1A_btn" style="bottom: 100px; right: 30px;">👊</div>
+    <div class="drag-btn p1-btn" id="p1L_btn">◀</div>
+    <div class="drag-btn p1-btn" id="p1R_btn">▶</div>
+    <div class="drag-btn p1-btn" id="p1J_btn">▲</div>
+    <div class="drag-btn p1-btn atk-b" id="p1A_btn">👊</div>
     
-    <div class="drag-btn p2-btn" id="p2L_btn" style="top: 80px; right: 20px;">◀</div>
-    <div class="drag-btn p2-btn" id="p2R_btn" style="top: 80px; right: 85px;">▶</div>
-    <div class="drag-btn p2-btn" id="p2J_btn" style="top: 145px; right: 52px;">▲</div>
-    <div class="drag-btn p2-btn atk-b" id="p2A_btn" style="top: 100px; left: 30px;">👊</div>
+    <div class="drag-btn p2-btn" id="p2L_btn">◀</div>
+    <div class="drag-btn p2-btn" id="p2R_btn">▶</div>
+    <div class="drag-btn p2-btn" id="p2J_btn">▲</div>
+    <div class="drag-btn p2-btn atk-b" id="p2A_btn">👊</div>
 </div>
 
 <script>
@@ -148,132 +156,99 @@ const ctx = canvas.getContext('2d');
 function resizeCanvas() {
     canvas.width = document.getElementById('gameContainer').clientWidth;
     canvas.height = document.getElementById('gameContainer').clientHeight;
+    applyLayout();
 }
 window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
 
 const gravity = 0.55;
 let gameActive = false;
 let isPaused = false;
 let gameMode = '2P';
 let horda = 1; let moedas = 0;
-let shakeAmount = 0;
-
-let audioCtx = null;
-let musicGain = null;
 
 const input = { p1L: false, p1R: false, p2L: false, p2R: false };
 let particles = [];
 
-function initAudio() {
-    if (audioCtx) { if (audioCtx.state === 'suspended') audioCtx.resume(); return; }
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    musicGain = audioCtx.createGain();
-    musicGain.gain.setValueAtTime(0.01, audioCtx.currentTime);
-    musicGain.connect(audioCtx.destination);
-    
-    let notes = [147, 165, 130, 147, 196, 220];
-    let step = 0;
-    setInterval(() => {
-        if (!gameActive || isPaused || audioCtx.state === 'suspended') return;
-        let osc = audioCtx.createOscillator();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(notes[step % notes.length] / 2, audioCtx.currentTime);
-        let noteGain = audioCtx.createGain();
-        noteGain.gain.setValueAtTime(0.02, audioCtx.currentTime);
-        noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-        osc.connect(noteGain); noteGain.connect(musicGain);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-        step++;
-    }, 300);
-}
+// Função modular para aplicar as posições baseadas nas fotos enviadas
+function applyLayout() {
+    const p1Pos = document.getElementById('p1PosSelect').value;
+    const p2Pos = document.getElementById('p2PosSelect').value;
+    const hudP2 = document.getElementById('hudP2Container');
 
-function playSound(type) {
-    if (!audioCtx) return;
-    let osc = audioCtx.createOscillator();
-    let gainNode = audioCtx.createGain();
-    osc.connect(gainNode); gainNode.connect(audioCtx.destination);
-    
-    if (type === 'hit') {
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, audioCtx.currentTime);
-        gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
-    } else if (type === 'jump') {
-        osc.type = 'sine'; osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(500, audioCtx.currentTime + 0.1);
-        gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
-    } else if (type === 'atk') {
-        osc.type = 'triangle'; osc.frequency.setValueAtTime(350, audioCtx.currentTime);
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    // Configura o HUD P2 do topo (Inverte rotação baseado no modo)
+    if (gameMode === '1P') {
+        hudP2.style.transform = "none"; 
+    } else {
+        hudP2.style.transform = "rotate(180deg)";
     }
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-}
 
-function createExplosion(x, y, color, count = 6) {
-    for (let i = 0; i < count; i++) {
-        particles.push({ 
-            x, y, 
-            vx: (Math.random() - 0.5) * 6, 
-            vy: (Math.random() - 0.5) * 6, 
-            r: Math.random() * 3 + 2, 
-            alpha: 1, 
-            color 
-        });
+    // Posiciona botões P1
+    if (p1Pos === 'sup_esq') {
+        document.getElementById('p1L_btn').style = "top: 80px; left: 20px;";
+        document.getElementById('p1R_btn').style = "top: 80px; left: 85px;";
+        document.getElementById('p1J_btn').style = "top: 145px; left: 52px;";
+        document.getElementById('p1A_btn').style = "top: 100px; left: 160px;";
+    } else {
+        document.getElementById('p1L_btn').style = "bottom: 80px; left: 20px;";
+        document.getElementById('p1R_btn').style = "bottom: 80px; left: 85px;";
+        document.getElementById('p1J_btn').style = "bottom: 145px; left: 52px;";
+        document.getElementById('p1A_btn').style = "bottom: 100px; right: 30px;";
     }
-}
 
-function startGameMode(mode) {
-    initAudio();
-    gameMode = mode;
-    document.getElementById('mainMenu').style.display = 'none';
-    
-    if (mode === '1P') {
-        document.getElementById('p2TitleTxt').innerText = "IA QUANTICA (P2)";
+    // Posiciona botões P2
+    if (gameMode === '1P') {
+        // Modo Solo: Oculta botões do parceiro IA para limpar a tela
         document.getElementById('p2L_btn').style.display = 'none';
         document.getElementById('p2R_btn').style.display = 'none';
         document.getElementById('p2J_btn').style.display = 'none';
         document.getElementById('p2A_btn').style.display = 'none';
     } else {
-        document.getElementById('p2TitleTxt').innerText = "SUA TELA (P2)";
         document.getElementById('p2L_btn').style.display = 'flex';
         document.getElementById('p2R_btn').style.display = 'flex';
         document.getElementById('p2J_btn').style.display = 'flex';
         document.getElementById('p2A_btn').style.display = 'flex';
+
+        if (p2Pos === 'inf_dir') {
+            document.getElementById('p2L_btn').style = "bottom: 80px; right: 85px; transform: rotate(180deg);";
+            document.getElementById('p2R_btn').style = "bottom: 80px; right: 20px; transform: rotate(180deg);";
+            document.getElementById('p2J_btn').style = "bottom: 145px; right: 52px; transform: rotate(180deg);";
+            document.getElementById('p2A_btn').style = "bottom: 100px; left: 30px; transform: rotate(180deg);";
+        } else {
+            document.getElementById('p2L_btn').style = "top: 80px; right: 20px; transform: rotate(180deg);";
+            document.getElementById('p2R_btn').style = "top: 80px; right: 85px; transform: rotate(180deg);";
+            document.getElementById('p2J_btn').style = "top: 145px; right: 52px; transform: rotate(180deg);";
+            document.getElementById('p2A_btn').style = "top: 100px; left: 30px; transform: rotate(180deg);";
+        }
     }
-    
+}
+
+function openConfig() { isPaused = true; document.getElementById('configPanel').style.display = 'flex'; }
+function closeConfig() { isPaused = false; document.getElementById('configPanel').style.display = 'none'; }
+
+function startGameMode(mode) {
+    gameMode = mode;
+    document.getElementById('mainMenu').style.display = 'none';
+    document.getElementById('p2TitleTxt').innerText = mode === '1P' ? "IA QUANTICA (P2)" : "MUNDO P2";
     gameActive = true;
+    resizeCanvas();
     spawnHorda();
 }
 
 function makeDraggable(element, onActionStart, onActionEnd) {
-    let isDragging = false;
-    let startX, startY;
-
+    let isDragging = false; let startX, startY;
     element.addEventListener('touchstart', (e) => {
-        initAudio();
         const touch = e.touches[0];
-        startX = touch.clientX - element.offsetLeft;
-        startY = touch.clientY - element.offsetTop;
+        startX = touch.clientX - element.offsetLeft; startY = touch.clientY - element.offsetTop;
         isDragging = false;
-        setTimeout(() => { if(isDragging === false && !isPaused) onActionStart(); }, 40);
+        setTimeout(() => { if(!isDragging && !isPaused) onActionStart(); }, 40);
     });
-
     element.addEventListener('touchmove', (e) => {
-        isDragging = true;
-        onActionEnd();
+        isDragging = true; onActionEnd();
         const touch = e.touches[0];
-        let newX = touch.clientX - startX;
-        let newY = touch.clientY - startY;
-
-        newX = Math.max(0, Math.min(window.innerWidth - 50, newX));
-        newY = Math.max(0, Math.min(window.innerHeight - 50, newY));
-
-        element.style.left = newX + 'px';
-        element.style.top = newY + 'px';
-        element.style.bottom = 'auto';
-        element.style.right = 'auto';
+        let nX = touch.clientX - startX; let nY = touch.clientY - startY;
+        element.style.left = nX + 'px'; element.style.top = nY + 'px';
+        element.style.bottom = 'auto'; element.style.right = 'auto';
     });
-
     element.addEventListener('touchend', () => { if (!isDragging) onActionEnd(); });
 }
 
@@ -282,53 +257,59 @@ class Fighter {
         this.pos = { x, y }; this.vel = { x: 0, y: 0 }; this.w = 40; this.h = 80;
         this.color = color; this.id = id; this.isBot = isBot; this.side = side;
         this.hp = 100; this.maxHp = 100; this.atkMult = 1.0; this.speedBase = 5.0;
-        this.isAtk = false; this.facing = side === 'bottom' ? 'up' : 'down';
-        this.state = 'idle'; this.stTimer = 0;
-        this.atkBox = { pos: { x: 0, y: 0 }, w: 60, h: 40 };
+        this.isAtk = false; this.facing = 'up'; this.state = 'idle'; this.stTimer = 0;
+        this.atkBox = { pos: { x: 0, y: 0 }, w: 65, h: 45 };
     }
 
-    draw(isReplica = false, invertView = false) {
+    draw(isReplica = false) {
         ctx.save();
-        if (invertView) { ctx.translate(canvas.width, canvas.height); ctx.rotate(Math.PI); }
-        if (isReplica) { ctx.globalAlpha = 0.3; ctx.setLineDash([3, 3]); }
         
-        ctx.shadowBlur = this.state === 'hit' ? 15 : 6;
+        // Se for o Modo de 2 Jogadores, o topo gira 180°. Se for Modo 1 Player, o topo fica normal!
+        if (this.side === 'top' && gameMode === '2P') {
+            ctx.translate(canvas.width, canvas.height);
+            ctx.rotate(Math.PI);
+            // Inverte as coordenadas para o renderizador de pernas para o ar
+            var renderX = canvas.width - this.pos.x - this.w;
+            var renderY = canvas.height - this.pos.y - this.h;
+        } else {
+            var renderX = this.pos.x;
+            var renderY = this.pos.y;
+        }
+
+        if (isReplica) { ctx.globalAlpha = 0.25; ctx.setLineDash([4, 4]); }
+        ctx.shadowBlur = this.state === 'hit' ? 15 : 5;
         ctx.shadowColor = this.color;
         
-        let grad = ctx.createLinearGradient(this.pos.x, this.pos.y, this.pos.x, this.pos.y + this.h);
+        // Corpo do lutador/robô
+        let grad = ctx.createLinearGradient(renderX, renderY, renderX, renderY + this.h);
         grad.addColorStop(0, this.state === 'hit' ? '#fff' : this.color);
-        grad.addColorStop(1, '#050510');
-        
+        grad.addColorStop(1, '#02020a');
         ctx.fillStyle = grad;
-        ctx.beginPath(); ctx.roundRect(this.pos.x, this.pos.y, this.w, this.h, 4); ctx.fill();
-        ctx.strokeStyle = isReplica ? this.color : '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.beginPath(); ctx.roundRect(renderX, renderY, this.w, this.h, 6); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
 
-        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace';
-        let face = "•_•"; if (this.state === 'hit') face = "✕_✕";
-        ctx.fillText(face, this.pos.x + 10, this.pos.y + 25);
+        // Rosto orientado
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 12px monospace';
+        let face = this.state === 'hit' ? "✕_✕" : "•_•";
+        ctx.fillText(face, renderX + 9, renderY + 28);
 
-        // Animação de Bater Estilizada e Bonitinha Reativada!
+        // Animação de impacto bonita surgindo nas duas telas de forma idêntica
         if (this.isAtk) {
             ctx.fillStyle = this.color;
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = this.color;
-            if (this.side === 'bottom') {
-                ctx.fillRect(this.atkBox.pos.x, this.atkBox.pos.y, this.atkBox.w, this.atkBox.h);
-            } else {
-                // Ajuste geométrico para renderizar o efeito no lado invertido do topo
-                ctx.fillRect(this.atkBox.pos.x, this.atkBox.pos.y, this.atkBox.w, this.atkBox.h);
-            }
+            ctx.shadowBlur = 25;
+            let ax = renderX - 12;
+            let ay = this.side === 'bottom' ? renderY - 30 : renderY + this.h - 10;
+            ctx.fillRect(ax, ay, this.atkBox.w, this.atkBox.h);
+            ctx.strokeStyle = '#fff'; ctx.strokeRect(ax, ay, this.atkBox.w, this.atkBox.h);
         }
         ctx.restore();
     }
 
     update() {
-        // Caixa de ataque agora projeta-se corretamente para frente/lados
-        this.atkBox.pos.x = this.facing === 'up' ? this.pos.x - 10 : this.pos.x - 10;
-        this.atkBox.pos.y = this.side === 'bottom' ? this.pos.y - 25 : this.pos.y + this.h - 15;
+        this.atkBox.pos.x = this.pos.x - 12;
+        this.atkBox.pos.y = this.side === 'bottom' ? this.pos.y - 30 : this.pos.y + this.h - 15;
         
         if (this.stTimer > 0) { this.stTimer--; if (this.stTimer === 0) this.state = 'idle'; }
-
         this.pos.x += this.vel.x; this.pos.y += this.vel.y;
         
         let midY = canvas.height / 2;
@@ -336,7 +317,6 @@ class Fighter {
             let floorY = canvas.height - 110 - this.h;
             if (this.pos.y >= floorY) { this.vel.y = 0; this.pos.y = floorY; } else { this.vel.y += gravity; }
             this.pos.x = Math.max(10, Math.min(canvas.width - this.w - 10, this.pos.x));
-            this.pos.y = Math.max(midY + 5, this.pos.y);
         } else {
             let ceilingY = 110;
             if (this.pos.y <= ceilingY) { this.vel.y = 0; this.pos.y = ceilingY; } else { this.vel.y -= gravity; }
@@ -347,14 +327,17 @@ class Fighter {
 
     attack() {
         if (this.isAtk || this.state === 'hit') return;
-        this.state = 'atk'; this.isAtk = true; this.stTimer = 14; playSound('atk');
-        setTimeout(() => { this.isAtk = false; }, 180);
+        this.isAtk = true; this.stTimer = 12;
+        setTimeout(() => { this.isAtk = false; }, 160);
     }
 
     damage(amt) {
         if (this.hp <= 0) return;
-        this.hp = Math.max(0, this.hp - amt); this.state = 'hit'; this.stTimer = 12; playSound('hit');
-        createExplosion(this.pos.x + this.w/2, this.pos.y + this.h/2, this.color, 8);
+        this.hp = Math.max(0, this.hp - amt); this.state = 'hit'; this.stTimer = 10;
+        // Explosão de partículas quânticas
+        for (let i = 0; i < 6; i++) {
+            particles.push({ x: this.pos.x+20, y: this.pos.y+40, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5, r: 3, alpha: 1, color: this.color });
+        }
     }
 }
 
@@ -366,66 +349,45 @@ function spawnHorda() {
     enemies = [];
     let count = Math.ceil((horda + 1) / 2);
     for (let i = 0; i < count; i++) {
-        enemies.push(new Fighter({ x: 30 + Math.random()*150, y: 600, color: '#888895', id: 10+i, isBot: true, side: 'bottom' }));
-        enemies.push(new Fighter({ x: 30 + Math.random()*150, y: 250, color: '#888895', id: 20+i, isBot: true, side: 'top' }));
+        enemies.push(new Fighter({ x: 40 + Math.random()*160, y: 620, color: '#00ffff', id: 10+i, isBot: true, side: 'bottom' }));
+        enemies.push(new Fighter({ x: 40 + Math.random()*160, y: 220, color: '#ffaa00', id: 20+i, isBot: true, side: 'top' }));
     }
 }
 
+// Vinculação dos botões virtuais arrastáveis
 makeDraggable(document.getElementById('p1L_btn'), () => input.p1L = true, () => input.p1L = false);
 makeDraggable(document.getElementById('p1R_btn'), () => input.p1R = true, () => input.p1R = false);
-makeDraggable(document.getElementById('p1J_btn'), () => { if (p1.vel.y === 0 && p1.hp > 0) { p1.vel.y = -12; playSound('jump'); } }, () => {});
+makeDraggable(document.getElementById('p1J_btn'), () => { if (p1.vel.y === 0 && p1.hp > 0) p1.vel.y = -11; }, () => {});
 makeDraggable(document.getElementById('p1A_btn'), () => { if (p1.hp > 0) p1.attack(); }, () => {});
 
 makeDraggable(document.getElementById('p2L_btn'), () => input.p2L = true, () => input.p2L = false);
 makeDraggable(document.getElementById('p2R_btn'), () => input.p2R = true, () => input.p2R = false);
-makeDraggable(document.getElementById('p2J_btn'), () => { if (p2.vel.y === 0 && p2.hp > 0) { p2.vel.y = 12; playSound('jump'); } }, () => {});
+makeDraggable(document.getElementById('p2J_btn'), () => { if (p2.vel.y === 0 && p2.hp > 0) p2.vel.y = 11; }, () => {});
 makeDraggable(document.getElementById('p2A_btn'), () => { if (p2.hp > 0) p2.attack(); }, () => {});
 
 function updatePartnerIA() {
     if (p2.hp <= 0 || p2.state === 'hit') { p2.vel.x = 0; return; }
-    
-    let alvo = null;
-    let menorDist = 9999;
-    
+    let alvo = null; let menorDist = 9999;
     enemies.forEach(bot => {
         if(bot.hp > 0 && bot.side === 'top') {
             let dist = Math.abs(bot.pos.x - p2.pos.x);
             if (dist < menorDist) { menorDist = dist; alvo = bot; }
         }
     });
-    
     if (alvo) {
         let dx = alvo.pos.x - p2.pos.x;
-        if (Math.abs(dx) > 20) {
-            p2.vel.x = dx > 0 ? p2.speedBase : -p2.speedBase;
-        } else {
-            p2.vel.x = 0;
-            if (Math.random() < 0.18) p2.attack();
-        }
-    } else {
-        p2.vel.x = 0;
-    }
+        if (Math.abs(dx) > 20) { p2.vel.x = dx > 0 ? p2.speedBase : -p2.speedBase; }
+        else { p2.vel.x = 0; if (Math.random() < 0.15) p2.attack(); }
+    } else { p2.vel.x = 0; }
 }
 
 function updateBots() {
     enemies.forEach(bot => {
         if (bot.hp <= 0 || bot.state === 'hit') { bot.vel.x = 0; return; }
-        
         let targetX = bot.side === 'bottom' ? p1.pos.x : p2.pos.x;
-        let replicaX = bot.side === 'bottom' ? p2.pos.x : p1.pos.x;
-        let targetHp = bot.side === 'bottom' ? p1.hp : p2.hp;
-        let replicaHp = bot.side === 'bottom' ? p2.hp : p1.hp;
-
-        let useReplica = (replicaHp > 0 && (targetHp <= 0 || Math.abs(replicaX - bot.pos.x) < Math.abs(targetX - bot.pos.x)));
-        let finalTargetX = useReplica ? replicaX : targetX;
-
-        let dx = finalTargetX - bot.pos.x;
-        if (Math.abs(dx) > 30) {
-            bot.vel.x = dx > 0 ? 1.9 : -1.9;
-        } else {
-            bot.vel.x = 0;
-            if (Math.random() < 0.04) bot.attack();
-        }
+        let dx = targetX - bot.pos.x;
+        if (Math.abs(dx) > 30) { bot.vel.x = dx > 0 ? 2.0 : -2.0; }
+        else { bot.vel.x = 0; if (Math.random() < 0.04) bot.attack(); }
     });
 }
 
@@ -439,13 +401,12 @@ function checkBodyCol(pPos, pW, pH, b) {
 function endRound(win) {
     gameActive = false;
     if (win) {
-        document.getElementById('over').style.display = 'none';
         document.getElementById('shopCoinVal').innerText = moedas;
         document.getElementById('shop').style.display = 'flex';
     } else {
         document.getElementById('winTxt').innerText = "CONEXÃO PARALELA PERDIDA";
         document.getElementById('over').style.display = 'flex';
-        setTimeout(() => { window.location.reload(); }, 2500);
+        setTimeout(() => { window.location.reload(); }, 2000);
     }
 }
 
@@ -454,16 +415,11 @@ function buyUpgrade(type, cost) {
         moedas -= cost;
         if (type === 'p1_atk') p1.atkMult += 0.25;
         if (type === 'p2_atk') p2.atkMult += 0.25;
-        if (type === 'p1_vel') p1.speedBase += 1.2;
-        if (type === 'p2_vel') p2.speedBase += 1.2;
+        if (type === 'p1_vel') p1.speedBase += 1.0;
+        if (type === 'p2_vel') p2.speedBase += 1.0;
         if (type === 'p1_hp') p1.hp = p1.maxHp;
         if (type === 'p2_hp') p2.hp = p2.maxHp;
-        
         document.getElementById('shopCoinVal').innerText = moedas;
-        document.getElementById('p1VelLbl').innerText = `Vel: ${p1.speedBase.toFixed(1)}`;
-        document.getElementById('p2VelLbl').innerText = `Vel: ${p2.speedBase.toFixed(1)}`;
-        document.getElementById('p1AtkLbl').innerText = `Dano: x${p1.atkMult.toFixed(1)}`;
-        document.getElementById('p2AtkLbl').innerText = `Dano: x${p2.atkMult.toFixed(1)}`;
     }
 }
 function closeShop() { document.getElementById('shop').style.display = 'none'; horda++; gameActive = true; spawnHorda(); }
@@ -473,24 +429,19 @@ function loop() {
     window.requestAnimationFrame(loop);
     if (isPaused || !gameActive) return;
 
-    ctx.save();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#020208'; ctx.fillRect(0,0, canvas.width, canvas.height);
     
+    // Divisor quântico central
     ctx.strokeStyle = '#00f0ff'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(0, canvas.height / 2); ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
 
     if (p1.hp > 0) p1.update(); if (p2.hp > 0) p2.update();
     
-    // Varredura segura consertando o bug do bot imortal/fantasma
+    // Varredura de remoção segura contra robôs fantasmas/imortais
     for (let i = enemies.length - 1; i >= 0; i--) {
-        let bot = enemies[i];
-        if (bot.hp <= 0) {
-            moedas += 5;
-            enemies.splice(i, 1);
-        } else {
-            bot.update();
-        }
+        if (enemies[i].hp <= 0) { moedas += 5; enemies.splice(i, 1); } 
+        else { enemies[i].update(); }
     }
     
     document.getElementById('enemyCount').innerText = `Bots: ${enemies.length}`;
@@ -502,46 +453,40 @@ function loop() {
         updateBots();
         if (gameMode === '1P') updatePartnerIA();
 
-        // Inputs P1
         p1.vel.x = 0;
         if (p1.hp > 0 && p1.state !== 'hit') {
-            if (input.p1L) { p1.vel.x = -p1.speedBase; }
-            else if (input.p1R) { p1.vel.x = p1.speedBase; }
+            if (input.p1L) p1.vel.x = -p1.speedBase;
+            if (input.p1R) p1.vel.x = p1.speedBase;
         }
         
-        // Inputs P2
         if (gameMode === '2P') {
             p2.vel.x = 0;
             if (p2.hp > 0 && p2.state !== 'hit') {
-                if (input.p2L) { p2.vel.x = p2.speedBase; }
-                else if (input.p2R) { p2.vel.x = -p2.speedBase; }
+                if (input.p2L) p2.vel.x = p2.speedBase;
+                if (input.p2R) p2.vel.x = -p2.speedBase;
             }
         }
 
-        // Sistema Limpo de Hitboxes Combinadas
+        // Detecção refinada de combate por espelhamento quântico
         enemies.forEach(bot => {
             if (bot.hp <= 0) return;
 
-            if (bot.side === 'bottom' && p1.hp > 0 && p1.isAtk && checkCol(p1, bot)) { bot.damage(25 * p1.atkMult); }
-            if (bot.side === 'top' && p2.hp > 0 && p2.isAtk && checkCol(p2, bot)) { bot.damage(25 * p2.atkMult); }
+            if (bot.side === 'bottom' && p1.hp > 0 && p1.isAtk && checkCol(p1, bot)) bot.damage(25 * p1.atkMult);
+            if (bot.side === 'top' && p2.hp > 0 && p2.isAtk && checkCol(p2, bot)) bot.damage(25 * p2.atkMult);
             
-            // Ataques Cruzados no Espelho
+            // Rebatendo ataques cruzados no espelho
             if (bot.side === 'top' && p1.hp > 0 && p1.isAtk) {
-                let mirrorBox = { pos: { x: bot.pos.x, y: bot.pos.y + (canvas.height/2) }, w: bot.w, h: bot.h };
-                if (checkBodyCol(p1.atkBox.pos, p1.atkBox.w, p1.atkBox.h, mirrorBox)) { bot.damage(25 * p1.atkMult); }
+                let mirror = { pos: { x: bot.pos.x, y: bot.pos.y + (canvas.height/2) }, w: bot.w, h: bot.h };
+                if (checkBodyCol(p1.atkBox.pos, p1.atkBox.w, p1.atkBox.h, mirror)) bot.damage(25 * p1.atkMult);
             }
             if (bot.side === 'bottom' && p2.hp > 0 && p2.isAtk) {
-                let mirrorBox = { pos: { x: bot.pos.x, y: bot.pos.y - (canvas.height/2) }, w: bot.w, h: bot.h };
-                if (checkBodyCol(p2.atkBox.pos, p2.atkBox.w, p2.atkBox.h, mirrorBox)) { bot.damage(25 * p2.atkMult); }
+                let mirror = { pos: { x: bot.pos.x, y: bot.pos.y - (canvas.height/2) }, w: bot.w, h: bot.h };
+                if (checkBodyCol(p2.atkBox.pos, p2.atkBox.w, p2.atkBox.h, mirror)) bot.damage(25 * p2.atkMult);
             }
 
-            // Dano causado pelos robôs
             if (bot.isAtk) {
-                if (bot.side === 'bottom') {
-                    if (p1.hp > 0 && checkBodyCol(p1.pos, p1.w, p1.h, bot)) { p1.damage(6); bot.isAtk = false; }
-                } else {
-                    if (p2.hp > 0 && checkBodyCol(p2.pos, p2.w, p2.h, bot)) { p2.damage(6); bot.isAtk = false; }
-                }
+                if (bot.side === 'bottom' && p1.hp > 0 && checkBodyCol(p1.pos, p1.w, p1.h, bot)) { p1.damage(5); bot.isAtk = false; }
+                if (bot.side === 'top' && p2.hp > 0 && checkBodyCol(p2.pos, p2.w, p2.h, bot)) { p2.damage(5); bot.isAtk = false; }
             }
         });
 
@@ -549,8 +494,9 @@ function loop() {
         if (p1.hp <= 0 && p2.hp <= 0) endRound(false);
     }
 
+    // Partículas
     particles.forEach((p, idx) => {
-        p.x += p.vx; p.y += p.vy; p.alpha -= 0.02;
+        p.x += p.vx; p.y += p.vy; p.alpha -= 0.03;
         if (p.alpha <= 0) particles.splice(idx, 1);
         else {
             ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
@@ -558,27 +504,25 @@ function loop() {
         }
     });
 
-    // Renderizações
-    if (p1.hp > 0) p1.draw(false, false);
-    if (p2.hp > 0) p2.draw(false, true);
+    // Renderização dos lutadores reais
+    if (p1.hp > 0) p1.draw(false);
+    if (p2.hp > 0) p2.draw(false);
     
-    if (p1.hp > 0) { ctx.save(); ctx.translate(0, -canvas.height/2); p1.draw(true, false); ctx.restore(); }
-    if (p2.hp > 0) { ctx.save(); ctx.translate(0, canvas.height/2); p2.draw(true, true); ctx.restore(); }
+    // Desenho das réplicas holográficas nos fundos opostos
+    if (p1.hp > 0) { ctx.save(); ctx.translate(0, -canvas.height/2); p1.draw(true); ctx.restore(); }
+    if (p2.hp > 0) { ctx.save(); ctx.translate(0, canvas.height/2); p2.draw(true); ctx.restore(); }
 
+    // Desenho dos robôs inimigos da horda
     enemies.forEach(bot => {
-        if (bot.side === 'bottom') {
-            bot.draw(false, false);
-            ctx.save(); ctx.translate(0, -canvas.height/2); bot.draw(true, false); ctx.restore();
-        } else {
-            bot.draw(false, true);
-            ctx.save(); ctx.translate(0, canvas.height/2); bot.draw(true, true); ctx.restore();
-        }
+        bot.draw(false);
+        ctx.save();
+        ctx.translate(0, bot.side === 'bottom' ? -canvas.height/2 : canvas.height/2);
+        bot.draw(true);
+        ctx.restore();
     });
-
-    ctx.restore();
 }
 
-window.addEventListener('click', () => { initAudio(); const o = document.getElementById('over'); if(o.style.display !== 'none' && gameActive) o.style.display = 'none'; });
+resizeCanvas();
 loop();
 </script>
 </body>
