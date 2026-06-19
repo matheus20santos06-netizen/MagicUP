@@ -1,1 +1,545 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Retro Arena - WLAN Mobile</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            background: #111;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 1024px;
+            height: 576px;
+            background: linear-gradient(to bottom, #1a0033, #4d004d, #1a0033);
+            border: 4px solid #333;
+            overflow: hidden;
+            max-width: 100vw;
+            max-height: 56.25vw; /* Mantém proporção 16:9 em tablets */
+        }
+
+        .scenery {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            bottom: 0;
+        }
+
+        .floor {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 120px;
+            background: #222;
+            border-top: 8px solid #ff0055;
+            box-shadow: 0 -5px 20px rgba(255, 0, 85, 0.5);
+        }
+
+        /* HUD */
+        .hud {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40px;
+            z-index: 10;
+        }
+
+        .health-bar-container {
+            width: 42%;
+            background: #444;
+            border: 3px solid #fff;
+            height: 30px;
+            position: relative;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 100%;
+            background: #00ff00;
+            transition: width 0.1s ease;
+        }
+
+        #p2-health { float: right; }
+        
+        .player-info {
+            position: absolute;
+            top: -20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        #p2-info { right: 0; }
+
+        .combo-notice {
+            position: absolute;
+            top: 35px;
+            font-size: 1.2rem;
+            color: #ffcc00;
+            text-shadow: 0 0 5px #000;
+            display: none;
+            font-weight: bold;
+        }
+        #p2-combo { right: 0; }
+
+        /* Personagens */
+        .player {
+            position: absolute;
+            width: 80px;
+            height: 140px;
+            bottom: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .body-sprite { position: relative; width: 100%; height: 100%; }
+        .head { width: 40px; height: 40px; border-radius: 50%; position: absolute; top: 0; left: 20px; border: 3px solid #fff; }
+        .torso { width: 50px; height: 60px; position: absolute; top: 40px; left: 15px; border-radius: 10px; border: 3px solid #fff; }
+        .arm { width: 40px; height: 15px; background: #fff; position: absolute; top: 50px; left: 45px; transform-origin: left center; transition: 0.08s; border-radius: 5px; }
+        .leg { width: 15px; height: 40px; background: #fff; position: absolute; bottom: 0; }
+        .leg.left { left: 20px; }
+        .leg.right { left: 45px; }
+
+        #p1 .head, #p1 .torso { background: #ff0055; box-shadow: 0 0 15px #ff0055; }
+        #p1 .arm, #p1 .leg { background: #ff4081; }
+        #p2 .head, #p2 .torso { background: #00e5ff; box-shadow: 0 0 15px #00e5ff; }
+        #p2 .arm, #p2 .leg { background: #80f3ff; }
+        #p2 .arm { left: auto; right: 45px; transform-origin: right center; }
+
+        /* Animações dos Golpes */
+        .punching .arm { transform: scaleX(1.8) rotate(-10deg); background: #fff !important; }
+        .combo1-anim .arm { transform: scaleX(2.3) rotate(15deg); background: #ffcc00 !important; }
+        .combo2-anim .arm { transform: scaleY(2) scaleX(1.6) translateY(10px); background: #00ff00 !important; }
+        .combo3-anim .arm { transform: scaleX(2.6) rotate(-45deg); background: #ff00ff !important; }
+        .air-combo-anim .arm { transform: scaleX(2.2) rotate(45deg); background: #ffff00 !important; }
+
+        .hit-effect {
+            position: absolute;
+            width: 60px; height: 60px;
+            background: radial-gradient(circle, #fff, #ffcc00, transparent);
+            border-radius: 50%; display: none; pointer-events: none; z-index: 5;
+        }
+
+        /* Controles Touch customizados para Tablet */
+        .controls-layer {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .touch-btn {
+            width: 75px;
+            height: 75px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #fff;
+            pointer-events: auto;
+        }
+
+        .touch-btn:active {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(0.95);
+        }
+
+        .d-pad { display: flex; gap: 15px; }
+        .action-pad { display: flex; gap: 15px; }
+
+        /* Telas e Menus */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+            padding: 20px;
+        }
+
+        .hidden { display: none !important; }
+
+        h1 { font-size: 3rem; margin-bottom: 20px; color: #ff0055; text-shadow: 0 0 10px #ff0055; text-align: center; }
+        
+        .btn {
+            padding: 14px 35px;
+            font-size: 1.1rem;
+            background: transparent;
+            color: #fff;
+            border: 2px solid #fff;
+            cursor: pointer;
+            margin: 10px;
+            font-family: inherit;
+        }
+
+        .lobby-box {
+            background: #222;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 15px;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .lobby-box input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #111;
+            border: 1px solid #444;
+            color: #fff;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        #status-text {
+            color: #00ffcc;
+            margin: 10px;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="scenery"><div class="floor"></div></div>
+        <div id="hit-fx" class="hit-effect"></div>
+
+        <div class="hud">
+            <div class="health-bar-container">
+                <div id="p1-info" class="player-info">Player 1 (Você)</div>
+                <div id="p1-health" class="health-bar"></div>
+                <div id="p1-combo" class="combo-notice">COMBO!</div>
+            </div>
+            <div class="health-bar-container">
+                <div id="p2-info" class="player-info">Player 2</div>
+                <div id="p2-health" class="health-bar"></div>
+                <div id="p2-combo" class="combo-notice">COMBO!</div>
+            </div>
+        </div>
+
+        <div id="p1" class="player" style="left: 150px;"><div class="body-sprite"><div class="head"></div><div class="torso"></div><div class="arm"></div><div class="leg left"></div><div class="leg right"></div></div></div>
+        <div id="p2" class="player" style="left: 800px;"><div class="body-sprite"><div class="head"></div><div class="torso"></div><div class="arm"></div><div class="leg left"></div><div class="leg right"></div></div></div>
+
+        <div class="controls-layer">
+            <div class="d-pad">
+                <div class="touch-btn" id="btn-left">◀</div>
+                <div class="touch-btn" id="btn-jump">▲</div>
+                <div class="touch-btn" id="btn-right">▶</div>
+            </div>
+            <div class="action-pad">
+                <div class="touch-btn" id="btn-low" style="background: rgba(0, 229, 255, 0.2);">B</div>
+                <div class="touch-btn" id="btn-high" style="background: rgba(255, 0, 85, 0.2);">C</div>
+            </div>
+        </div>
+
+        <div id="main-menu" class="screen">
+            <h1>RETRO ARENA P2P</h1>
+            <p id="status-text">Configurando rede P2P...</p>
+            
+            <div class="lobby-box">
+                <p>Seu ID da Sala:</p>
+                <input type="text" id="my-id" readonly>
+                <p style="font-size: 0.8rem; color:#aaa;">Passe este código para o outro tablet</p>
+            </div>
+
+            <div class="lobby-box">
+                <p>Conectar em outra Sala:</p>
+                <input type="text" id="peer-id-input" placeholder="Cole o ID do amigo aqui">
+                <button class="btn" onclick="connectToPeer()">CONECTAR E JOGAR</button>
+            </div>
+        </div>
+
+        <div id="game-over-menu" class="screen hidden">
+            <h1 id="winner-text">VOCÊ VENCEU!</h1>
+            <button class="btn" onclick="requestReset()">REINICIAR PARTIDA</button>
+        </div>
+    </div>
+
+    <script>
+        const config = { gravity: 0.6, canvasWidth: 1024, speed: 6 };
+        
+        let p1 = { id: 'p1', element: document.getElementById('p1'), x: 150, y: 0, vx: 0, vy: 0, isJumping: false, health: 100, direction: 1, lastKeys: [], attackCooldown: false };
+        let p2 = { id: 'p2', element: document.getElementById('p2'), x: 800, y: 0, vx: 0, vy: 0, isJumping: false, health: 100, direction: -1, lastKeys: [], attackCooldown: false };
+
+        let myRole = null; // 'host' ou 'guest'
+        let peer = null;
+        let conn = null;
+        let gameActive = false;
+        let touchStates = { left: false, right: false };
+
+        // Inicializa Rede P2P via PeerJS
+        function initNetwork() {
+            peer = new Peer();
+
+            peer.on('open', (id) => {
+                document.getElementById('my-id').value = id;
+                document.getElementById('status-text').innerText = "Pronto para conectar!";
+            });
+
+            // Quando alguém se conecta a este dispositivo (Você age como Host)
+            peer.on('connection', (connection) => {
+                conn = connection;
+                myRole = 'host';
+                setupConnection();
+            });
+        }
+
+        // Conectar ativamente a um ID existente (Você age como Guest)
+        function connectToPeer() {
+            let targetId = document.getElementById('peer-id-input').value.trim();
+            if(!targetId) return;
+            
+            document.getElementById('status-text').innerText = "Conectando...";
+            conn = peer.connect(targetId);
+            myRole = 'guest';
+            setupConnection();
+        }
+
+        function setupConnection() {
+            conn.on('open', () => {
+                document.getElementById('status-text').innerText = "Conectado! Iniciando arena...";
+                setTimeout(() => {
+                    toggleScreen('main-menu', false);
+                    gameActive = true;
+                    gameLoop();
+                }, 1000);
+            });
+
+            // Recebe dados de movimentação e golpes do outro tablet em tempo real
+            conn.on('data', (data) => {
+                if (data.type === 'sync') {
+                    if (myRole === 'guest') {
+                        // O Guest aceita as posições absolutas calculadas pelo Host
+                        p1.x = data.p2X; p1.y = data.p2Y; p1.health = data.p2H; p1.direction = data.p2Dir;
+                        p2.x = data.p1X; p2.y = data.p1Y; p2.health = data.p1H; p2.direction = data.p1Dir;
+                    } else {
+                        // Se for Host, recebe as intenções de movimento do Guest
+                        touchStates.remoteLeft = data.left;
+                        touchStates.remoteRight = data.right;
+                    }
+                }
+                if (data.type === 'attack') {
+                    triggerAttack(p2, data.attackType);
+                }
+                if (data.type === 'combo') {
+                    executeCombo(p2, data.animClass, data.damage, data.text);
+                }
+                if (data.type === 'jump') {
+                    if(!p2.isJumping) { p2.vy = -14; p2.isJumping = true; }
+                }
+                if (data.type === 'reset') {
+                    resetGamePositions();
+                }
+            });
+        }
+
+        // Mapeia botões digitais na tela do Tablet
+        function setupTouchControls() {
+            const bindTouch = (id, action, startCallback, endCallback) => {
+                const el = document.getElementById(id);
+                el.addEventListener('touchstart', (e) => { e.preventDefault(); startCallback(); });
+                el.addEventListener('touchend', (e) => { e.preventDefault(); endCallback(); });
+            };
+
+            bindTouch('btn-left', 'left', () => touchStates.left = true, () => touchStates.left = false);
+            bindTouch('btn-right', 'right', () => touchStates.right = true, () => touchStates.right = false);
+            
+            bindTouch('btn-jump', 'jump', () => {
+                if (!p1.isJumping) {
+                    p1.vy = -14; p1.isJumping = true;
+                    if(conn) conn.send({type: 'jump'});
+                }
+            }, () => {});
+
+            bindTouch('btn-low', 'low', () => { if(!p1.attackCooldown) triggerAttack(p1, 'baixo', true); }, () => {});
+            bindTouch('btn-high', 'high', () => { if(!p1.attackCooldown) triggerAttack(p1, 'cima', true); }, () => {});
+        }
+
+        function triggerAttack(player, type, sendNet = false) {
+            player.attackCooldown = true;
+            let animClass = 'punching';
+            player.element.classList.add(animClass);
+
+            if (sendNet && conn) {
+                conn.send({ type: 'attack', attackType: type });
+                recordKey(player, type);
+            }
+
+            if (myRole === 'host') checkHit(player, 4, false);
+
+            setTimeout(() => {
+                player.element.classList.remove(animClass, 'combo1-anim', 'combo2-anim', 'combo3-anim', 'air-combo-anim');
+                player.attackCooldown = false;
+            }, 150);
+        }
+
+        function recordKey(player, type) {
+            player.lastKeys.push({ type: type, time: Date.now() });
+            if (player.lastKeys.length > 5) player.lastKeys.shift();
+            checkCombos(player);
+        }
+
+        function checkCombos(player) {
+            const now = Date.now();
+            player.lastKeys = player.lastKeys.filter(k => now - k.time < 1200);
+            let sequence = player.lastKeys.map(k => k.type).join('-');
+
+            if (sequence.endsWith('cima-cima-cima') || sequence.endsWith('baixo-baixo-baixo')) {
+                sendCombo(player, 'combo1-anim', 14, 'TRIPLO IMPACTO!');
+            } else if (sequence.endsWith('baixo-cima')) {
+                sendCombo(player, 'combo2-anim', 12, 'GANCHO ASCENDENTE!');
+            } else if (sequence.endsWith('cima-cima-baixo')) {
+                sendCombo(player, 'combo3-anim', 18, 'QUEBRA CRÂNIO!');
+            } else if (player.isJumping && (sequence.endsWith('cima') || sequence.endsWith('baixo'))) {
+                sendCombo(player, 'air-combo-anim', 10, 'IMPACTO AÉREO!');
+            }
+        }
+
+        function sendCombo(player, animClass, damage, text) {
+            executeCombo(player, animClass, damage, text);
+            if(conn) conn.send({ type: 'combo', animClass: animClass, damage: damage, text: text });
+            player.lastKeys = [];
+        }
+
+        function executeCombo(player, animClass, damage, text) {
+            player.element.className = 'player';
+            player.element.classList.add(animClass);
+            
+            let notice = document.getElementById(`${player.id}-combo`);
+            notice.innerText = text;
+            notice.style.display = 'block';
+            setTimeout(() => notice.style.display = 'none', 600);
+
+            if (myRole === 'host') checkHit(player, damage, true);
+        }
+
+        function checkHit(attacker, damage, isCombo) {
+            let target = (attacker.id === 'p1') ? p2 : p1;
+            let reach = isCombo ? 120 : 85;
+
+            if (Math.abs(attacker.x - target.x) < reach && Math.abs(attacker.y - target.y) < 80) {
+                target.health -= damage;
+                if (target.health < 0) target.health = 0;
+                
+                let pushDir = attacker.x < target.x ? 1 : -1;
+                target.vx += pushDir * (isCombo ? 10 : 4);
+                
+                if (target.health <= 0) gameActive = false;
+            }
+        }
+
+        function updatePhysics(player, isLeft, isRight) {
+            if (isLeft) { player.vx = -config.speed; player.direction = -1; }
+            else if (isRight) { player.vx = config.speed; player.direction = 1; }
+            else { player.vx *= 0.75; }
+
+            player.vy += config.gravity;
+            player.x += player.vx;
+            player.y -= player.vy;
+
+            if (player.y <= 0) { player.y = 0; player.vy = 0; player.isJumping = false; }
+            if (player.x < 0) player.x = 0;
+            if (player.x > config.canvasWidth - 80) player.x = config.canvasWidth - 80;
+
+            player.element.style.left = `${player.x}px`;
+            player.element.style.transform = `translateY(${-player.y}px) scaleX(${player.direction})`;
+        }
+
+        function requestReset() {
+            if(conn) conn.send({type: 'reset'});
+            resetGamePositions();
+        }
+
+        function resetGamePositions() {
+            p1.health = 100; p2.health = 100;
+            p1.x = 150; p2.x = 800;
+            p1.y = 0; p2.y = 0;
+            toggleScreen('game-over-menu', false);
+            gameActive = true;
+            gameLoop();
+        }
+
+        function toggleScreen(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
+
+        // Loop de Atualização Dinâmica
+        function gameLoop() {
+            if (!gameActive) {
+                let winText = p1.health <= 0 ? "PLAYER 2 VENCEU!" : "VOCÊ VENCEU!";
+                document.getElementById('winner-text').innerText = winText;
+                toggleScreen('game-over-menu', true);
+                return;
+            }
+
+            if (myRole === 'host') {
+                // Host gerencia a física de ambos
+                updatePhysics(p1, touchStates.left, touchStates.right);
+                updatePhysics(p2, touchStates.remoteLeft, touchStates.remoteRight);
+
+                // Dispara sincronização de posições absolutas pro Guest
+                if (conn) {
+                    conn.send({
+                        type: 'sync',
+                        p1X: p1.x, p1Y: p1.y, p1H: p1.health, p1Dir: p1.direction,
+                        p2X: p2.x, p2Y: p2.y, p2H: p2.health, p2Dir: p2.direction
+                    });
+                }
+            } else if (myRole === 'guest') {
+                // Guest apenas avisa o Host quais botões de direção estão pressionados
+                if (conn) {
+                    conn.send({ type: 'sync', left: touchStates.left, right: touchStates.right });
+                }
+                // Aplica transformações locais recebidas pelo Host
+                p1.element.style.left = `${p1.x}px`;
+                p1.element.style.transform = `translateY(${-p1.y}px) scaleX(${p1.direction})`;
+                p2.element.style.left = `${p2.x}px`;
+                p2.element.style.transform = `translateY(${-p2.y}px) scaleX(${p2.direction})`;
+            }
+
+            // Atualiza Barras de Vida na Tela
+            document.getElementById('p1-health').style.width = `${p1.health}%`;
+            document.getElementById('p2-health').style.width = `${p2.health}%`;
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Inicialização
+        initNetwork();
+        setupTouchControls();
+    </script>
+</body>
+</html>
