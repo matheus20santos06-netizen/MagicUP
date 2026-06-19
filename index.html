@@ -8,6 +8,7 @@
     <style>
         :root {
             --game-scale: 1;
+            --y-offset: 0px;
         }
 
         * {
@@ -17,6 +18,7 @@
             user-select: none;
             -webkit-user-select: none;
             touch-action: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -30,14 +32,15 @@
             overflow: hidden;
         }
 
-        /* Container Principal com controle de escala dinâmico via CSS */
+        /* Container Principal com controle de escala e altura dinâmicos */
         #game-wrapper {
             position: relative;
             width: 1024px;
             height: 576px;
             transform: scale(var(--game-scale));
             transform-origin: center center;
-            transition: transform 0.1s ease;
+            margin-top: var(--y-offset);
+            transition: transform 0.05s ease;
         }
 
         #game-container {
@@ -84,7 +87,7 @@
             100% { transform: scale(1); }
         }
 
-        /* Personagens em CSS Puro */
+        /* Personagens em CSS */
         .player {
             position: absolute; width: 60px; height: 110px; bottom: 20%; display: flex; justify-content: center; align-items: center;
             transition: opacity 0.1s;
@@ -104,24 +107,24 @@
         #p2 .arm, #p2 .leg { background: #80f3ff; }
         #p2 .arm { left: auto; right: 35px; transform-origin: right center; }
 
-        /* Animações e Estados Especiais de Luta */
+        /* Animações de Luta */
         .punching .arm { transform: scaleX(1.9) rotate(-10deg); background: #fff !important; }
         .combo1 .arm { transform: scaleX(2.4) rotate(20deg); background: #ffcc00 !important; box-shadow: 0 0 8px #ffcc00; }
         .combo2 .arm { transform: scaleY(2.2) scaleX(1.6) translateY(6px); background: #00ff00 !important; box-shadow: 0 0 8px #00ff00; }
         .special-anim .arm { transform: scaleX(3.5) rotate(-25deg); background: #ff00ff !important; box-shadow: 0 0 20px #ff00ff; }
         .stunned { opacity: 0.6; transform: skewX(-20deg) rotate(5deg) !important; filter: grayscale(50%); }
 
-        /* Camada de Controles Touch */
+        /* Camada de Controles Touch - BOTÕES GIGANTES PARA O SEU A02 (90px) */
         .controls-layer {
-            position: absolute; bottom: 10px; width: 100%; display: flex; justify-content: space-between; padding: 0 25px; pointer-events: none; z-index: 50;
+            position: absolute; bottom: 15px; width: 100%; display: flex; justify-content: space-between; padding: 0 25px; pointer-events: none; z-index: 50;
         }
         .touch-btn {
-            width: 65px; height: 65px; background: rgba(255, 255, 255, 0.12); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%;
-            display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; color: #fff; pointer-events: auto;
+            width: 90px; height: 90px; background: rgba(255, 255, 255, 0.22); border: 4px solid rgba(255, 255, 255, 0.6); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 2rem; color: #fff; pointer-events: auto;
         }
-        .touch-btn:active { background: rgba(255, 255, 255, 0.4); transform: scale(0.92); }
-        .d-pad, .action-pad { display: flex; gap: 12px; }
-        #btn-sp { background: rgba(255, 0, 255, 0.2); border-color: rgba(255, 0, 255, 0.6); display: none; font-size: 0.9rem; color: #ff00ff; text-shadow: 0 0 5px #ff00ff; font-weight: 900; }
+        .touch-btn:active { background: rgba(255, 255, 255, 0.5); transform: scale(0.9); }
+        .d-pad, .action-pad { display: flex; gap: 14px; }
+        #btn-sp { background: rgba(255, 0, 255, 0.25); border-color: rgba(255, 0, 255, 0.7); display: none; font-size: 1.3rem; color: #ff00ff; text-shadow: 0 0 5px #ff00ff; font-weight: 900; }
 
         .pause-trigger {
             position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 44px; height: 44px;
@@ -135,21 +138,20 @@
         }
         .hidden { display: none !important; }
         h1 { font-size: 2.5rem; color: #ff0055; text-shadow: 0 0 10px #ff0055; margin-bottom: 15px; text-align: center; font-weight: 900; }
-        h2 { font-size: 1.8rem; color: #00e5ff; margin-bottom: 10px; }
         p { margin-bottom: 5px; font-size: 0.9rem; text-align: center; }
         
         .btn { padding: 12px 28px; font-size: 1rem; background: transparent; color: #fff; border: 2px solid #fff; cursor: pointer; margin: 8px; font-family: inherit; font-weight: bold; transition: 0.2s; }
         .btn:hover { background: #fff; color: #000; }
         
         .lobby-box { background: #161616; padding: 15px; border-radius: 8px; border: 1px solid #333; text-align: center; margin: 8px; width: 92%; max-width: 380px; }
-        .lobby-box input { width: 100%; padding: 10px; margin: 8px 0; background: #000; border: 1px solid #555; color: #fff; text-align: center; font-size: 1.1rem; font-family: inherit; }
+        .lobby-box input[type="text"] { width: 100%; padding: 10px; margin: 8px 0; background: #000; border: 1px solid #555; color: #fff; text-align: center; font-size: 1.1rem; font-family: inherit; }
 
-        /* Slider de ajuste de tela no menu */
+        /* Painel de Ajuste Completo (Zoom + Altura Y) */
         .scale-panel {
             display: flex; flex-direction: column; align-items: center; width: 100%; margin: 10px 0;
         }
         .scale-panel input[type="range"] {
-            width: 80%; max-width: 300px; height: 8px; accent-color: #ff0055; margin-top: 10px;
+            width: 85%; max-width: 300px; height: 10px; accent-color: #ff0055; margin-top: 5px; margin-bottom: 15px;
         }
     </style>
 </head>
@@ -186,8 +188,8 @@
                 </div>
                 <div class="action-pad">
                     <div class="touch-btn" id="btn-sp">SP</div>
-                    <div class="touch-btn" id="btn-low" style="background: rgba(0, 229, 255, 0.15);">B</div>
-                    <div class="touch-btn" id="btn-high" style="background: rgba(255, 0, 85, 0.15);">C</div>
+                    <div class="touch-btn" id="btn-low" style="background: rgba(0, 229, 255, 0.25);">B</div>
+                    <div class="touch-btn" id="btn-high" style="background: rgba(255, 0, 85, 0.25);">C</div>
                 </div>
             </div>
 
@@ -195,8 +197,11 @@
                 <h1>RETRO ARENA P2P</h1>
                 
                 <div class="lobby-box scale-panel">
-                    <p style="color: #ffcc00; font-weight: bold;">Ajustar Tamanho da Tela (Zoom):</p>
-                    <input type="range" id="screen-scale-slider" min="0.4" max="1.5" step="0.05" value="1" oninput="adjustGameScale(this.value)">
+                    <p style="color: #ffcc00; font-weight: bold;">Zoom da Tela:</p>
+                    <input type="range" id="menu-scale-slider" min="0.4" max="1.5" step="0.02" value="1" oninput="adjustGameView(this.value, document.getElementById('menu-y-slider').value)">
+                    
+                    <p style="color: #00e5ff; font-weight: bold;">Altura da Tela (Subir/Descer):</p>
+                    <input type="range" id="menu-y-slider" min="-250" max="250" step="5" value="0" oninput="adjustGameView(document.getElementById('menu-scale-slider').value, this.value)">
                 </div>
 
                 <p id="status-text" style="color: #00ffcc; font-weight: bold; margin-top: 5px;">Iniciando PeerJS...</p>
@@ -216,8 +221,11 @@
                 <h1>JOGO PAUSADO</h1>
                 
                 <div class="lobby-box scale-panel">
-                    <p style="color: #ffcc00;">Reajustar Tamanho da Tela:</p>
-                    <input type="range" id="pause-scale-slider" min="0.4" max="1.5" step="0.05" value="1" oninput="adjustGameScale(this.value)">
+                    <p style="color: #ffcc00; font-weight: bold;">Reajustar Zoom:</p>
+                    <input type="range" id="pause-scale-slider" min="0.4" max="1.5" step="0.02" value="1" oninput="adjustGameView(this.value, document.getElementById('pause-y-slider').value)">
+                    
+                    <p style="color: #00e5ff; font-weight: bold;">Reajustar Altura Y:</p>
+                    <input type="range" id="pause-y-slider" min="-250" max="250" step="5" value="0" oninput="adjustGameView(document.getElementById('pause-scale-slider').value, this.value)">
                 </div>
 
                 <button class="btn" onclick="requestResume()">RETOMAR ARENA</button>
@@ -240,7 +248,7 @@
         let peer = null, conn = null, isHost = false, gameActive = false, isPaused = false;
         let touch = { left: false, right: false };
 
-        // SINTETIZADOR DE ÁUDIO REAL-TIME (Web Audio API) - Sem lag e sem arquivos externos
+        // SINTETIZADOR DE ÁUDIO REAL-TIME (Web Audio API)
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) {
@@ -294,20 +302,25 @@
             }
         }
 
-        // Sistema de Controle de Escala Dinâmico (Perfeito para o Galaxy A02)
-        function adjustGameScale(value) {
-            document.documentElement.style.setProperty('--game-scale', value);
-            document.getElementById('screen-scale-slider').value = value;
-            document.getElementById('pause-scale-slider').value = value;
+        // Sistema de Ajuste de Visão Unificado (Aplica Zoom e Altura sem quebrar o CSS)
+        function adjustGameView(scale, yOffset) {
+            document.documentElement.style.setProperty('--game-scale', scale);
+            document.documentElement.style.setProperty('--y-offset', yOffset + 'px');
+            
+            // Sincroniza todos os sliders dos menus simultaneamente
+            document.getElementById('menu-scale-slider').value = scale;
+            document.getElementById('pause-scale-slider').value = scale;
+            document.getElementById('menu-y-slider').value = yOffset;
+            document.getElementById('pause-y-slider').value = yOffset;
         }
 
-        // Auto ajuste inicial baseado na tela do aparelho do usuário
+        // Auto calibração responsiva padrão baseada na tela do dispositivo
         function autoScale() {
             let widthScale = window.innerWidth / 1040;
             let heightScale = window.innerHeight / 600;
             let bestScale = Math.min(widthScale, heightScale, 1.2);
-            if(bestScale < 0.5) bestScale = 0.5;
-            adjustGameScale(bestScale);
+            if(bestScale < 0.4) bestScale = 0.4;
+            adjustGameView(bestScale, 0);
         }
 
         function initP2P() {
@@ -355,7 +368,7 @@
                     remotePlayer.health = data.health;
                     remotePlayer.sp = data.sp;
                     remotePlayer.isStunned = data.stun;
-                    localPlayer.health = data.myHealth; // Garante consistência exata do HP
+                    localPlayer.health = data.myHealth; 
                 }
                 if (data.type === 'action') {
                     animateRemote(data.anim);
@@ -411,7 +424,6 @@
 
             localPlayer.el.classList.add(anim);
             
-            // Verificação matemática precisa de Hitbox
             let hitRegistered = false;
             let distance = Math.abs(localPlayer.x - remotePlayer.x);
             let reach = anim.includes('combo') ? 110 : 75;
@@ -425,7 +437,7 @@
             } else {
                 localPlayer.hits = 0;
                 document.getElementById('p1-hits').style.display = 'none';
-                playSound('punch'); // Som de vento se errar
+                playSound('punch'); 
             }
 
             if(conn) conn.send({ type: 'action', anim: anim, hit: hitRegistered });
@@ -457,7 +469,7 @@
             
             let distance = Math.abs(localPlayer.x - remotePlayer.x);
             if (distance < 140 && Math.abs(localPlayer.y - remotePlayer.y) < 60) {
-                remotePlayer.isStunned = true; // ATIVA PARALISIA REAL (STUN) NO INIMIGO
+                remotePlayer.isStunned = true; 
                 if(conn) conn.send({ type: 'action', anim: 'special-anim', hit: true });
                 
                 let attackTicks = 0;
@@ -470,7 +482,7 @@
                     
                     if(attackTicks >= 6) {
                         clearInterval(specialComboInterval);
-                        remotePlayer.isStunned = false; // Libera o rival após o término do especial
+                        remotePlayer.isStunned = false; 
                         localPlayer.el.classList.remove('special-anim');
                         localPlayer.cooldown = false;
                         sendState();
@@ -492,7 +504,6 @@
             badge.innerText = `${player.hits} HITS`;
             badge.style.display = 'block';
             
-            // Remove o contador se ficar muito tempo sem bater
             clearTimeout(player.hitTimeout);
             player.hitTimeout = setTimeout(() => { badge.style.display = 'none'; player.hits = 0; }, 1200);
         }
@@ -530,7 +541,6 @@
         function gameLoop() {
             if (!gameActive || isPaused) return;
 
-            // Física Local Fluida e Instantânea (Independente do processamento do outro tablet)
             if (!localPlayer.isStunned) {
                 if (touch.left) { localPlayer.vx = -config.speed; localPlayer.direction = -1; }
                 else if (touch.right) { localPlayer.vx = config.speed; localPlayer.direction = 1; }
@@ -545,10 +555,8 @@
             if (localPlayer.x < 0) localPlayer.x = 0;
             if (localPlayer.x > config.width - 60) localPlayer.x = config.width - 60;
 
-            // Transmissão levíssima de dados de movimento para evitar gargalo de rede na WLAN
             if (conn) conn.send({ type: 'move', x: localPlayer.x, y: localPlayer.y, dir: localPlayer.direction });
 
-            // Renderização Gráfica Dinâmica
             localPlayer.el.style.left = `${localPlayer.x}px`;
             localPlayer.el.style.transform = `translateY(${-localPlayer.y}px) scaleX(${localPlayer.direction})`;
             localPlayer.el.classList.toggle('stunned', localPlayer.isStunned);
@@ -557,17 +565,15 @@
             remotePlayer.el.style.transform = `translateY(${-remotePlayer.y}px) scaleX(${remotePlayer.direction})`;
             remotePlayer.el.classList.toggle('stunned', remotePlayer.isStunned);
 
-            // Atualização da HUD em tempo real
             document.getElementById('p1-health').style.width = `${localPlayer.health}%`;
             document.getElementById('p2-health').style.width = `${remotePlayer.health}%`;
             document.getElementById('p1-sp').style.width = `${localPlayer.sp}%`;
             document.getElementById('p2-sp').style.width = `${remotePlayer.sp}%`;
             document.getElementById('btn-sp').style.display = localPlayer.sp >= 100 ? 'flex' : 'none';
 
-            // Tela de Fim de Jogo para Ambos
             if (localPlayer.health <= 0 || remotePlayer.health <= 0) {
                 gameActive = false;
-                document.getElementById('winner-text').innerText = localPlayer.health <= 0 ? "FALHA - VOCÊ PERDEU!" : "VITÓRIA EXTREMA!";
+                document.getElementById('winner-text').innerText = localPlayer.health <= 0 ? "FALHA - DERROTA!" : "VITÓRIA EXTREMA!";
                 document.getElementById('game-over-menu').classList.remove('hidden');
                 return;
             }
