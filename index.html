@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guerreiros Z: O Legado</title>
+    <title>Guerreiros Z: Crônicas dos 50 Níveis</title>
     <style>
         * {
             box-sizing: border-box;
@@ -14,7 +14,7 @@
         }
 
         body {
-            background-color: #0b0214;
+            background-color: #080210;
             color: white;
             display: flex;
             justify-content: center;
@@ -28,11 +28,11 @@
             max-width: 450px;
             height: 100vh;
             max-height: 850px;
-            background: linear-gradient(to bottom, #150727, #2a1145);
-            border: 4px solid #ffcc00;
+            background: linear-gradient(to bottom, #110520, #1f0b35);
+            border: 3px solid #ffcc00;
             border-radius: 12px;
             position: relative;
-            box-shadow: 0 0 25px rgba(0,0,0,0.8);
+            box-shadow: 0 0 30px rgba(0,0,0,0.9);
             overflow: hidden;
         }
 
@@ -42,7 +42,7 @@
             display: none;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
+            padding: 15px;
             position: absolute;
             top: 0;
             left: 0;
@@ -53,7 +53,7 @@
         h1, h2, h3 {
             text-align: center;
             text-shadow: 2px 2px #000;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             color: #ffcc00;
         }
 
@@ -62,7 +62,7 @@
             border: 2px solid #fff;
             border-radius: 8px;
             color: white;
-            padding: 10px 20px;
+            padding: 10px 16px;
             font-weight: bold;
             cursor: pointer;
             text-shadow: 1px 1px #000;
@@ -76,90 +76,110 @@
         }
 
         button:disabled {
-            background: #555;
+            background: #444;
             box-shadow: none;
             cursor: not-allowed;
-            opacity: 0.6;
+            opacity: 0.5;
         }
 
         .hud-stats {
             display: flex;
             justify-content: space-between;
             width: 100%;
-            background: rgba(0,0,0,0.4);
-            padding: 8px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
             border-radius: 6px;
             font-size: 0.9rem;
             margin-bottom: 10px;
-            border: 1px solid #444;
+            border: 1px solid #333;
         }
 
-        /* --- TELA DE SELEÇÃO E TREINO --- */
+        /* --- SISTEMA DE ABAS --- */
+        .tabs-container {
+            display: flex;
+            width: 100%;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 8px;
+            background: #25123e;
+            border: 1px solid #4f2784;
+            border-bottom: none;
+            color: #aaa;
+            border-radius: 6px 6px 0 0;
+            font-size: 0.8rem;
+            box-shadow: none;
+        }
+        .tab-button.active-tab {
+            background: #ff9900;
+            color: white;
+            border-color: #fff;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .tab-content.active-content { display: flex; }
+
+        /* --- CARDS E SELEÇÃO --- */
         .char-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            width: 100%;
-            overflow-y: auto;
-            flex: 1;
-            padding: 5px;
+            gap: 10px;
+            padding: 2px;
         }
         .char-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px solid #444;
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px solid #3b1d5a;
             border-radius: 8px;
             padding: 10px;
             text-align: center;
             cursor: pointer;
-            position: relative;
         }
         .char-card.selected {
             border-color: #ffcc00;
             background: rgba(255, 204, 0, 0.15);
-            box-shadow: 0 0 10px rgba(ff, cc, 0, 0.5);
         }
-        .char-avatar { font-size: 2.2rem; margin-bottom: 5px; }
+        .char-avatar { font-size: 2rem; margin-bottom: 4px; }
 
-        .training-zone {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px dashed #ffcc00;
-            border-radius: 8px;
+        .shop-row {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #444;
             padding: 12px;
-            margin-top: 10px;
-            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-
-        /* --- TELA VERSUS --- */
-        #vs-screen { justify-content: center; background: #111; }
-        .vs-circle {
-            width: 100px; height: 100px; background: #ff3300; border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 2.5rem; font-weight: bold; color: #fff; border: 4px solid #fff;
-            margin: 30px 0; animation: pulse 0.8s infinite alternate;
-        }
-        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
 
         /* --- TELA DE COMBATE --- */
         .battle-stage {
             flex: 1; width: 100%; display: flex; justify-content: space-between;
-            align-items: center; background: linear-gradient(to bottom, #3b82f6, #93c5fd);
-            border-radius: 8px; padding: 15px; border: 3px solid #222;
+            align-items: center; background: linear-gradient(to bottom, #1d4ed8, #60a5fa);
+            border-radius: 8px; padding: 15px; border: 3px solid #111;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
         }
         .fighter { display: flex; flex-direction: column; align-items: center; width: 45%; }
-        .fighter-img { font-size: 3.5rem; transition: 0.2s; }
-        .hp-bar-container { width: 100%; background: #444; border: 2px solid #000; height: 14px; margin-top: 5px; border-radius: 3px; overflow: hidden; }
+        .fighter-img { font-size: 3.5rem; transition: 0.15s; text-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+        .hp-bar-container { width: 100%; background: #333; border: 2px solid #000; height: 14px; margin-top: 5px; border-radius: 4px; overflow: hidden; }
         .hp-bar { width: 100%; height: 100%; background: #22c55e; transition: width 0.2s; }
-        .ki-bar-container { width: 100%; background: #333; border: 1px solid #000; height: 8px; margin-top: 3px; border-radius: 2px; }
+        .ki-bar-container { width: 100%; background: #222; border: 1px solid #000; height: 8px; margin-top: 3px; border-radius: 2px; }
         .ki-bar { width: 0%; height: 100%; background: #06b6d4; transition: width 0.2s; }
         
         .battle-log {
-            height: 75px; width: 100%; background: rgba(0,0,0,0.85);
-            border: 2px solid #ff5500; border-radius: 6px; margin: 12px 0;
+            height: 70px; width: 100%; background: rgba(0,0,0,0.85);
+            border: 2px solid #ff5500; border-radius: 6px; margin: 10px 0;
             padding: 8px; font-size: 0.85rem; overflow-y: auto;
         }
-        .actions-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; }
-        .action-btn { padding: 10px; font-size: 0.8rem; }
+        .actions-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 100%; }
+        .action-btn { padding: 8px; font-size: 0.8rem; }
 
         .hit { animation: shake 0.15s 2; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-8px); } }
@@ -170,156 +190,205 @@
     <div id="game-container">
         
         <div id="menu-screen" class="screen active">
-            <h1 style="font-size: 2.5rem; margin-top: 80px; text-shadow: 3px 3px #ff5500;">GUERREIROS Z<br><span style="color:#fff; font-size:1.6rem;">TORNEIO SUPREMO</span></h1>
-            <p style="text-align:center; margin-bottom:40px; color:#aaa;">Treine, junte Zeni e evolua para derrotar Freeza e Cell!</p>
-            <button onclick="playSound('select'); changeScreen('select-screen')">INICIAR JOGO</button>
+            <h1 style="font-size: 2.3rem; margin-top: 100px; text-shadow: 3px 3px #ff5500; line-height: 1.2;">GUERREIROS Z<br><span style="color:#fff; font-size:1.4rem;">A SAGA DOS 50 NÍVEIS</span></h1>
+            <p style="text-align:center; margin-bottom:50px; color:#aaa; font-size:0.85rem; padding:0 20px;">Atravesse as eras de Dragon Ball, do Raditz até os Deuses Multiversais!</p>
+            <button onclick="playSound('select'); changeScreen('select-screen')">COMEÇAR HISTÓRIA</button>
         </div>
 
         <div id="select-screen" class="screen">
             <div class="hud-stats">
-                <span id="hud-level">Fase Máxima: 1</span>
-                <span id="hud-zeni" style="color:#ffcc00; font-weight:bold;">🪙 Zeni: 0</span>
-            </div>
-            
-            <h3>Selecione seu Guerreiro</h3>
-            <div class="char-grid" id="available-chars"></div>
-
-            <div class="training-zone">
-                <h4>Sala de Gravidade (Treino)</h4>
-                <p style="font-size:0.75rem; color:#ccc; margin-bottom: 8px;">Enfrente capangas menores para acumular moedas e ficar mais forte!</p>
-                <button style="background: #10b981; box-shadow: 0 4px #047857;" onclick="startTrainingMission()">Fazer Missão Secundária (+25 Zeni)</button>
+                <span id="hud-level" style="color:#ffcc00; font-weight:bold;">Fase Atual: 1/50</span>
+                <span id="hud-zeni" style="color:#f59e0b; font-weight:bold;">🪙 0 Zeni</span>
             </div>
 
-            <div style="display:flex; gap:10px; width:100%; margin-top:12px;">
-                <button id="btn-up-power" style="flex:1; background:#3b82f6;" onclick="buyUpgrade('power')">💪 +Poder (Cost: 30)</button>
-                <button id="btn-up-hp" style="flex:1; background:#ec4899;" onclick="buyUpgrade('hp')">❤️ +Vida (Cost: 30)</button>
+            <div class="tabs-container">
+                <button class="tab-button active-tab" id="tab-chars" onclick="switchTab('chars')">Guerreiros</button>
+                <button class="tab-button" id="tab-shop" onclick="switchTab('shop')">Treino & Upgrades</button>
             </div>
 
-            <button id="confirm-select-btn" style="width:100%; margin-top:12px;" onclick="startMainVersus()" disabled>AVANÇAR PARA HISTÓRIA</button>
+            <div id="content-chars" class="tab-content active-content">
+                <div class="char-grid" id="available-chars"></div>
+            </div>
+
+            <div id="content-shop" class="tab-content">
+                <div style="background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; text-align:center; margin-bottom:12px; border:1px dashed #f59e0b;">
+                    <strong style="color:#10b981; font-size:0.9rem;">Sala de Gravidade aumentada</strong>
+                    <p style="font-size:0.75rem; color:#ccc; margin-top:4px;">Lute contra simulações rápidas para farmar moedas.</p>
+                    <button style="background:#10b981; margin-top:8px; font-size:0.8rem; box-shadow:0 3px #047857;" onclick="startTrainingMission()">Treino Rápido (+40 Zeni)</button>
+                </div>
+                
+                <div class="shop-row">
+                    <div>
+                        <strong style="font-size:0.9rem;">💪 Treino de Força</strong>
+                        <div style="font-size:0.75rem; color:#aaa;">+6 de Dano Base global</div>
+                    </div>
+                    <button id="btn-up-power" style="background:#3b82f6; box-shadow:0 3px #1d4ed8;" onclick="buyUpgrade('power')">Upar</button>
+                </div>
+
+                <div class="shop-row">
+                    <div>
+                        <strong style="font-size:0.9rem;">❤️ Expansão de Ki Vital</strong>
+                        <div style="font-size:0.75rem; color:#aaa;">+20 de HP Máximo global</div>
+                    </div>
+                    <button id="btn-up-hp" style="background:#ec4899; box-shadow:0 3px #be185d;" onclick="buyUpgrade('hp')">Upar</button>
+                </div>
+            </div>
+
+            <button id="confirm-select-btn" style="width:100%; margin-top:10px; padding:12px;" onclick="startMainVersus()" disabled>ENTRAR NO COMBATE</button>
         </div>
 
         <div id="vs-screen" class="screen">
-            <h2>CONFRONTO ATUAL</h2>
-            <div id="vs-player" style="font-size: 1.4rem; font-weight: bold;">-</div>
+            <h2 id="vs-saga-title" style="font-size:1.2rem; color:#ff9900; letter-spacing:1px;">SAGA SAIYAJIN</h2>
+            <div id="vs-player" style="font-size: 1.3rem; font-weight: bold; margin-top:20px;">-</div>
             <div class="vs-circle">VS</div>
-            <div id="vs-enemy" style="font-size: 1.4rem; font-weight: bold; color:#ef4444;">-</div>
-            <p id="vs-mode-text" style="margin-top:20px; color:#aaa;"></p>
+            <div id="vs-enemy" style="font-size: 1.3rem; font-weight: bold; color:#ef4444;">-</div>
+            <p id="vs-mode-text" style="margin-top:20px; color:#888; font-size:0.8rem;"></p>
         </div>
 
         <div id="battle-screen" class="screen">
-            <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 8px; font-size:0.85rem;">
-                <span id="stage-indicator" style="font-weight:bold; color:#ffcc00;">História: Fase 1</span>
-                <span id="chances-indicator">Tentativas: 3/3</span>
+            <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 6px; font-size:0.8rem;">
+                <span id="stage-indicator" style="font-weight:bold; color:#ffcc00;">Fase 1/50</span>
+                <span id="chances-indicator">Vidas: 3/3</span>
             </div>
             
-            <div class="battle-stage">
+            <div class="battle-stage" id="battle-bg">
                 <div class="fighter" id="player-fighter">
                     <div class="fighter-img" id="p-img">🧑‍🦲</div>
-                    <div id="p-name" style="font-size:0.9rem; font-weight:bold;">Kuririn</div>
-                    <div style="font-size:0.7rem; color:#444;" id="p-stat-bonus"></div>
+                    <div id="p-name" style="font-size:0.85rem; font-weight:bold;">Kuririn</div>
                     <div class="hp-bar-container"><div class="hp-bar" id="p-hp"></div></div>
                     <div class="ki-bar-container"><div class="ki-bar" id="p-ki"></div></div>
                 </div>
                 
                 <div class="fighter" id="enemy-fighter">
                     <div class="fighter-img" id="e-img">👽</div>
-                    <div id="e-name" style="font-size:0.9rem; font-weight:bold;">Inimigo</div>
+                    <div id="e-name" style="font-size:0.85rem; font-weight:bold;">Inimigo</div>
                     <div class="hp-bar-container"><div class="hp-bar" id="e-hp"></div></div>
                     <div class="ki-bar-container"><div class="ki-bar" id="e-ki"></div></div>
                 </div>
             </div>
 
-            <div class="battle-log" id="log-box">O Torneio começou! Seu turno de atacar.</div>
+            <div class="battle-log" id="log-box">Carregando dados da arena...</div>
 
             <div class="actions-grid">
                 <button class="action-btn" onclick="playerAction('soco')">🥊 Soco Curto</button>
                 <button class="action-btn" onclick="playerAction('bola')">☄️ Ki Blast (1 Ki)</button>
-                <button class="action-btn" onclick="playerAction('combo')">🥾 Combo Golpe (2 Ki)</button>
-                <button class="action-btn" onclick="playerAction('mega')">💥 Onda de Energia (3 Ki)</button>
+                <button class="action-btn" onclick="playerAction('combo')">🥾 Combo Físico (2 Ki)</button>
+                <button class="action-btn" onclick="playerAction('mega')">💥 Ataque Especial (3 Ki)</button>
                 <button class="action-btn" style="background: #06b6d4;" onclick="playerAction('carregar')">⚡ Carregar Ki</button>
-                <button class="action-btn" style="background: #22c55e;" onclick="playerAction('curar')">💊 Semente Deuses</button>
+                <button class="action-btn" style="background: #22c55e;" onclick="playerAction('curar')">💊 Semente</button>
             </div>
         </div>
 
     </div>
 
     <script>
-        // --- ÁUDIO SINTETIZADO (Web Audio API) ---
+        // --- ÁUDIO SINTETIZADO NATIVO ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(type) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
+            osc.connect(gain); gain.connect(audioCtx.destination);
             if (type === 'hit') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.15);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.12);
             } else if (type === 'ki') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+                osc.type = 'sine'; osc.frequency.setValueAtTime(700, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.18);
             } else if (type === 'charge') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(500, audioCtx.currentTime + 0.3);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(450, audioCtx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.25);
             } else if (type === 'heal') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.4);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+                osc.type = 'sine'; osc.frequency.setValueAtTime(480, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(900, audioCtx.currentTime + 0.35);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.35);
             } else if (type === 'select') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+                osc.type = 'sine'; osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.08);
             }
         }
 
-        // --- DADOS DOS PERSONAGENS ---
+        // --- SISTEMA RESTRUTURADO DE HERÓIS DESBLOQUEÁVEIS ---
         const ALL_CHARACTERS = [
-            { id: 'kuririn', name: 'Kuririn', avatar: '🧑‍🦲', hp: 100, basePower: 12, levelRequired: 1 },
-            { id: 'mestre', name: 'Mestre Kame', avatar: '🐢', hp: 115, basePower: 14, levelRequired: 1 },
-            { id: 'piccolo', name: 'Piccolo', avatar: '🧝‍♂️', hp: 140, basePower: 18, levelRequired: 2 },
-            { id: 'vegeta', name: 'Vegeta Scouter', avatar: '👑', hp: 160, basePower: 22, levelRequired: 3 },
-            { id: 'goku', name: 'Goku Base', avatar: '🥋', hp: 180, basePower: 26, levelRequired: 4 },
-            { id: 'goku-blue', name: 'Goku Super Saiyan', avatar: '👱‍♂️', hp: 240, basePower: 35, levelRequired: 5 }
+            { id: 'kuririn', name: 'Kuririn', avatar: '🧑‍🦲', hp: 100, basePower: 12, lvl: 1 },
+            { id: 'piccolo', name: 'Piccolo Mestre', avatar: '🧝‍♂️', hp: 140, basePower: 18, lvl: 5 },
+            { id: 'goku', name: 'Goku (Kaioken)', avatar: '🥋', hp: 190, basePower: 26, lvl: 12 },
+            { id: 'vegeta', name: 'Vegeta SSJ', avatar: '👑', hp: 250, basePower: 38, lvl: 20 },
+            { id: 'gohan', name: 'Gohan Místico', avatar: '🧑‍🎓', hp: 350, basePower: 55, lvl: 30 },
+            { id: 'goku-god', name: 'Goku God', avatar: '🔴', hp: 500, basePower: 80, lvl: 40 },
+            { id: 'gogeta', name: 'Gogeta Blue', avatar: '⚡', hp: 750, basePower: 130, lvl: 48 }
         ];
 
-        const MAIN_STORY_ENEMIES = [
-            { name: 'Soldado Raditz', avatar: '🥦', hp: 90, damage: 10, zeniReward: 40 },
-            { name: 'Nappa', avatar: '👨‍', hp: 130, damage: 14, zeniReward: 60 },
-            { name: 'Zarbon (Forma Monstro)', avatar: '👹', hp: 160, damage: 18, zeniReward: 80 },
-            { name: 'Freeza (Forma Final)', avatar: '👽', hp: 230, damage: 22, zeniReward: 150 }, // Totalmente reajustado e testado
-            { name: 'Mecha Freeza', avatar: '🤖', hp: 280, damage: 26, zeniReward: 200 },
-            { name: 'Perfect Cell', avatar: '🦟', hp: 380, damage: 32, zeniReward: 400 }
-        ];
+        // --- MOTOR MATEMÁTICO DE CRIAÇÃO DAS SAGAS (FASE 1 ATÉ 50) ---
+        function generateEnemyForLevel(level) {
+            let hp = 85 + (level * 18);
+            let damage = 9 + Math.floor(level * 2.3);
+            let zeniReward = 30 + (level * 8);
+            let name = "";
+            let avatar = "";
+            let bgGradient = "linear-gradient(to bottom, #1d4ed8, #60a5fa)"; // Padrão
+            let saga = "";
 
-        const TRAINING_ENEMIES = [
-            { name: 'Saibaman Verde', avatar: '🌱', hp: 60, damage: 7 },
-            { name: 'Robô de Treino', avatar: '🤖', hp: 75, damage: 9 },
-            { name: 'Capanga do Freeza', avatar: '🦎', hp: 90, damage: 11 }
-        ];
+            if (level <= 10) {
+                saga = "SAGA SAIYAJIN & FREEZA INICIAL";
+                bgGradient = "linear-gradient(to bottom, #1e3a8a, #3b82f6)";
+                const pool = [
+                    {n: 'Saibaman', a:'🌱'}, {n: 'Raditz', a:'🥦'}, {n: 'Nappa', a:'👨‍🦲'}, 
+                    {n: 'Guldo', a:'🦎'}, {n: 'Zarbon', a:'👹'}, {n: 'Capitão Ginyu', a:'😈'}
+                ];
+                let item = pool[(level - 1) % pool.length];
+                name = level === 10 ? "Freeza Forma 1" : item.n;
+                avatar = level === 10 ? "👽" : item.a;
+            } else if (level <= 20) {
+                saga = "SAGA FREEZA FINAL & ANDROIDS";
+                bgGradient = "linear-gradient(to bottom, #581c87, #a855f7)";
+                const pool = [
+                    {n: 'Androide 19', a:'🤡'}, {n: 'Androide 20', a:'👴'}, 
+                    {n: 'Androide 18', a:'👱‍♀️'}, {n: 'Androide 17', a:'🧑'}, {n: 'Cell Imperfeito', a:'🦟'}
+                ];
+                let item = pool[(level - 11) % pool.length];
+                name = level === 20 ? "🔥 Freeza Forma Final" : item.n;
+                avatar = level === 20 ? "👽" : item.a;
+            } else if (level <= 30) {
+                saga = "SAGA JOGOS JOGOS DE CELL & BOO";
+                bgGradient = "linear-gradient(to bottom, #064e3b, #10b981)";
+                const pool = [
+                    {n: 'Cell Jr.', a:'🦕'}, {n: 'Perfect Cell', a:'🪰'}, 
+                    {n: 'Pui Pui', a:'👽'}, {n: 'Dabura', a:'🔱'}, {n: 'Majin Boo Gordo', a:'🐷'}
+                ];
+                let item = pool[(level - 21) % pool.length];
+                name = level === 30 ? "💥 Super Boo (Gotenks)" : item.n;
+                avatar = level === 30 ? "👹" : item.a;
+            } else if (level <= 40) {
+                saga = "SAGA MAJIN BOO PURA & FILMES";
+                bgGradient = "linear-gradient(to bottom, #7c2d12, #f97316)";
+                const pool = [
+                    {n: 'Kid Boo', a:'👶'}, {n: 'Broly Lendário', a:'🟢'}, 
+                    {n: 'Janemba', a:'👿'}, {n: 'Beerus (50%)', a:'🐱'}, {n: 'Goku Black', a:'🐒'}
+                ];
+                let item = pool[(level - 31) % pool.length];
+                name = level === 40 ? "🌌 Zamasu Fusão" : item.n;
+                avatar = level === 40 ? "🟢" : item.a;
+            } else {
+                saga = "SAGA TORNEIO DO PODER E DEUSES";
+                bgGradient = "linear-gradient(to bottom, #4c0519, #e11d48)";
+                const pool = [
+                    {n: 'Toppo Hakaishin', a:'🧔'}, {n: 'Dyspo', a:'🐰'}, 
+                    {n: 'Moro Ancião', a:'🐐'}, {n: 'Granola', a:'🎯'}, {n: 'Jiren Limite', a:'🗿'}
+                ];
+                let item = pool[(level - 41) % pool.length];
+                name = level === 50 ? "👑 FREEZA BLACK (DEUS)" : item.n;
+                avatar = level === 50 ? "🔮" : item.a;
+            }
 
-        // --- SISTEMA DE PROGRESSÃO GLOBAL DO RPG ---
+            return { name, avatar, hp, damage, zeniReward, bgGradient, saga };
+        }
+
+        // --- CONFIGURAÇÃO DE CONTROLE ---
+        let currentHistoryLevel = 1;
         let globalZeni = 0;
-        let highestLevelUnlocked = 1;
         let playerChances = 3;
         
-        // Upgrades comprados acumulativos
         let upgradeBonusPower = 0;
         let upgradeBonusHp = 0;
         let upgradeCost = 30;
@@ -338,25 +407,35 @@
             if(screenId === 'select-screen') updateSelectScreenHUD();
         }
 
+        // CONTROLADOR DE ABAS
+        function switchTab(tabName) {
+            playSound('select');
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active-tab'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active-content'));
+            
+            document.getElementById(`tab-${tabName}`).classList.add('active-tab');
+            document.getElementById(`content-${tabName}`).classList.add('active-content');
+        }
+
         function updateSelectScreenHUD() {
-            document.getElementById('hud-level').innerText = `Fase História: ${highestLevelUnlocked}`;
-            document.getElementById('hud-zeni').innerText = `🪙 Zeni: ${globalZeni}`;
-            document.getElementById('btn-up-power').innerText = `💪 +5 Poder (Cost: ${upgradeCost})`;
-            document.getElementById('btn-up-hp').innerText = `❤️ +15 Vida (Cost: ${upgradeCost})`;
+            document.getElementById('hud-level').innerText = `Fase História: ${currentHistoryLevel}/50`;
+            document.getElementById('hud-zeni').innerText = `🪙 ${globalZeni} Zeni`;
+            document.getElementById('btn-up-power').innerText = `Upar (Cost: ${upgradeCost})`;
+            document.getElementById('btn-up-hp').innerText = `Upar (Cost: ${upgradeCost})`;
             renderSelectionGrid();
         }
 
-        // --- UPGRADES ---
+        // --- SISTEMA DE LOJA ---
         function buyUpgrade(type) {
             if (globalZeni >= upgradeCost) {
                 globalZeni -= upgradeCost;
                 playSound('heal');
-                if (type === 'power') upgradeBonusPower += 5;
-                if (type === 'hp') upgradeBonusHp += 15;
-                upgradeCost = Math.floor(upgradeCost * 1.3); // Aumenta o custo gradativamente
+                if (type === 'power') upgradeBonusPower += 6;
+                if (type === 'hp') upgradeBonusHp += 20;
+                upgradeCost = Math.floor(upgradeCost * 1.25);
                 updateSelectScreenHUD();
             } else {
-                alert("Você não tem Zeni suficiente! Vá na Sala de Gravidade treinar em missões menores.");
+                alert("Zeni insuficiente! Faça missões rápidas na Sala de Gravidade para acumular moedas.");
             }
         }
 
@@ -365,16 +444,16 @@
             grid.innerHTML = '';
             
             ALL_CHARACTERS.forEach(char => {
-                const isUnlocked = highestLevelUnlocked >= char.levelRequired;
+                const isUnlocked = currentHistoryLevel >= char.lvl;
                 const card = document.createElement('div');
-                card.className = `char-card ${!isUnlocked ? 'disabled' : ''}`;
-                card.style.opacity = isUnlocked ? '1' : '0.4';
+                card.className = `char-card`;
+                card.style.opacity = isUnlocked ? '1' : '0.35';
                 
                 card.innerHTML = `
                     <div class="char-avatar">${char.avatar}</div>
-                    <strong>${char.name}</strong>
-                    <div style="font-size:0.75rem; color:#aaa;">Atk Base: ${char.basePower} | Hp: ${char.hp}</div>
-                    <div style="font-size:0.7rem; color: #ffcc00">${!isUnlocked ? `Fase ${char.levelRequired} necessária` : 'Disponível'}</div>
+                    <strong style="font-size:0.85rem;">${char.name}</strong>
+                    <div style="font-size:0.7rem; color:#aaa;">Atk: ${char.basePower} | Hp: ${char.hp}</div>
+                    <div style="font-size:0.65rem; color:#f59e0b; font-weight:bold;">${!isUnlocked ? `Desbloqueia no Lvl ${char.lvl}` : 'Pronto'}</div>
                 `;
                 
                 if(isUnlocked) {
@@ -391,10 +470,9 @@
             });
         }
 
-        // --- INICIAR MISSÃO DE HISTÓRIA ---
+        // --- PREPARAÇÃO DE ENTRADA NA LUTA ---
         function startMainVersus() {
             isTrainingMode = false;
-            // Prepara atributos somando o treino acumulado
             activePlayer = { 
                 ...selectedCharacter, 
                 maxHp: selectedCharacter.hp + upgradeBonusHp,
@@ -402,23 +480,19 @@
                 power: selectedCharacter.basePower + upgradeBonusPower
             };
             
-            let enemyData = MAIN_STORY_ENEMIES[Math.min(highestLevelUnlocked - 1, MAIN_STORY_ENEMIES.length - 1)];
-            activeEnemy = { ...enemyData };
+            activeEnemy = generateEnemyForLevel(currentHistoryLevel);
 
+            document.getElementById('vs-saga-title').innerText = activeEnemy.saga;
             document.getElementById('vs-player').innerText = `${activePlayer.avatar} ${activePlayer.name}`;
             document.getElementById('vs-enemy').innerText = `${activeEnemy.name} ${activeEnemy.avatar}`;
-            document.getElementById('vs-mode-text').innerText = "Modo: Campanha Principal";
+            document.getElementById('vs-mode-text').innerText = `Campanha: Batalha pelo destino do Universo`;
             
             changeScreen('vs-screen');
-            setTimeout(initBattle, 2000);
+            setTimeout(initBattle, 2200);
         }
 
-        // --- INICIAR MISSÃO DE TREINAMENTO (SALA DE GRAVIDADE) ---
         function startTrainingMission() {
-            if(!selectedCharacter) {
-                alert("Escolha um personagem no painel antes de ir treinar!");
-                return;
-            }
+            if(!selectedCharacter) { return alert("Escolha um Guerreiro Z na aba de personagens primeiro!"); }
             isTrainingMode = true;
             activePlayer = { 
                 ...selectedCharacter, 
@@ -427,38 +501,44 @@
                 power: selectedCharacter.basePower + upgradeBonusPower
             };
 
-            // Seleciona um capanga aleatório
-            let randomEnemy = TRAINING_ENEMIES[Math.floor(Math.random() * TRAINING_ENEMIES.length)];
-            activeEnemy = { ...randomEnemy, zeniReward: 25 };
+            activeEnemy = { name: "Holograma de Treino X", avatar: "🤖", hp: 70 + (currentHistoryLevel * 10), damage: 6 + Math.floor(currentHistoryLevel * 1.2), zeniReward: 40 };
 
+            document.getElementById('vs-saga-title').innerText = "SALA DE GRAVIDADE CONTROLADA";
             document.getElementById('vs-player').innerText = `${activePlayer.avatar} ${activePlayer.name}`;
             document.getElementById('vs-enemy').innerText = `${activeEnemy.name} ${activeEnemy.avatar}`;
-            document.getElementById('vs-mode-text').innerText = "Modo: Treino Livre (Sala de Gravidade)";
+            document.getElementById('vs-mode-text').innerText = "Simulação sem perda de vidas.";
 
             changeScreen('vs-screen');
-            setTimeout(initBattle, 2000);
+            setTimeout(initBattle, 1800);
         }
 
         function initBattle() {
             playerKi = 0; enemyKi = 0; isPlayerTurn = true;
             
-            document.getElementById('stage-indicator').innerText = isTrainingMode ? "Modo: Treinamento" : `História: Fase ${highestLevelUnlocked}`;
-            document.getElementById('chances-indicator').innerText = `Tentativas: ${playerChances}/3`;
+            document.getElementById('stage-indicator').innerText = isTrainingMode ? "Treino de Atributos" : `Fase História: ${currentHistoryLevel}/50`;
+            document.getElementById('chances-indicator').innerText = `Vidas: ${playerChances}/3`;
             
             document.getElementById('p-name').innerText = activePlayer.name;
             document.getElementById('p-img').innerText = activePlayer.avatar;
-            document.getElementById('p-stat-bonus').innerText = `Atk: +${upgradeBonusPower} | Hp: +${upgradeBonusHp}`;
             document.getElementById('e-name').innerText = activeEnemy.name;
             document.getElementById('e-img').innerText = activeEnemy.avatar;
+            
+            if(!isTrainingMode) {
+                document.getElementById('battle-bg').style.background = activeEnemy.bgGradient;
+            } else {
+                document.getElementById('battle-bg').style.background = "linear-gradient(to bottom, #1f2937, #4b5563)";
+            }
 
             updateBars();
-            document.getElementById('log-box').innerText = `Combate iniciado! Defina sua melhor estratégia de turnos.`;
+            document.getElementById('log-box').innerText = `Combate iniciado. Encontre brechas para usar seu Especial!`;
             changeScreen('battle-screen');
         }
 
         function updateBars() {
             document.getElementById('p-hp').style.width = `${Math.max(0, (activePlayer.hp / activePlayer.maxHp) * 100)}%`;
-            document.getElementById('e-hp').style.width = `${Math.max(0, (activeEnemy.hp / activeEnemy.maxHp) * 100)}%`;
+            document.getElementById('e-hp').style.width = `${Math.max(0, (activeEnemy.hp / activeEnemy.hp) * 100)}`; // Correção de exibição dinâmica com trava em 100 base primária
+            document.getElementById('e-hp').style.width = `${Math.max(0, (activeEnemy.hp / (85 + (currentHistoryLevel * 18))) * 100)}%`;
+            
             document.getElementById('p-ki').style.width = `${(playerKi / 3) * 100}%`;
             document.getElementById('e-ki').style.width = `${(enemyKi / 3) * 100}%`;
         }
@@ -466,115 +546,102 @@
         // --- SISTEMA DE COMBATE INTERATIVO ---
         function playerAction(action) {
             if (!isPlayerTurn) return;
-
-            let dmg = 0;
-            let logText = "";
+            let dmg = 0; let logText = "";
 
             switch(action) {
                 case 'soco':
                     playSound('hit');
-                    dmg = Math.floor(activePlayer.power * 0.8) + Math.floor(Math.random() * 5);
-                    activeEnemy.hp -= dmg; logText = `Você acertou um golpe físico tirando ${dmg} de HP!`;
+                    dmg = Math.floor(activePlayer.power * 0.85) + Math.floor(Math.random() * 4);
+                    activeEnemy.hp -= dmg; logText = `Ataque físico desferido! Tirou ${dmg} de HP.`;
                     animateHit('enemy-fighter');
                     break;
                 case 'bola':
                     if (playerKi >= 1) {
                         playSound('ki');
                         dmg = activePlayer.power + Math.floor(Math.random() * 8);
-                        activeEnemy.hp -= dmg; playerKi -= 1; logText = `Disparou rajadas de Ki! Causou ${dmg} de dano!`;
+                        activeEnemy.hp -= dmg; playerKi -= 1; logText = `Rajada de energia concentrada causou ${dmg} de dano!`;
                         animateHit('enemy-fighter');
-                    } else { alert("Ataque requer 1 barra de Ki!"); return; }
+                    } else { alert("Precisa de 1 barra de Ki!"); return; }
                     break;
                 case 'combo':
                     if (playerKi >= 2) {
                         playSound('hit');
-                        dmg = Math.floor(activePlayer.power * 1.5) + Math.floor(Math.random() * 12);
-                        activeEnemy.hp -= dmg; playerKi -= 2; logText = `💥 Sequência avassaladora de Chute + Soco! Dano de ${dmg}!`;
+                        dmg = Math.floor(activePlayer.power * 1.6) + Math.floor(Math.random() * 10);
+                        activeEnemy.hp -= dmg; playerKi -= 2; logText = `💥 Sequência furiosa de chutes empurrou o inimigo! Dano: ${dmg}`;
                         animateHit('enemy-fighter');
-                    } else { alert("Ataque requer 2 barras de Ki!"); return; }
+                    } else { alert("Precisa de 2 barras de Ki!"); return; }
                     break;
                 case 'mega':
                     if (playerKi >= 3) {
                         playSound('ki');
-                        dmg = (activePlayer.power * 2.3) + Math.floor(Math.random() * 15);
-                        activeEnemy.hp -= dmg; playerKi -= 3; logText = `⚡ PODER MÁXIMO! Explosão massiva causou ${Math.floor(dmg)} de dano!`;
+                        dmg = Math.floor(activePlayer.power * 2.5) + Math.floor(Math.random() * 16);
+                        activeEnemy.hp -= dmg; playerKi -= 3; logText = `⚡ ATAQUE SUPREMO DISPARADO! Impacto gerou ${dmg} de dano massivo!`;
                         animateHit('enemy-fighter');
-                    } else { alert("Ataque requer 3 barras de Ki cheias!"); return; }
+                    } else { alert("Ataque Máximo requer 3 barras de Ki!"); return; }
                     break;
                 case 'carregar':
                     playSound('charge');
-                    if (playerKi < 3) { playerKi++; logText = `Você focou sua mente e canalizou energia: +1 Ki.`; }
-                    else { logText = `Seu Ki já está totalmente carregado!`; }
+                    if (playerKi < 3) { playerKi++; logText = `Você expandiu sua aura concentrando energia: +1 Ki.`; }
+                    else { logText = `Seu Ki já está explodindo no limite!`; }
                     break;
                 case 'curar':
                     playSound('heal');
-                    let healAmount = Math.floor(activePlayer.maxHp * 0.35);
-                    activePlayer.hp = Math.min(activePlayer.maxHp, activePlayer.hp + healAmount);
-                    logText = `Você mastigou uma semente e recuperou ${healAmount} de vida!`;
+                    let heal = Math.floor(activePlayer.maxHp * 0.35);
+                    activePlayer.hp = Math.min(activePlayer.maxHp, activePlayer.hp + heal);
+                    logText = `Você utilizou uma Semente dos Deuses e recuperou +${heal} de Vida!`;
                     break;
             }
 
             document.getElementById('log-box').innerText = logText;
             updateBars();
 
-            if (activeEnemy.hp <= 0) {
-                setTimeout(winMatch, 800);
-            } else {
-                isPlayerTurn = false;
-                setTimeout(enemyTurn, 1200);
-            }
+            if (activeEnemy.hp <= 0) { setTimeout(winMatch, 700); } 
+            else { isPlayerTurn = false; setTimeout(enemyTurn, 1100); }
         }
 
         function enemyTurn() {
             let logText = "";
-            
-            if (enemyKi < 2 && Math.random() > 0.52) {
-                playSound('charge');
-                enemyKi++;
-                logText = `${activeEnemy.name} elevou o cosmo acumulando energia para desferir um especial!`;
+            if (enemyKi < 2 && Math.random() > 0.55) {
+                playSound('charge'); enemyKi++;
+                logText = `${activeEnemy.name} acumulou energia ambiente e ganhou +1 Ki!`;
             } else if (enemyKi >= 2) {
                 playSound('ki');
-                let dmg = Math.floor(activeEnemy.damage * 1.6);
+                let dmg = Math.floor(activeEnemy.damage * 1.7);
                 activePlayer.hp -= dmg; enemyKi -= 2;
-                logText = `🚨 Cuidado! ${activeEnemy.name} liberou o ataque assinatura dele! Você tomou ${dmg} de dano!`;
+                logText = `🚨 ALERTA! ${activeEnemy.name} disparou a técnica especial dele! Recebeu ${dmg} de dano!`;
                 animateHit('player-fighter');
             } else {
                 playSound('hit');
                 let dmg = activeEnemy.damage + Math.floor(Math.random() * 4);
                 activePlayer.hp -= dmg;
-                logText = `${activeEnemy.name} avançou flutuando e te acertou uma investida de ${dmg} de dano.`;
+                logText = `${activeEnemy.name} desferiu uma sequência de golpes rápidos em você. Dano: ${dmg}`;
                 animateHit('player-fighter');
             }
 
             document.getElementById('log-box').innerText = logText;
             updateBars();
 
-            if (activePlayer.hp <= 0) {
-                setTimeout(loseMatch, 800);
-            } else {
-                isPlayerTurn = true;
-            }
+            if (activePlayer.hp <= 0) { setTimeout(loseMatch, 700); } 
+            else { isPlayerTurn = true; }
         }
 
         function animateHit(targetId) {
             const el = document.getElementById(targetId);
-            el.classList.add('hit');
-            setTimeout(() => el.classList.remove('hit'), 150);
+            el.classList.add('hit'); setTimeout(() => el.classList.remove('hit'), 150);
         }
 
-        // --- RESOLUÇÃO DA BATALHA ---
+        // --- RESOLUÇÃO DAS PARTIDAS ---
         function winMatch() {
             globalZeni += activeEnemy.zeniReward;
             playSound('heal');
-            
             if (isTrainingMode) {
-                alert(`Vitória no Treino! Você derrotou o ${activeEnemy.name} e garantiu 🪙 ${activeEnemy.zeniReward} Zeni para comprar upgrades!`);
+                alert(`Treino Concluído! Você derrotou a simulação e ganhou 🪙 ${activeEnemy.zeniReward} Zeni!`);
             } else {
-                alert(`Sensacional! Você superou a fase de história contra ${activeEnemy.name} e ganhou 🪙 ${activeEnemy.zeniReward} Zeni.`);
-                if (highestLevelUnlocked === MAIN_STORY_ENEMIES.length) {
-                    alert("Incrível! Você zerou todas as fases atuais do Torneio Supremo! Siga aprimorando seu guerreiro.");
+                alert(`Vitória Esplêndida! O oponente ${activeEnemy.name} foi superado. Você faturou 🪙 ${activeEnemy.zeniReward} Zeni.`);
+                if (currentHistoryLevel >= 50) {
+                    alert("👑 LENDA ABSOLUTA! Você concluiu a Fase 50 e provou ser o guerreiro mais poderoso de todos os Universos!");
                 } else {
-                    highestLevelUnlocked++;
+                    currentHistoryLevel++;
                 }
             }
             changeScreen('select-screen');
@@ -582,16 +649,16 @@
 
         function loseMatch() {
             if (isTrainingMode) {
-                alert("Você foi nocauteado no treino da Sala de Gravidade, mas não perdeu tentativas. Tente de novo após se curar!");
+                alert("Você perdeu o treino simulado. Sem penalidades! Volte e compre mais upgrades.");
                 changeScreen('select-screen');
             } else {
                 playerChances--;
                 if (playerChances > 0) {
-                    alert(`Seu guerreiro caiu diante da Tropa adversária! Tentativas restantes na campanha: ${playerChances}. Use o Zeni ganho para upar seu status na loja e vencer!`);
+                    alert(`Derrota! Você perdeu 1 vida. Vidas restantes na campanha: ${playerChances}. Vá treinar na Sala de Gravidade para ficar mais forte e tentar de novo.`);
                     changeScreen('select-screen');
                 } else {
-                    alert("Fim de Jogo! Suas 3 tentativas na história acabaram. Seus upgrades acumulados de RPG continuam salvos, recomeçando da Fase 1!");
-                    highestLevelUnlocked = 1;
+                    alert("Fim de Jogo! Suas vidas acabaram. Seus upgrades de treino continuam salvos, mas a história reinicia na Fase 1.");
+                    currentHistoryLevel = 1;
                     playerChances = 3;
                     changeScreen('menu-screen');
                 }
