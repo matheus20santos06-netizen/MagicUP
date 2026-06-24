@@ -3,159 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MiniCraft Multiplayer</title>
+    <title>MiniCraft Ultra Multiplayer</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; background: #1a1a1a; user-select: none; }
-        #gameCanvas { background: #5c8124; display: block; }
-        .pixel-font { font-family: 'Courier New', Courier, monospace; font-weight: bold; }
+        body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; background: #0f172a; user-select: none; }
+        canvas { display: block; }
+        .pixel-shadow { filter: drop-shadow(0px 4px 0px rgba(0,0,0,0.3)); }
     </style>
 </head>
-<body class="flex items-center justify-center h-screen w-screen overflow-hidden">
+<body class="flex items-center justify-center h-screen w-screen overflow-hidden text-white select-none">
 
-    <div id="lobby" class="absolute z-50 bg-gray-900 p-8 rounded-lg border-4 border-gray-700 text-white text-center max-w-sm w-full pixel-font">
-        <h1 class="text-3xl mb-4 text-green-500 uppercase tracking-wider">MiniCraft P2P</h1>
-        <input id="playerName" type="text" placeholder="Seu Nome" value="Player" class="w-full p-2 mb-4 bg-gray-800 border-2 border-gray-600 rounded text-center">
-        <div class="mb-4">
-            <button onclick="startHost()" class="w-full bg-green-600 hover:bg-green-700 p-2 rounded mb-2 transition">Criar Sala (Host)</button>
-            <div class="text-sm text-gray-400 my-1">OU</div>
-            <input id="roomIdInput" type="text" placeholder="ID da Sala do Amigo" class="w-full p-2 mb-2 bg-gray-800 border-2 border-gray-600 rounded text-center text-sm">
-            <button onclick="joinRoom()" class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded transition">Entrar na Sala</button>
+    <div id="lobby" class="absolute z-50 bg-slate-900 border-4 border-slate-700 p-8 rounded-xl text-center max-w-md w-full mx-4 shadow-2xl">
+        <h1 class="text-4xl font-bold mb-2 text-green-500 tracking-wide pixel-shadow">MINICRAFT ULTRA</h1>
+        <p class="text-xs text-slate-400 mb-6 font-sans">Multiplayer P2P estável via WebRTC</p>
+        
+        <input id="playerName" type="text" placeholder="Apelido do Player" value="Steve" class="w-full p-3 mb-4 bg-slate-800 border-2 border-slate-600 rounded-lg text-center font-bold text-lg focus:border-green-500 outline-none transition-all">
+        
+        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mb-4">
+            <button onclick="startHost()" class="w-full bg-green-600 hover:bg-green-700 font-bold p-3 rounded-lg text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg">Criar Novo Mundo (Host)</button>
+            <div class="text-xs text-slate-500 my-3 font-bold font-sans">OU CONECTAR A UM AMIGO</div>
+            <input id="roomIdInput" type="text" placeholder="Colar ID do Mundo" class="w-full p-2 mb-3 bg-slate-800 border-2 border-slate-600 rounded text-center text-sm focus:border-blue-500 outline-none">
+            <button onclick="joinRoom()" class="w-full bg-blue-600 hover:bg-blue-700 font-bold p-2 rounded transition-all shadow-lg">Entrar no Mundo</button>
         </div>
-        <p id="lobbyStatus" class="text-xs text-yellow-500"></p>
+        <p id="lobbyStatus" class="text-sm text-yellow-500 font-bold animate-pulse"></p>
     </div>
 
-    <div id="hud" class="hidden absolute inset-0 pointer-events-none pixel-font text-white p-4 flex flex-col justify-between">
-        <div class="flex justify-between items-start pointer-events-auto">
-            <div class="bg-black/60 p-3 rounded border border-gray-600">
-                <p id="hudTime">Tempo: Dia</p>
-                <p id="hudRoomId" class="text-xs text-gray-400 select-all">Sala ID: Copiando...</p>
-            </div>
-            <div class="relative w-32 h-32 bg-black/40 border-2 border-white rounded overflow-hidden">
-                <canvas id="minimapCanvas" width="128" height="128" class="w-full h-full"></canvas>
-            </div>
-        </div>
-
-        <div class="text-center">
-            <p id="lookAtText" class="text-lg bg-black/40 px-2 py-1 rounded inline-block text-yellow-400"></p>
-        </div>
-
-        <div class="flex flex-col items-center gap-2 pointer-events-auto">
-            <div class="flex items-center gap-2 bg-black/60 px-4 py-1 rounded">
-                <span>❤️ Vida:</span>
-                <div class="w-32 bg-gray-700 h-4 rounded overflow-hidden border border-gray-500">
-                    <div id="healthBar" class="bg-red-600 h-full w-full transition-all"></div>
+    <div id="hud" class="hidden absolute inset-0 pointer-events-none p-4 flex flex-col justify-between z-40">
+        
+        <div class="flex justify-between items-start w-full">
+            <div class="flex flex-col gap-2 pointer-events-auto">
+                <div class="bg-slate-900/90 border-2 border-slate-700 p-3 rounded-lg flex items-center gap-3 shadow-xl">
+                    <div id="clockIcon" class="w-10 h-10 rounded-full flex items-center justify-center text-xl bg-yellow-500 border border-black/20">☀️</div>
+                    <div>
+                        <div id="hudTimePeriod" class="text-sm font-bold text-yellow-400">Estado: Dia</div>
+                        <div id="hudTimeProgress" class="text-xs text-slate-400 font-sans">Tempo Restante: --:--</div>
+                    </div>
                 </div>
+                <div class="bg-slate-900/80 border border-slate-700 px-3 py-1.5 rounded-md text-xs text-slate-300">
+                    <span id="hudRoomId" class="select-all cursor-pointer hover:text-green-400">ID: Gerando...</span>
+                </div>
+                <div class="text-[10px] text-slate-400 font-sans">Zoom: Scroll do Mouse | Interagir: [Espaço]</div>
             </div>
-            <div id="hotbar" class="flex bg-gray-800/90 border-4 border-gray-600 p-1 gap-1 rounded shadow-2xl">
+
+            <div class="pointer-events-auto bg-slate-900/90 p-1 border-2 border-slate-600 rounded-full shadow-2xl overflow-hidden">
+                <canvas id="minimapCanvas" width="120" height="120" class="rounded-full"></canvas>
+            </div>
+        </div>
+
+        <div class="text-center flex flex-col items-center justify-center">
+            <p id="lookAtText" class="text-md bg-slate-950/80 border border-slate-800 text-yellow-400 px-4 py-1.5 rounded-full shadow-lg font-bold transition-all transform scale-100"></p>
+        </div>
+
+        <div class="flex flex-col items-center gap-3 w-full pointer-events-auto">
+            
+            <div class="flex items-center gap-3 bg-slate-900/90 border-2 border-slate-700 px-4 py-2 rounded-xl shadow-xl">
+                <span class="text-sm font-bold animate-bounce">❤️</span>
+                <div class="w-48 bg-slate-800 h-4 rounded-full overflow-hidden border border-slate-600 p-[2px]">
+                    <div id="healthBar" class="bg-red-500 h-full w-full rounded-full transition-all duration-300"></div>
+                </div>
+                <span id="healthText" class="text-xs font-sans text-slate-300 font-bold">100/100</span>
+            </div>
+
+            <div id="hotbar" class="flex bg-slate-900/95 border-4 border-slate-600 p-1.5 gap-2 rounded-xl shadow-2xl">
                 </div>
         </div>
     </div>
 
-    <canvas id="gameCanvas" class="hidden"></canvas>
+    <canvas id="gameCanvas" class="hidden absolute inset-0 z-10"></canvas>
 
     <script>
-        // --- CONFIGURAÇÕES DO JOGO ---
-        const WORLD_SIZE = 2000;
-        const VIEW_PADDING = 100;
+        // --- CONSTANTES E CONFIGURAÇÕES ---
+        const WORLD_SIZE = 2500;
+        const BASE_PLAYER_SIZE = 28;
+        
+        // Ciclo de Tempo Customizado (Duração de cada período em frames do jogo. Ex: 1800 frames = ~30s cada)
+        const PERIOD_DURATION = 1800; 
+        const TIME_STATES = {
+            DIA: { label: '☀️ Dia', color: '#5ca924', icon: '☀️', textCls: 'text-yellow-400' },
+            TARDE: { label: '🌅 Tarde', color: '#c2410c', icon: '🌅', textCls: 'text-orange-400' },
+            NOITE: { label: '🌃 Noite', color: '#0f172a', icon: '💀', textCls: 'text-red-500' }
+        };
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const minimapCanvas = document.getElementById('minimapCanvas');
         const mCtx = minimapCanvas.getContext('2d');
 
-        // Estado do Jogo
-        let player = { id: '', name: 'Player', x: 1000, y: 1000, size: 24, speed: 4, health: 100, maxHealth: 100, color: '#3b82f6' };
-        let players = {}; // Outros jogadores online
+        // --- ESTADO GLOBAL ---
+        let player = {
+            id: '', name: 'Steve',
+            x: 1250, y: 1250, 
+            targetX: 1250, targetY: 1250, // Para interpolação
+            speed: 5, health: 100, maxHealth: 100,
+            animTime: 0, isMoving: false,
+            color: '#2563eb'
+        };
+
+        // Câmera Suave com Zoom Dinâmico
+        let camera = { x: 1250, y: 1250, zoom: 1.0, targetZoom: 1.0, lerpSpeed: 0.08 };
+
+        let players = {};      // Outros jogadores
+        let worldObjects = []; // Árvores, minérios, fogueira
+        let mobs = [];         // Vacas e Zumbis
+        let particles = [];    // Sistema visual de coleta/dano
         let keys = {};
-        let inventory = { 'Madeira': 0, 'Pedra': 0, 'Carvão': 0, 'Carne': 0 };
-        let currentSlot = 'Madeira';
         
-        let worldObjects = [];
-        let mobs = [];
-        let isNight = false;
-        let gameTicks = 0;
+        // Ciclo de tempo avançado
+        let timePeriodIndex = 0; // 0=Dia, 1=Tarde, 2=Noite
+        let timeProgress = 0;
+
+        let inventory = { 'Madeira': 5, 'Pedra': 0, 'Carvão': 0, 'Carne': 0 };
+        let currentSlot = 'Madeira';
 
         // Redes (PeerJS)
         let peer = null;
-        let conn = null; // Se for cliente, guarda a conexão com o Host
-        let connections = []; // Se for host, guarda conexões com clientes
+        let conn = null;
+        let connections = [];
         let isHost = false;
 
-        // Inicializa inputs do teclado
-        window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; if(['1','2','3','4'].includes(e.key)) selectSlotByIndex(e.key); });
+        // --- SISTEMA DE ENTRADAS (INPUT) ---
+        window.addEventListener('keydown', e => {
+            keys[e.key.toLowerCase()] = true;
+            if(['1','2','3','4'].includes(e.key)) selectSlotByIndex(e.key);
+        });
         window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
         window.addEventListener('resize', resizeCanvas);
+        
+        // Controle de Zoom pelo Scroll do Mouse
+        window.addEventListener('wheel', e => {
+            if (document.getElementById('hud').classList.contains('hidden')) return;
+            camera.targetZoom -= e.deltaY * 0.001;
+            camera.targetZoom = Math.max(0.6, Math.min(1.5, camera.targetZoom)); // Trava zoom entre 0.6x e 1.5x
+        });
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
 
-        // --- MULTIPLAYER LOGIC (PEERJS) ---
-        function initPeer(id = null) {
-            peer = new Peer(id, { debug: 1 });
+        function selectSlotByIndex(num) {
+            const idx = parseInt(num) - 1;
+            const itemKeys = Object.keys(inventory);
+            if(itemKeys[idx]) currentSlot = itemKeys[idx];
+            renderHotbar();
+        }
+
+        // --- MULTIPLAYER (PEERJS CONTROLLER) ---
+        function initPeer(forcedId = null) {
+            peer = new Peer(forcedId, { debug: 1 });
             
             peer.on('open', (id) => {
                 player.id = id;
-                document.getElementById('hudRoomId').innerText = `Sala ID: ${id}`;
+                document.getElementById('hudRoomId').innerText = `ID do Mundo: ${id} (Clique para copiar)`;
+                document.getElementById('hudRoomId').onclick = () => {
+                    navigator.clipboard.writeText(id);
+                    alert("ID copiado com sucesso! Envie para o seu amigo.");
+                };
+
                 if (isHost) {
                     setupHostLogic();
                     startGame();
                 } else {
-                    // Se cliente, conecta ao host
-                    conn = peer.connect(document.getElementById('roomIdInput').value.trim());
+                    const target = document.getElementById('roomIdInput').value.trim();
+                    conn = peer.connect(target);
                     setupClientLogic();
                 }
             });
 
             peer.on('error', err => {
-                alert('Erro na conexão: ' + err.type);
+                alert('Conexão falhou ou ID inválido: ' + err.type);
                 location.reload();
             });
         }
 
         function startHost() {
-            player.name = document.getElementById('playerName').value || 'Host';
+            player.name = document.getElementById('playerName').value.trim() || 'Steve';
             isHost = true;
-            document.getElementById('lobbyStatus').innerText = "Criando sala...";
-            initPeer(); // Cria ID aleatório
+            document.getElementById('lobbyStatus').innerText = "Gerando semente do mapa...";
+            initPeer();
         }
 
         function joinRoom() {
             const targetId = document.getElementById('roomIdInput').value.trim();
-            if(!targetId) return alert('Digite o ID da sala!');
-            player.name = document.getElementById('playerName').value || 'Client';
+            if(!targetId) return alert('Insira o ID do mundo do seu amigo!');
+            player.name = document.getElementById('playerName').value.trim() || 'Alex';
             isHost = false;
-            document.getElementById('lobbyStatus').innerText = "Conectando ao amigo...";
+            document.getElementById('lobbyStatus').innerText = "Cruzando conexão P2P...";
             initPeer();
         }
 
         function setupHostLogic() {
-            // Gerar mapa inicial
             generateWorld();
-            
             peer.on('connection', (connection) => {
                 connections.push(connection);
                 
-                // Envia o mapa atual pro novo jogador
                 connection.on('open', () => {
-                    connection.send({ type: 'init_world', worldObjects, mobs, isNight });
+                    connection.send({ type: 'init_world', worldObjects, mobs, timePeriodIndex, timeProgress });
                 });
 
                 connection.on('data', (data) => {
                     if (data.type === 'move') {
                         players[data.id] = data.playerData;
-                        broadcast({ type: 'players_update', players });
                     }
-                    if (data.type === 'object_damage') {
-                        damageObject(data.objIndex, data.damage);
+                    if (data.type === 'interact_object') {
+                        processObjectInteraction(data.objIdx, data.pId);
                     }
-                    if (data.type === 'mob_damage') {
-                        damageMob(data.mobIndex, data.damage);
-                    }
-                    if (data.type === 'feed_animal') {
-                        feedAnimal(data.mobIndex);
+                    if (data.type === 'interact_mob') {
+                        processMobInteraction(data.mobIdx, data.pId, data.action);
                     }
                 });
 
@@ -171,342 +226,468 @@
             });
 
             conn.on('data', (data) => {
-                if (data.type === 'init_world') {
+                if (data.type === 'init_world' || data.type === 'sync') {
                     worldObjects = data.worldObjects;
                     mobs = data.mobs;
-                    isNight = data.isNight;
+                    timePeriodIndex = data.timePeriodIndex;
+                    timeProgress = data.timeProgress;
+                    if(data.playersData && isClient) players = data.playersData;
                 }
-                if (data.type === 'players_update') {
-                    players = data.players;
+                if (data.type === 'broadcast_players') {
+                    // Atualiza players removendo você mesmo
+                    delete data.allPlayers[player.id];
+                    players = data.allPlayers;
                 }
-                if (data.type === 'world_sync') {
-                    worldObjects = data.worldObjects;
-                    mobs = data.mobs;
-                    isNight = data.isNight;
+                if (data.type === 'particle_trigger') {
+                    spawnParticles(data.x, data.y, data.color, 8);
                 }
             });
         }
 
-        function broadcast(data) {
+        function transmit(data) {
             if (isHost) {
-                connections.forEach(c => {
-                    if(c.open) c.send(data);
-                });
+                connections.forEach(c => { if(c.open) c.send(data); });
             } else if (conn && conn.open) {
                 conn.send(data);
             }
         }
 
-        // --- GERADOR DE MUNDO ---
+        // --- EMISSOR DE PARTÍCULAS ---
+        function spawnParticles(x, y, color, count = 6) {
+            for(let i=0; i<count; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 5,
+                    vy: (Math.random() - 0.5) * 5,
+                    alpha: 1.0,
+                    size: Math.random() * 4 + 3,
+                    color: color
+                });
+            }
+        }
+
+        // --- MAP GENERATOR (HOST-ONLY) ---
         function generateWorld() {
             worldObjects = [];
-            // Acampamento Central (Livre de árvores grandes no meio)
-            worldObjects.push({ type: 'Fogueira', x: 1000, y: 1000, hp: 999, maxHp: 999, size: 30, color: '#ea580c' });
+            // Fogueira Imponente no Centro do Acampamento
+            worldObjects.push({ type: 'Fogueira Central', x: 1250, y: 1250, hp: 9999, maxHp: 9999, size: 36, color: '#ea580c' });
 
-            const types = [
-                { type: 'Árvore', color: '#15803d', hp: 3, res: 'Madeira', size: 20 },
-                { type: 'Pedra', color: '#78716c', hp: 4, res: 'Pedra', size: 18 },
-                { type: 'Carvão', color: '#292524', hp: 5, res: 'Carvão', size: 16 }
+            const itemBlueprints = [
+                { type: 'Árvore Secoia', color: '#166534', hp: 4, maxHp: 4, res: 'Madeira', size: 24 },
+                { type: 'Mina de Ferro', color: '#94a3b8', hp: 6, maxHp: 6, res: 'Pedra', size: 20 },
+                { type: 'Veta de Carvão', color: '#0f172a', hp: 5, maxHp: 5, res: 'Carvão', size: 18 }
             ];
 
-            for (let i = 0; i < 60; i++) {
-                let t = types[Math.floor(Math.random() * types.length)];
-                let x = Math.random() * (WORLD_SIZE - 200) + 100;
-                let y = Math.random() * (WORLD_SIZE - 200) + 100;
-                // Evita spawn em cima da fogueira
-                if (Math.hypot(x - 1000, y - 1000) < 100) continue;
-                worldObjects.push({ ...t, x, y });
+            for (let i = 0; i < 90; i++) {
+                let bp = itemBlueprints[Math.floor(Math.random() * itemBlueprints.length)];
+                let x = Math.random() * (WORLD_SIZE - 300) + 150;
+                let y = Math.random() * (WORLD_SIZE - 300) + 150;
+                
+                if (Math.hypot(x - 1250, y - 1250) < 180) continue; // Abre área limpa para o acampamento
+                worldObjects.push({ ...bp, x, y });
             }
 
-            // Spawn Animais Iniciais
-            for(let i=0; i<8; i++) {
-                spawnMob('Vaca', Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE);
+            // Animais Iniciais passivos
+            for(let i=0; i<10; i++) {
+                spawnMobInWorld('Vaca', Math.random() * (WORLD_SIZE - 200) + 100, Math.random() * (WORLD_SIZE - 200) + 100);
             }
         }
 
-        function spawnMob(type, x, y) {
+        function spawnMobInWorld(type, x, y) {
             if(type === 'Vaca') {
-                mobs.push({ type: 'Vaca', x, y, hp: 4, maxHp: 4, color: '#a16207', size: 18, targetX: x, targetY: y, speed: 1 });
+                mobs.push({ type: 'Vaca', x, y, hp: 4, maxHp: 4, color: '#854d0e', size: 22, targetX: x, targetY: y, speed: 1.2, isMoving: false, animTime: Math.random()*100 });
             } else {
-                mobs.push({ type: 'Zumbi', x, y, hp: 5, maxHp: 5, color: '#166534', size: 20, speed: 2 });
+                mobs.push({ type: 'Zumbi Noturno', x, y, hp: 6, maxHp: 6, color: '#064e3b', size: 24, speed: 2.3, animTime: 0 });
             }
         }
 
-        // --- GAME LOOP & LOGIC ---
         function startGame() {
             document.getElementById('lobby').classList.add('hidden');
             document.getElementById('hud').classList.remove('hidden');
             canvas.classList.remove('hidden');
             resizeCanvas();
             renderHotbar();
+            
+            // Centraliza câmera instantaneamente no início
+            camera.x = player.x;
+            camera.y = player.y;
+
             requestAnimationFrame(gameLoop);
         }
 
-        function selectSlotByIndex(num) {
-            const idx = parseInt(num) - 1;
-            const keys = Object.keys(inventory);
-            if(keys[idx]) {
-                currentSlot = keys[idx];
-                renderHotbar();
-            }
-        }
-
         function renderHotbar() {
-            const hotbar = document.getElementById('hotbar');
-            hotbar.innerHTML = '';
-            Object.keys(inventory).forEach((item, i) => {
-                const activeClass = currentSlot === item ? 'border-yellow-400 bg-gray-700' : 'border-transparent';
-                hotbar.innerHTML += `
-                    <div class="border-2 ${activeClass} p-2 text-center min-w-[70px] rounded bg-gray-900/80">
-                        <div class="text-xs text-gray-400">${i+1}</div>
-                        <div class="text-sm font-bold">${item}</div>
-                        <div class="text-xs text-green-400">x${inventory[item]}</div>
+            const container = document.getElementById('hotbar');
+            container.innerHTML = '';
+            Object.keys(inventory).forEach((item, index) => {
+                const selected = currentSlot === item ? 'border-yellow-400 bg-slate-800 scale-105' : 'border-slate-700 bg-slate-950/60';
+                container.innerHTML += `
+                    <div class="border-2 ${selected} px-3 py-2 text-center min-w-[75px] rounded-lg shadow-inner transition-all transform">
+                        <div class="text-[10px] text-slate-500 font-bold font-sans">${index + 1}</div>
+                        <div class="text-xs font-bold text-slate-200 tracking-wide">${item}</div>
+                        <div class="text-sm font-bold text-green-400 mt-0.5">x${inventory[item]}</div>
                     </div>
                 `;
             });
         }
 
+        // --- SISTEMA DE REGRAS E INTERAÇÕES INTERNAS ---
+        function processObjectInteraction(objIdx, pId) {
+            let obj = worldObjects[objIdx];
+            if(!obj) return;
+            obj.hp -= 1;
+            transmit({ type: 'particle_trigger', x: obj.x, y: obj.y, color: obj.color });
+            spawnParticles(obj.x, obj.y, obj.color, 8);
+            
+            if(obj.hp <= 0) {
+                worldObjects.splice(objIdx, 1);
+            }
+        }
+
+        function processMobInteraction(mobIdx, pId, action) {
+            let mob = mobs[mobIdx];
+            if(!mob) return;
+
+            if(action === 'feed') {
+                mob.hp = Math.min(mob.maxHp, mob.hp + 1);
+                transmit({ type: 'particle_trigger', x: mob.x, y: mob.y, color: '#22c55e' });
+                spawnParticles(mob.x, mob.y, '#22c55e', 10);
+            } else if(action === 'attack') {
+                mob.hp -= 1;
+                transmit({ type: 'particle_trigger', x: mob.x, y: mob.y, color: '#ef4444' });
+                spawnParticles(mob.x, mob.y, '#ef4444', 10);
+                if(mob.hp <= 0) {
+                    mobs.splice(mobIdx, 1);
+                }
+            }
+        }
+
+        // --- GAME TICK & FRAME UPDATE ---
         function update() {
-            // Movimentação do Jogador
-            let moveX = 0;
-            let moveY = 0;
-            if (keys['w'] || keys['arrowup']) moveY -= player.speed;
-            if (keys['s'] || keys['arrowdown']) moveY += player.speed;
-            if (keys['a'] || keys['arrowleft']) moveX -= player.speed;
-            if (keys['d'] || keys['arrowright']) moveX += player.speed;
+            // Movimentação Fluida
+            let dx = 0, dy = 0;
+            if (keys['w'] || keys['arrowup']) dy -= player.speed;
+            if (keys['s'] || keys['arrowdown']) dy += player.speed;
+            if (keys['a'] || keys['arrowleft']) dx -= player.speed;
+            if (keys['d'] || keys['arrowright']) dx += player.speed;
 
-            player.x = Math.max(20, Math.min(WORLD_SIZE - 20, player.x + moveX));
-            player.y = Math.max(20, Math.min(WORLD_SIZE - 20, player.y + moveY));
+            // Normalização vetorial para evitar super velocidade diagonal
+            if(dx !== 0 && dy !== 0) {
+                dx *= 0.7071;
+                dy *= 0.7071;
+            }
 
-            // Ciclo Dia/Noite e Lógica de Host
+            player.x = Math.max(25, Math.min(WORLD_SIZE - 25, player.x + dx));
+            player.y = Math.max(25, Math.min(WORLD_SIZE - 25, player.y + dy));
+            
+            player.isMoving = (dx !== 0 || dy !== 0);
+            if(player.isMoving) player.animTime += 0.2;
+
+            // LÓGICA EXCLUSIVA DO HOST
             if (isHost) {
-                gameTicks++;
-                if (gameTicks % 1200 === 0) { // Alterna a cada ~20 segundos
-                    isNight = !isNight;
-                    if (isNight) {
-                        // Spawn zumbis nas bordas à noite
-                        for (let i = 0; i < 4; i++) {
-                            spawnMob('Zumbi', Math.random() > 0.5 ? 50 : WORLD_SIZE - 50, Math.random() * WORLD_SIZE);
+                timeProgress++;
+                if (timeProgress >= PERIOD_DURATION) {
+                    timeProgress = 0;
+                    timePeriodIndex = (timePeriodIndex + 1) % 3; // Rotaciona Dia -> Tarde -> Noite
+                    
+                    if (timePeriodIndex === 2) { // Ficou Noite
+                        for (let i = 0; i < 6; i++) {
+                            let side = Math.random();
+                            let sx = side > 0.5 ? 60 : WORLD_SIZE - 60;
+                            let sy = Math.random() * WORLD_SIZE;
+                            spawnMobInWorld('Zumbi', sx, sy);
                         }
-                    } else {
-                        // Limpa zumbis de dia
-                        mobs = mobs.filter(m => m.type !== 'Zumbi');
+                    } else if (timePeriodIndex === 0) { // Amanheceu
+                        mobs = mobs.filter(m => m.type !== 'Zumbi Noturno');
+                        // Repovoa vacas passivas
+                        while(mobs.filter(m=>m.type === 'Vaca').length < 8) {
+                            spawnMobInWorld('Vaca', Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE);
+                        }
                     }
                 }
 
-                // Mover Mobs
+                // Inteligência Artificial dos Mobs
                 mobs.forEach(mob => {
+                    mob.animTime += 0.15;
                     if (mob.type === 'Vaca') {
-                        // Anda aleatoriamente
-                        if (Math.random() < 0.02 || Math.hypot(mob.x - mob.targetX, mob.y - mob.targetY) < 10) {
-                            mob.targetX = Math.max(50, Math.min(WORLD_SIZE-50, mob.x + (Math.random()*200 - 100)));
-                            mob.targetY = Math.max(50, Math.min(WORLD_SIZE-50, mob.y + (Math.random()*200 - 100)));
+                        if (Math.random() < 0.015 || Math.hypot(mob.x - mob.targetX, mob.y - mob.targetY) < 15) {
+                            mob.targetX = Math.max(100, Math.min(WORLD_SIZE-100, mob.x + (Math.random()*300 - 150)));
+                            mob.targetY = Math.max(100, Math.min(WORLD_SIZE-100, mob.y + (Math.random()*300 - 150)));
                         }
                         let angle = Math.atan2(mob.targetY - mob.y, mob.targetX - mob.x);
                         mob.x += Math.cos(angle) * mob.speed;
                         mob.y += Math.sin(angle) * mob.speed;
-                    } else if (mob.type === 'Zumbi') {
-                        // Persegue o jogador mais perto
+                    } else if (mob.type === 'Zumbi Noturno') {
+                        // Encontra alvo vivo mais próximo
                         let target = player;
-                        let minDist = Math.hypot(player.x - mob.x, player.y - mob.y);
-                        
+                        let distMin = Math.hypot(player.x - mob.x, player.y - mob.y);
+
                         Object.values(players).forEach(p => {
                             let d = Math.hypot(p.x - mob.x, p.y - mob.y);
-                            if(d < minDist) { minDist = d; target = p; }
+                            if(d < distMin) { distMin = d; target = p; }
                         });
 
                         let angle = Math.atan2(target.y - mob.y, target.x - mob.x);
                         mob.x += Math.cos(angle) * mob.speed;
                         mob.y += Math.sin(angle) * mob.speed;
 
-                        // Dar dano se encostar no player local
-                        if (target === player && minDist < (player.size/2 + mob.size/2)) {
-                            if(Math.random() < 0.05) { // taxa do dano
-                                player.health = Math.max(0, player.health - 5);
+                        // Sistema de Combate: Ataque contra Jogador Local
+                        if (target === player && distMin < (player.size/2 + mob.size/2 + 5)) {
+                            if(Math.random() < 0.03) { // Cadência do dano
+                                player.health = Math.max(0, player.health - 8);
+                                spawnParticles(player.x, player.y, '#ef4444', 5);
                                 if(player.health <= 0) {
-                                    alert("Você morreu para um Zumbi!");
+                                    alert("Você virou lanchinho de Zumbi! Respawnado no acampamento central.");
                                     player.health = 100;
-                                    player.x = 1000; player.y = 1000; // Respawn no acampamento
+                                    player.x = 1250; player.y = 1250;
                                 }
                             }
                         }
                     }
                 });
 
-                // Envia sincronização geral do mundo regularmente
-                if(gameTicks % 5 === 0) {
-                    broadcast({ type: 'world_sync', worldObjects, mobs, isNight });
-                }
+                // Sincroniza dados com todos os clientes conectados
+                let playersMap = {};
+                playersMap[player.id] = { x: player.x, y: player.y, name: player.name, color: player.color, animTime: player.animTime, isMoving: player.isMoving };
+                connections.forEach(c => {
+                    let match = connections.find(cx => cx.peer === c.peer);
+                    // Procura o player no map global estruturado
+                });
+                
+                transmit({
+                    type: 'sync',
+                    worldObjects,
+                    mobs,
+                    timePeriodIndex,
+                    timeProgress
+                });
             }
 
-            // Envia posição atual para os outros jogadores
-            broadcast({ type: 'move', id: player.id, playerData: { x: player.x, y: player.y, name: player.name, health: player.health, color: player.color } });
-
-            // Atualiza Interface de Elemento Focado (Olhado/Perto)
-            let closestObj = null;
-            let minDist = 60;
-            worldObjects.forEach((obj, idx) => {
-                let d = Math.hypot(player.x - obj.x, player.y - obj.y);
-                if (d < minDist) { minDist = d; closestObj = { ...obj, idx, isMob: false }; }
-            });
-            mobs.forEach((mob, idx) => {
-                let d = Math.hypot(player.x - mob.x, player.y - mob.y);
-                if (d < minDist) { minDist = d; closestObj = { ...mob, idx, isMob: true }; }
+            // Envia seu pacote de dados estruturado para a rede
+            transmit({
+                type: 'move',
+                id: player.id,
+                playerData: { x: player.x, y: player.y, name: player.name, color: player.color, animTime: player.animTime, isMoving: player.isMoving }
             });
 
-            const lookText = document.getElementById('lookAtText');
-            if (closestObj) {
-                lookText.innerText = `[Espaço] Interagir: ${closestObj.type} (HP: ${closestObj.hp}/${closestObj.maxHp || closestObj.hp})`;
+            // Atualiza Partículas Embaladas
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.03;
+                if(p.alpha <= 0) particles.splice(idx, 1);
+            });
+
+            // Gerencia Câmera Suave com Interpolação Linear (Lerp) e Zoom Estável
+            camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
+            camera.x += (player.x - camera.x) * camera.lerpSpeed;
+            camera.y += (player.y - camera.y) * camera.lerpSpeed;
+
+            // Busca por Interação de Proximidade (Raio de Ação)
+            let currentFocus = null;
+            let rangeLimit = 75;
+
+            worldObjects.forEach((obj, index) => {
+                let dist = Math.hypot(player.x - obj.x, player.y - obj.y);
+                if(dist < rangeLimit) { rangeLimit = dist; currentFocus = { ...obj, index, isMob: false }; }
+            });
+
+            mobs.forEach((mob, index) => {
+                let dist = Math.hypot(player.x - mob.x, player.y - mob.y);
+                if(dist < rangeLimit) { rangeLimit = dist; currentFocus = { ...mob, index, isMob: true }; }
+            });
+
+            const lookLabel = document.getElementById('lookAtText');
+            if(currentFocus) {
+                lookLabel.innerHTML = `<span class="bg-black/50 text-white px-2 py-0.5 rounded mr-2">ESPAÇO</span> ${currentFocus.type} (HP: ${currentFocus.hp}/${currentFocus.maxHp || currentFocus.hp})`;
                 
-                // Ação de Coleta / Interação (Espaço)
-                if (keys[' '] && !keys['space_locked']) {
-                    keys['space_locked'] = true; // Evita cliques contínuos ultra-rápidos
-                    setTimeout(() => keys['space_locked'] = false, 250);
+                if (keys[' '] && !keys['space_lock']) {
+                    keys['space_lock'] = true;
+                    setTimeout(() => keys['space_lock'] = false, 200); // Trava anti-spam
 
-                    if (!closestObj.isMob) {
-                        if (closestObj.type !== 'Fogueira') {
-                            if (isHost) damageObject(closestObj.idx, 1);
-                            else broadcast({ type: 'object_damage', objIndex: closestObj.idx, damage: 1 });
+                    if(!currentFocus.isMob) {
+                        if(currentFocus.type !== 'Fogueira Central') {
+                            if(isHost) processObjectInteraction(currentFocus.index, player.id);
+                            else transmit({ type: 'interact_object', objIdx: currentFocus.index, pId: player.id });
                             
-                            // Coleta imediata client-side simulada para feedback suave
-                            inventory[closestObj.res] = (inventory[closestObj.res] || 0) + 1;
+                            // Feedback Visual Imediato no Client Side
+                            inventory[currentFocus.res] = (inventory[currentFocus.res] || 0) + 1;
                             renderHotbar();
                         }
                     } else {
-                        if (closestObj.type === 'Vaca' && inventory['Madeira'] > 0) {
-                            // Alimenta o animal usando madeira/recurso
-                            if (isHost) feedAnimal(closestObj.idx);
-                            else broadcast({ type: 'feed_animal', mobIndex: closestObj.idx });
+                        if(currentFocus.type === 'Vaca' && inventory['Madeira'] > 0) {
+                            if(isHost) processMobInteraction(currentFocus.index, player.id, 'feed');
+                            else transmit({ type: 'interact_mob', mobIdx: currentFocus.index, pId: player.id, action: 'feed' });
                             inventory['Madeira']--;
-                            player.health = Math.min(player.maxHealth, player.health + 20); // Cura o jogador
+                            player.health = Math.min(player.maxHealth, player.health + 15);
                             renderHotbar();
                         } else {
-                            // Ataca Mobs (Zumbis)
-                            if (isHost) damageMob(closestObj.idx, 1);
-                            else broadcast({ type: 'mob_damage', mobIndex: closestObj.idx, damage: 1 });
-                            if(closestObj.type === 'Vaca') inventory['Carne']++;
+                            if(isHost) processMobInteraction(currentFocus.index, player.id, 'attack');
+                            else transmit({ type: 'interact_mob', mobIdx: currentFocus.index, pId: player.id, action: 'attack' });
+                            if(currentFocus.type === 'Vaca') inventory['Carne']++;
                             renderHotbar();
                         }
                     }
                 }
             } else {
-                lookText.innerText = '';
+                lookLabel.innerText = '';
             }
 
-            // UI Updates
-            document.getElementById('hudTime').innerText = `Tempo: ${isNight ? '🌃 Noite (Cuidado!)' : '☀️ Dia'}`;
+            // Atualiza HUD UI Elástica
+            const currentPeriod = Object.values(TIME_STATES)[timePeriodIndex];
+            document.getElementById('clockIcon').innerText = currentPeriod.icon;
+            document.getElementById('hudTimePeriod').innerText = currentPeriod.label;
+            document.getElementById('hudTimePeriod').className = `text-sm font-bold ${Object.values(TIME_STATES)[timePeriodIndex].textCls}`;
+            
+            let framesLeft = PERIOD_DURATION - timeProgress;
+            let secondsLeft = Math.ceil(framesLeft / 60);
+            document.getElementById('hudTimeProgress').innerText = `Próxima Fase em: ${secondsLeft}s`;
+
             document.getElementById('healthBar').style.width = `${player.health}%`;
+            document.getElementById('healthText').innerText = `${player.health}/100`;
         }
 
-        // Funções de Modificação de Estado (Executadas no Host ou sincronizadas)
-        function damageObject(idx, dmg) {
-            if(!worldObjects[idx]) return;
-            worldObjects[idx].hp -= dmg;
-            if(worldObjects[idx].hp <= 0) worldObjects.splice(idx, 1);
-        }
-
-        function damageMob(idx, dmg) {
-            if(!mobs[idx]) return;
-            mobs[idx].hp -= dmg;
-            if(mobs[idx].hp <= 0) mobs.splice(idx, 1);
-        }
-
-        function feedAnimal(idx) {
-            if(!mobs[idx]) return;
-            mobs[idx].hp = Math.min(mobs[idx].maxHp, mobs[idx].hp + 1);
-        }
-
-        // --- RENDERIZAÇÃO (CANVAS) ---
+        // --- CONTEXTO DE DESENHO GRÁFICO (RENDER ENGINE) ---
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Translação da Câmera focada no Jogador Principal
-            let camX = canvas.width / 2 - player.x;
-            let camY = canvas.height / 2 - player.y;
             ctx.save();
-            ctx.translate(camX, camY);
+            // Translação de Matrix baseada na Câmera e no Fator Zoom
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(camera.zoom, camera.zoom);
+            ctx.translate(-camera.x, -camera.y);
 
-            // Chão do Mapa / Limites
-            ctx.fillStyle = isNight ? '#1e293b' : '#4d7c0f';
+            // Desenha Bioma Terrestre Dinâmico baseado na Iluminação do Estado Temporal
+            const activeState = Object.values(TIME_STATES)[timePeriodIndex];
+            if(timePeriodIndex === 0) ctx.fillStyle = '#4d7c0f'; // Dia Claro
+            else if(timePeriodIndex === 1) ctx.fillStyle = '#b45309'; // Tarde Alaranjada
+            else ctx.fillStyle = '#0f172a'; // Noite Densa
+
             ctx.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE);
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 5;
+
+            // Grelha/Grid Decorativa de Solo (Estilo Minecraft Mapeado)
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+            ctx.lineWidth = 2;
+            for(let x=0; x<WORLD_SIZE; x+=100) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD_SIZE); ctx.stroke();
+            }
+            for(let y=0; y<WORLD_SIZE; y+=100) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD_SIZE, y); ctx.stroke();
+            }
+
+            // Bordas Limítrofes do Mundo
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 8;
             ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
 
-            // Desenhar Recursos e Objetos do Cenário
+            // Renderiza Objetos Estáticos
             worldObjects.forEach(obj => {
+                // Sombra projetada
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillRect(obj.x - obj.size/2 + 4, obj.y - obj.size/2 + 4, obj.size, obj.size);
+
                 ctx.fillStyle = obj.color;
                 ctx.fillRect(obj.x - obj.size/2, obj.y - obj.size/2, obj.size, obj.size);
-                
-                // Nome do Objeto
+
+                // Detalhe Interno Geométrico (Visual Mais Bonito)
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                ctx.fillRect(obj.x - obj.size/4, obj.y - obj.size/4, obj.size/2, obj.size/2);
+
                 ctx.fillStyle = '#ffffff';
-                ctx.font = '10px Courier New';
-                ctx.fillText(obj.type, obj.x - 15, obj.y - obj.size);
+                ctx.font = 'bold 11px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText(obj.type, obj.x, obj.y - obj.size/1.5);
             });
 
-            // Desenhar Mobs (Zumbis/Animais)
+            // Renderiza Monstros e Animais Animados (Balanço Orgânico)
             mobs.forEach(mob => {
+                // Cálculo de oscilação para simular respiração/andada
+                let bobbing = Math.sin(mob.animTime) * 3;
+
+                ctx.fillStyle = 'rgba(0,0,0,0.25)';
+                ctx.fillRect(mob.x - mob.size/2 + 2, mob.y - mob.size/2 + 2, mob.size, mob.size);
+
                 ctx.fillStyle = mob.color;
-                ctx.fillRect(mob.x - mob.size/2, mob.y - mob.size/2, mob.size, mob.size);
+                ctx.fillRect(mob.x - mob.size/2, mob.y - mob.size/2 + bobbing, mob.size, mob.size - bobbing);
 
-                // Vida do Mob
-                ctx.fillStyle = 'red';
-                ctx.fillRect(mob.x - 15, mob.y - mob.size - 5, 30, 4);
-                ctx.fillStyle = 'green';
-                ctx.fillRect(mob.x - 15, mob.y - mob.size - 5, (mob.hp / mob.maxHp) * 30, 4);
+                // Barra de HP Miniatura Superior
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(mob.x - 18, mob.y - mob.size - 8, 36, 5);
+                ctx.fillStyle = '#22c55e';
+                ctx.fillRect(mob.x - 18, mob.y - mob.size - 8, (mob.hp / mob.maxHp) * 36, 5);
             });
 
-            // Outros Jogadores Conectados
-            Object.values(players).forEach(p => {
+            // Renderiza Outros Jogadores
+            Object.keys(players).forEach(id => {
+                let p = players[id];
+                let pBob = p.isMoving ? Math.sin(p.animTime) * 4 : 0;
+
                 ctx.fillStyle = p.color;
-                ctx.fillRect(p.x - player.size/2, p.y - player.size/2, player.size, player.size);
+                ctx.fillRect(p.x - BASE_PLAYER_SIZE/2, p.y - BASE_PLAYER_SIZE/2 + pBob, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE - pBob);
+
                 ctx.fillStyle = '#ffffff';
-                ctx.font = '12px Courier New';
-                ctx.fillText(p.name, p.x - 15, p.y - 20);
+                ctx.font = 'bold 12px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.name, p.x, p.y - 22);
             });
 
-            // Jogador Local (Você - Quadrado Azul)
+            // Renderiza Jogador Local (Você)
+            let localBob = player.isMoving ? Math.sin(player.animTime) * 4 : 0;
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(player.x - BASE_PLAYER_SIZE/2 + 3, player.y - BASE_PLAYER_SIZE/2 + 3, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE);
+
             ctx.fillStyle = player.color;
-            ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
-            
-            // Tag de Nome Local
-            ctx.fillStyle = '#fff';
-            ctx.font = '12px Courier New';
-            ctx.fillText(player.name, player.x - 15, player.y - 20);
+            ctx.fillRect(player.x - BASE_PLAYER_SIZE/2, player.y - BASE_PLAYER_SIZE/2 + localBob, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE - localBob);
+
+            // Rosto simples estilizado para dar direção visual
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(player.x - 8, player.y - 4 + localBob, 4, 4);
+            ctx.fillRect(player.x + 4, player.y - 4 + localBob, 4, 4);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 13px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText(player.name, player.x, player.y - 24);
+
+            // Renderiza Sistema de Partículas Ativas
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.alpha;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            });
+            ctx.globalAlpha = 1.0; // Reseta transparência
 
             ctx.restore();
-
-            // Desenhar MiniMapa
-            drawMinimap();
         }
 
         function drawMinimap() {
-            mCtx.fillStyle = '#22c55e';
-            mCtx.fillRect(0, 0, 128, 128);
+            mCtx.fillStyle = '#020617';
+            mCtx.fillRect(0, 0, 120, 120);
 
-            // Escala do minimapa (128 pixels para o WORLD_SIZE)
-            const scale = 128 / WORLD_SIZE;
+            const scale = 120 / WORLD_SIZE;
 
-            // Desenhar recursos em ponto minúsculo
+            // Elementos de cenário
             worldObjects.forEach(obj => {
                 mCtx.fillStyle = obj.color;
                 mCtx.fillRect(obj.x * scale, obj.y * scale, 3, 3);
             });
 
-            // Outros players no minimapa
-            Object.values(players).forEach(p => {
-                mCtx.fillStyle = '#ef4444';
-                mCtx.fillRect(p.x * scale, p.y * scale, 4, 4);
+            // Monstros/Animais
+            mobs.forEach(m => {
+                mCtx.fillStyle = m.type === 'Vaca' ? '#a16207' : '#ef4444';
+                mCtx.fillRect(m.x * scale, m.y * scale, 3, 3);
             });
 
-            // Você no minimapa (Ponto Branco piscando)
+            // Você (Indicador central pulsante branco)
             mCtx.fillStyle = '#ffffff';
-            mCtx.fillRect(player.x * scale, player.y * scale, 5, 5);
+            mCtx.beginPath();
+            mCtx.arc(player.x * scale, player.y * scale, 4, 0, Math.PI * 2);
+            mCtx.fill();
         }
 
         function gameLoop() {
             update();
             draw();
+            drawMinimap();
             requestAnimationFrame(gameLoop);
         }
     </script>
