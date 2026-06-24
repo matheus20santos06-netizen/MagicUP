@@ -3,91 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MiniCraft Ultra Multiplayer</title>
+    <title>MiniCraft RPG Ultra Mobile</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; background: #0f172a; user-select: none; touch-action: none; }
+        body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; background: #020617; user-select: none; touch-action: none; }
         canvas { display: block; }
-        .pixel-shadow { filter: drop-shadow(0px 4px 0px rgba(0,0,0,0.3)); }
-        /* Impede zoom de duplo clique no mobile */
         * { touch-action: manipulation; }
+        .tab-btn { border-bottom: 3px solid transparent; }
+        .tab-btn.active { border-color: #22c55e; color: #22c55e; }
     </style>
 </head>
-<body class="flex items-center justify-center h-screen w-screen overflow-hidden text-white select-none">
+<body class="flex items-center justify-center h-screen w-screen overflow-hidden text-white">
 
     <div id="lobby" class="absolute z-50 bg-slate-900 border-4 border-slate-700 p-6 rounded-xl text-center max-w-sm w-full mx-4 shadow-2xl">
-        <h1 class="text-3xl font-bold mb-1 text-green-500 tracking-wide pixel-shadow">MINICRAFT MOBILE</h1>
-        <p class="text-[10px] text-slate-400 mb-4 font-sans">Multiplayer P2P - Funciona em Celular e PC</p>
+        <h1 class="text-3xl font-bold mb-1 text-green-500 tracking-wide">MINICRAFT RPG</h1>
+        <p class="text-[10px] text-slate-400 mb-4 font-sans">Mundos, Armas, Loja & Bosses</p>
         
-        <input id="playerName" type="text" placeholder="Apelido do Player" value="Steve" class="w-full p-2.5 mb-3 bg-slate-800 border-2 border-slate-600 rounded-lg text-center font-bold text-md focus:border-green-500 outline-none transition-all">
+        <input id="playerName" type="text" value="Steve" class="w-full p-2.5 mb-3 bg-slate-800 border-2 border-slate-600 rounded-lg text-center font-bold text-md focus:border-green-500 outline-none">
         
         <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700 mb-3">
-            <button onclick="startHost()" class="w-full bg-green-600 hover:bg-green-700 font-bold p-2.5 rounded-lg text-md transition-all shadow-lg">Criar Mundo (Host)</button>
-            <div class="text-[10px] text-slate-500 my-2 font-bold font-sans">OU ENTRAR EM UM MUNDO</div>
-            <input id="roomIdInput" type="text" placeholder="Colar ID do Mundo" class="w-full p-2 mb-2 bg-slate-800 border-2 border-slate-600 rounded text-center text-sm focus:border-blue-500 outline-none">
-            <button onclick="joinRoom()" class="w-full bg-blue-600 hover:bg-blue-700 font-bold p-2 rounded transition-all shadow-lg">Entrar no Mundo</button>
+            <button onclick="startHost()" class="w-full bg-green-600 hover:bg-green-700 font-bold p-2.5 rounded-lg text-md transition-all">Criar Mundo (Host)</button>
+            <div class="text-[10px] text-slate-500 my-2 font-bold font-sans">OU ENTRAR</div>
+            <input id="roomIdInput" type="text" placeholder="ID do Mundo" class="w-full p-2 mb-2 bg-slate-800 border-2 border-slate-600 rounded text-center text-sm focus:border-blue-500 outline-none">
+            <button onclick="joinRoom()" class="w-full bg-blue-600 hover:bg-blue-700 font-bold p-2 rounded transition-all">Entrar no Mundo</button>
         </div>
         <p id="lobbyStatus" class="text-xs text-yellow-500 font-bold animate-pulse"></p>
     </div>
 
-    <div id="hud" class="hidden absolute inset-0 pointer-events-none p-4 flex flex-col justify-between z-40">
+    <div id="interactionMenu" class="hidden absolute z-50 inset-x-4 top-16 bottom-24 bg-slate-900/95 border-4 border-slate-700 rounded-2xl p-4 flex flex-col pointer-events-auto">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2 mb-2">
+            <div class="flex gap-4">
+                <button onclick="switchTab('craft')" id="tab-craft" class="tab-btn active font-bold text-sm px-2 py-1">⚒️ CRAFT</button>
+                <button onclick="switchTab('shop')" id="tab-shop" class="tab-btn font-bold text-sm px-2 py-1">🏪 LOJA / UPGRADES</button>
+            </div>
+            <button onclick="toggleMenu()" class="bg-red-600 font-bold text-xs px-3 py-1 rounded-md">FECHAR [X]</button>
+        </div>
+        <div id="menuContent" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+    </div>
+
+    <div id="hud" class="hidden absolute inset-0 pointer-events-none p-3 flex flex-col justify-between z-40">
+        
         <div class="flex justify-between items-start w-full">
             <div class="flex flex-col gap-1 pointer-events-auto">
-                <div class="bg-slate-900/90 border-2 border-slate-700 p-2 rounded-lg flex items-center gap-2 shadow-xl">
+                <div class="bg-slate-900/90 border-2 border-slate-700 p-2 rounded-lg flex items-center gap-3 shadow-xl">
                     <div id="clockIcon" class="w-8 h-8 rounded-full flex items-center justify-center text-md bg-yellow-500">☀️</div>
                     <div>
-                        <div id="hudTimePeriod" class="text-xs font-bold text-yellow-400">Dia</div>
+                        <div class="flex gap-2 items-center">
+                            <span id="hudTimePeriod" class="text-xs font-bold text-yellow-400">Dia</span>
+                            <span id="hudNightCounter" class="bg-red-900 text-[10px] px-1.5 rounded font-bold">Noite 1</span>
+                        </div>
                         <div id="hudTimeProgress" class="text-[9px] text-slate-400 font-sans">--:--</div>
                     </div>
                 </div>
-                <div class="bg-slate-900/80 border border-slate-700 px-2 py-1 rounded-md text-[10px] text-slate-300">
-                    <span id="hudRoomId" class="select-all cursor-pointer hover:text-green-400">ID: Gerando...</span>
+                <button onclick="toggleMenu()" class="bg-emerald-600 border border-emerald-500 text-white font-bold text-xs p-2 rounded-lg shadow-lg pointer-events-auto active:scale-95">⚒️ CRAFT & LOJA</button>
+                <div class="bg-slate-900/80 border border-slate-700 px-2 py-0.5 rounded text-[9px] text-slate-400">
+                    <span id="hudRoomId">ID: ...</span>
                 </div>
             </div>
 
             <div class="pointer-events-auto bg-slate-900/90 p-0.5 border-2 border-slate-600 rounded-full shadow-2xl overflow-hidden">
-                <canvas id="minimapCanvas" width="90" height="90" class="rounded-full"></canvas>
+                <canvas id="minimapCanvas" width="85" height="85" class="rounded-full"></canvas>
             </div>
         </div>
 
         <div class="text-center flex flex-col items-center justify-center">
-            <p id="lookAtText" class="text-xs bg-slate-950/80 border border-slate-800 text-yellow-400 px-3 py-1 rounded-full shadow-lg font-bold"></p>
+            <p id="lookAtText" class="text-xs bg-slate-950/85 border border-slate-800 text-yellow-400 px-3 py-1 rounded-full shadow-lg font-bold"></p>
         </div>
 
-        <div class="flex flex-col items-center gap-2 w-full pointer-events-auto mb-20 md:mb-0">
-            <div class="flex items-center gap-2 bg-slate-900/90 border-2 border-slate-700 px-3 py-1 rounded-xl shadow-xl">
-                <span class="text-xs animate-bounce">❤️</span>
-                <div class="w-32 bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-600 p-[1px]">
-                    <div id="healthBar" class="bg-red-500 h-full w-full rounded-full"></div>
+        <div class="flex flex-col items-center gap-1.5 w-full pointer-events-auto mb-24">
+            <div class="flex flex-col gap-1 bg-slate-900/90 border-2 border-slate-700 px-3 py-1.5 rounded-xl shadow-xl w-48">
+                <div class="flex items-center justify-between text-[10px]">
+                    <span class="font-bold text-red-400">❤️ HP: <span id="healthText">100</span></span>
+                    <span class="font-bold text-blue-400">🛡️ DEF: <span id="armorText">0</span></span>
                 </div>
-                <span id="healthText" class="text-[10px] font-sans text-slate-300 font-bold">100/100</span>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-600 p-[1px]">
+                    <div id="healthBar" class="bg-red-500 h-full w-full"></div>
+                </div>
             </div>
 
-            <div id="hotbar" class="flex bg-slate-900/95 border-2 border-slate-600 p-1 gap-1 rounded-xl shadow-2xl"></div>
+            <div id="hotbar" class="flex bg-slate-900/95 border-2 border-slate-600 p-1 gap-1 rounded-xl shadow-2xl max-w-full overflow-x-auto"></div>
         </div>
     </div>
 
-    <div id="mobileControls" class="hidden absolute inset-0 pointer-events-none z-50">
-        <div id="joystickZone" class="absolute bottom-6 left-6 w-32 h-32 bg-slate-900/40 border-2 border-slate-500/50 rounded-full flex items-center justify-center pointer-events-auto shadow-lg">
-            <div id="joystickHandle" class="w-12 h-12 bg-slate-400 border-2 border-white rounded-full shadow-md pointer-events-none transition-transform duration-75"></div>
+    <div id="mobileControls" class="hidden absolute inset-0 pointer-events-none z-40">
+        <div id="joystickZone" class="absolute bottom-6 left-6 w-28 h-28 bg-slate-900/50 border-2 border-slate-600 rounded-full flex items-center justify-center pointer-events-auto">
+            <div id="joystickHandle" class="w-10 h-10 bg-slate-400 border-2 border-white rounded-full pointer-events-none"></div>
         </div>
-        <div id="actionButton" class="absolute bottom-8 right-8 w-20 h-20 bg-red-600/80 active:bg-red-700 border-4 border-red-500/50 rounded-full flex items-center justify-center pointer-events-auto shadow-2xl text-white font-bold text-center text-xs tracking-wider">
-            AÇÃO
+        <div id="actionButton" class="absolute bottom-8 right-6 w-20 h-20 bg-red-600/90 active:bg-red-700 border-4 border-red-500/50 rounded-full flex items-center justify-center pointer-events-auto shadow-2xl font-bold text-xs">
+            ATAQUE
         </div>
     </div>
 
     <canvas id="gameCanvas" class="hidden absolute inset-0 z-10"></canvas>
 
     <script>
-        const WORLD_SIZE = 2500;
+        // --- CONFIGURAÇÃO GLOBAL ---
+        const WORLD_SIZE = 3000;
         const BASE_PLAYER_SIZE = 28;
-        const PERIOD_DURATION = 1800; 
-        
+        const PERIOD_DURATION = 2400; // Dias bem mais longos (~40s por período)
+
+        const BIOMES = {
+            FLORESTA: { color: '#2e7d32', grid: 'rgba(255,255,255,0.03)' },
+            DESERTO: { color: '#ef6c00', grid: 'rgba(0,0,0,0.04)' },
+            GELO: { color: '#00838f', grid: 'rgba(255,255,255,0.05)' }
+        };
+
         const TIME_STATES = {
-            0: { label: '☀️ Dia', color: '#4d7c0f', icon: '☀️', textCls: 'text-yellow-400' },
-            1: { label: '🌅 Tarde', color: '#b45309', icon: '🌅', textCls: 'text-orange-400' },
-            2: { label: '🌃 Noite', color: '#1e293b', icon: '💀', textCls: 'text-red-500' }
+            0: { label: '☀️ Dia', icon: '☀️', textCls: 'text-yellow-400' },
+            1: { label: '🌅 Tarde', icon: '🌅', textCls: 'text-orange-400' },
+            2: { label: '🌃 Noite', icon: '💀', textCls: 'text-red-500' }
         };
 
         const canvas = document.getElementById('gameCanvas');
@@ -95,244 +120,284 @@
         const minimapCanvas = document.getElementById('minimapCanvas');
         const mCtx = minimapCanvas.getContext('2d');
 
+        // --- SISTEMA DE ITENS & RECEITAS ---
+        let currentTab = 'craft';
+        const CRAFT_RECIPES = [
+            { result: 'Espada de Ferro', cost: { Madeira: 5, Pedra: 10 }, type: 'arma_melee', dano: 2.5, desc: '+Dano Melee' },
+            { result: 'Pistola', cost: { Madeira: 10, Pedra: 20 }, type: 'arma_fogo', dano: 3, muniMax: 7, desc: 'Tiro Rápido' },
+            { result: 'Doze', cost: { Madeira: 15, Pedra: 35 }, type: 'arma_fogo', dano: 6, muniMax: 2, desc: 'Dano Massivo Perto' },
+            { result: 'Metralhadora', cost: { Madeira: 30, Pedra: 50 }, type: 'arma_fogo', dano: 2, muniMax: 30, desc: 'Rajada Automática' },
+            { result: 'Tocha', cost: { Madeira: 2, Carvão: 1 }, type: 'util', desc: 'Espanta monstros menores' },
+            { result: 'Armadura de Ferro', cost: { Pedra: 40 }, type: 'armadura', defesa: 25, desc: '+25% Resistência' }
+        ];
+
+        const SHOP_ITEMS = [
+            { name: 'Comprar Munição x10', cost: { Carne: 2 }, action: () => { inventory['Munição'] += 10; } },
+            { name: 'Upgrade Velocidade', cost: { Carne: 5, Pedra: 20 }, action: () => { player.speed += 0.5; } },
+            { name: 'Vender Madeira (+1 Carne)', cost: { Madeira: 10 }, action: () => { inventory['Carne'] += 1; } },
+            { name: 'Vender Pedra (+1 Carne)', cost: { Pedra: 10 }, action: () => { inventory['Carne'] += 1; } }
+        ];
+
+        // --- ESTADO DO JOGADOR ---
         let player = {
-            id: '', name: 'Steve', x: 1250, y: 1250, 
-            speed: 4.5, health: 100, maxHealth: 100,
-            animTime: 0, isMoving: false, color: '#2563eb'
+            id: '', name: 'Steve', x: 1500, y: 1500,
+            speed: 4.5, health: 100, maxHealth: 100, defense: 0,
+            animTime: 0, isMoving: false, color: '#2563eb',
+            currentWeapon: 'Punho', recargaArma: 0, muniAtual: 0
         };
 
-        let camera = { x: 1250, y: 1250, zoom: 1.0, targetZoom: 1.0, lerpSpeed: 0.1 };
-        let players = {};      
-        let worldObjects = []; 
-        let mobs = [];         
-        let particles = [];    
-        let keys = {};
-        
-        // Vetor de movimento mobile controlado pelo analógico
-        let mobileMoveDir = { x: 0, y: 0 }; 
-        let mobileActionTriggered = false;
+        let camera = { x: 1500, y: 1500, zoom: 1.0, targetZoom: 1.0, lerpSpeed: 0.1 };
+        let players = {}; let worldObjects = []; let mobs = []; let particles = []; let projectiles = []; let keys = {};
+        let mobileMoveDir = { x: 0, y: 0 }; let mobileActionTriggered = false;
 
-        let timePeriodIndex = 0; 
-        let timeProgress = 0;
-        let inventory = { 'Madeira': 5, 'Pedra': 0, 'Carvão': 0, 'Carne': 0 };
+        let timePeriodIndex = 0; let timeProgress = 0; let nightsSurvived = 1;
+        let inventory = { 'Madeira': 5, 'Pedra': 5, 'Carvão': 0, 'Carne': 0, 'Munição': 10, 'Espada de Ferro': 0, 'Pistola': 0, 'Doze': 0, 'Metralhadora': 0, 'Tocha': 0, 'Armadura de Ferro': 0 };
         let currentSlot = 'Madeira';
 
         let peer = null; let conn = null; let connections = []; let isHost = false;
 
-        // --- SISTEMA DE ENTRADAS PC/TECLADO ---
+        // --- ENTRADAS PC ---
         window.addEventListener('keydown', e => {
             keys[e.key.toLowerCase()] = true;
-            if(['1','2','3','4'].includes(e.key)) selectSlotByNumber(parseInt(e.key));
+            if(['1','2','3','4','5','6','7'].includes(e.key)) selectSlotIdx(parseInt(e.key)-1);
         });
         window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
         window.addEventListener('resize', resizeCanvas);
         window.addEventListener('wheel', e => {
-            if (document.getElementById('hud').classList.contains('hidden')) return;
-            camera.targetZoom -= e.deltaY * 0.001;
-            camera.targetZoom = Math.max(0.7, Math.min(1.4, camera.targetZoom));
+            if (canvas.classList.contains('hidden')) return;
+            camera.targetZoom -= e.deltaY * 0.0008;
+            camera.targetZoom = Math.max(0.6, Math.min(1.4, camera.targetZoom));
         });
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        }
-
-        function selectSlotByNumber(num) {
-            const itemKeys = Object.keys(inventory);
-            if(itemKeys[num - 1]) currentSlot = itemKeys[num - 1];
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        function selectSlotIdx(idx) {
+            const validKeys = Object.keys(inventory).filter(k => inventory[k] > 0 || ['Madeira','Pedra','Carne'].includes(k));
+            if(validKeys[idx]) {
+                currentSlot = validKeys[idx];
+                if(['Espada de Ferro','Pistola','Doze','Metralhadora','Punho'].includes(currentSlot)) {
+                    player.currentWeapon = currentSlot;
+                    let wpData = CRAFT_RECIPES.find(r => r.result === currentSlot);
+                    if(wpData && wpData.type === 'arma_fogo') player.muniAtual = wpData.muniMax;
+                }
+            }
             renderHotbar();
         }
 
-        // --- CONFIGURAÇÃO DOS CONTROLES TOUCH (MOBILE) ---
+        // --- TOUCH INTERFACE (A02 DETECT) ---
         function setupMobileControls() {
-            const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-            if (!isTouchDevice) return; // Se for PC, ignora e não mostra os botões virtuais
-
+            if (!(('ontouchstart' in window) || (navigator.maxTouchPoints > 0))) return;
             document.getElementById('mobileControls').classList.remove('hidden');
             const zone = document.getElementById('joystickZone');
             const handle = document.getElementById('joystickHandle');
-            const actionBtn = document.getElementById('actionButton');
-
-            let joystickActive = false;
-            let startX = 0, startY = 0;
+            let joystickActive = false; let startX = 0, startY = 0;
 
             zone.addEventListener('touchstart', e => {
-                joystickActive = true;
-                const touch = e.touches[0];
-                const rect = zone.getBoundingClientRect();
-                startX = rect.left + rect.width / 2;
-                startY = rect.top + rect.height / 2;
+                joystickActive = true; const rect = zone.getBoundingClientRect();
+                startX = rect.left + rect.width / 2; startY = rect.top + rect.height / 2;
             });
-
             window.addEventListener('touchmove', e => {
                 if (!joystickActive) return;
                 const touch = Array.from(e.touches).find(t => t.target === zone || zone.contains(t.target));
                 if (!touch) return;
-
-                let diffX = touch.clientX - startX;
-                let diffY = touch.clientY - startY;
-                let dist = Math.hypot(diffX, diffY);
-                let maxDist = 50;
-
-                if (dist > maxDist) {
-                    diffX = (diffX / dist) * maxDist;
-                    diffY = (diffY / dist) * maxDist;
-                    dist = maxDist;
-                }
-
-                handle.style.transform = `translate(${diffX}px, ${diffY}px)`;
-                
-                // Normaliza direção para a velocidade do player (-1 a 1)
-                mobileMoveDir.x = diffX / maxDist;
-                mobileMoveDir.y = diffY / maxDist;
+                let dx = touch.clientX - startX, dy = touch.clientY - startY;
+                let dist = Math.hypot(dx, dy); let maxD = 45;
+                if (dist > maxD) { dx = (dx / dist) * maxD; dy = (dy / dist) * maxD; }
+                handle.style.transform = `translate(${dx}px, ${dy}px)`;
+                mobileMoveDir.x = dx / maxD; mobileMoveDir.y = dy / maxD;
             });
+            const stopJ = () => { joystickActive = false; handle.style.transform = 'translate(0px, 0px)'; mobileMoveDir.x = 0; mobileMoveDir.y = 0; };
+            zone.addEventListener('touchend', stopJ); zone.addEventListener('touchcancel', stopJ);
 
-            const stopJoystick = () => {
-                joystickActive = false;
-                handle.style.transform = 'translate(0px, 0px)';
-                mobileMoveDir.x = 0;
-                mobileMoveDir.y = 0;
-            };
-
-            zone.addEventListener('touchend', stopJoystick);
-            zone.addEventListener('touchcancel', stopJoystick);
-
-            // Botão de Ação virtual (Simula a barra de espaço)
-            actionBtn.addEventListener('touchstart', e => {
-                e.preventDefault();
-                mobileActionTriggered = true;
-            });
-            actionBtn.addEventListener('touchend', e => {
-                mobileActionTriggered = false;
-            });
+            document.getElementById('actionButton').addEventListener('touchstart', e => { e.preventDefault(); mobileActionTriggered = true; });
+            document.getElementById('actionButton').addEventListener('touchend', () => mobileActionTriggered = false);
         }
 
-        // --- MULTIPLAYER CORE ---
+        // --- INTERACTION MENU (CRAFT / SHOP UI) ---
+        function toggleMenu() {
+            const menu = document.getElementById('interactionMenu');
+            menu.classList.toggle('hidden');
+            if(!menu.classList.contains('hidden')) renderMenuTabs();
+        }
+
+        function switchTab(tab) { currentTab = tab; renderMenuTabs(); }
+
+        function renderMenuTabs() {
+            document.getElementById('tab-craft').className = `tab-btn font-bold text-sm px-2 py-1 ${currentTab === 'craft' ? 'active':''}`;
+            document.getElementById('tab-shop').className = `tab-btn font-bold text-sm px-2 py-1 ${currentTab === 'shop' ? 'active':''}`;
+            const container = document.getElementById('menuContent');
+            container.innerHTML = '';
+
+            if(currentTab === 'craft') {
+                CRAFT_RECIPES.forEach(recipe => {
+                    let costText = Object.entries(recipe.cost).map(([item, amt]) => `${amt} ${item}`).join(', ');
+                    let canCraft = Object.entries(recipe.cost).every(([item, amt]) => inventory[item] >= amt);
+                    container.innerHTML += `
+                        <div class="bg-slate-800 p-2.5 rounded-lg border border-slate-700 flex justify-between items-center">
+                            <div>
+                                <div class="font-bold text-xs text-green-400">${recipe.result} <span class="text-[9px] text-slate-400">(${recipe.desc})</span></div>
+                                <div class="text-[10px] text-slate-300">Custo: ${costText}</div>
+                            </div>
+                            <button onclick="craftItem('${recipe.result}')" ${canCraft ? '':'disabled'} class="px-3 py-1 rounded text-xs font-bold ${canCraft ? 'bg-green-600 active:bg-green-700':'bg-slate-700 text-slate-500'}">⚒️ Criar</button>
+                        </div>`;
+                });
+            } else {
+                SHOP_ITEMS.forEach((item, index) => {
+                    let costText = Object.entries(item.cost).map(([res, amt]) => `${amt} ${res}`).join(', ');
+                    let canBuy = Object.entries(item.cost).every(([res, amt]) => inventory[res] >= amt);
+                    container.innerHTML += `
+                        <div class="bg-slate-800 p-2.5 rounded-lg border border-slate-700 flex justify-between items-center">
+                            <div>
+                                <div class="font-bold text-xs text-blue-400">${item.name}</div>
+                                <div class="text-[10px] text-slate-300">Requer: ${costText}</div>
+                            </div>
+                            <button onclick="buyShopItem(${index})" ${canBuy ? '':'disabled'} class="px-3 py-1 rounded text-xs font-bold ${canBuy ? 'bg-blue-600 active:bg-blue-700':'bg-slate-700 text-slate-500'}">🛒 Trocar</button>
+                        </div>`;
+                });
+            }
+        }
+
+        function craftItem(name) {
+            let recipe = CRAFT_RECIPES.find(r => r.result === name);
+            if(!recipe) return;
+            Object.entries(recipe.cost).forEach(([item, amt]) => inventory[item] -= amt);
+            inventory[name] += 1;
+            if(recipe.type === 'armadura') { player.defense = recipe.defesa; document.getElementById('armorText').innerText = player.defense; }
+            renderMenuTabs(); renderHotbar(); alert(`${name} fabricado com sucesso!`);
+        }
+
+        function buyShopItem(idx) {
+            let item = SHOP_ITEMS[idx];
+            Object.entries(item.cost).forEach(([res, amt]) => inventory[res] -= amt);
+            item.action(); renderMenuTabs(); renderHotbar();
+        }
+
+        // --- MULTIPLAYER ---
         function initPeer(forcedId = null) {
             peer = new Peer(forcedId, { debug: 1 });
             peer.on('open', (id) => {
-                player.id = id;
-                player.color = isHost ? '#2563eb' : '#db2777';
-                document.getElementById('hudRoomId').innerText = `ID do Mundo: ${id} (Toque para copiar)`;
-                document.getElementById('hudRoomId').onclick = () => {
-                    navigator.clipboard.writeText(id);
-                    alert("ID copiado! Envie para o seu amigo.");
-                };
+                player.id = id; player.color = isHost ? '#2563eb' : '#db2777';
+                document.getElementById('hudRoomId').innerText = `ID: ${id}`;
                 if (isHost) { setupHostLogic(); startGame(); } 
                 else { conn = peer.connect(document.getElementById('roomIdInput').value.trim()); setupClientLogic(); }
             });
-            peer.on('error', err => { alert('Erro: ' + err.type); location.reload(); });
         }
-
-        function startHost() { player.name = document.getElementById('playerName').value.trim() || 'Host'; isHost = true; initPeer(); }
-        function joinRoom() { player.name = document.getElementById('playerName').value.trim() || 'Client'; isHost = false; initPeer(); }
+        function startHost() { player.name = document.getElementById('playerName').value.trim()||'Host'; isHost=true; initPeer(); }
+        function joinRoom() { player.name = document.getElementById('playerName').value.trim()||'Client'; isHost=false; initPeer(); }
 
         function setupHostLogic() {
             generateWorld();
-            peer.on('connection', (connection) => {
-                connections.push(connection);
-                connection.on('open', () => connection.send({ type: 'init_world', worldObjects, mobs, timePeriodIndex, timeProgress }));
-                connection.on('data', (data) => {
-                    if (data.type === 'move') players[data.id] = data.playerData;
-                    if (data.type === 'interact_object') processObjectInteraction(data.objIdx);
-                    if (data.type === 'interact_mob') processMobInteraction(data.mobIdx, data.action);
+            peer.on('connection', (c) => {
+                connections.push(c);
+                c.on('open', () => c.send({ type: 'init_world', worldObjects, mobs, timePeriodIndex, timeProgress, nightsSurvived }));
+                c.on('data', (d) => {
+                    if (d.type === 'move') players[d.id] = d.playerData;
+                    if (d.type === 'bullet') projectiles.push(d.proj);
+                    if (d.type === 'interact_object') processObjectInteraction(d.objIdx);
+                    if (d.type === 'interact_mob') processMobInteraction(d.mobIdx, d.action, d.dmg);
                 });
-                connection.on('close', () => { connections = connections.filter(c => c !== connection); delete players[connection.peer]; });
             });
         }
-
         function setupClientLogic() {
             conn.on('open', () => startGame());
-            conn.on('data', (data) => {
-                if (data.type === 'init_world' || data.type === 'sync') {
-                    worldObjects = data.worldObjects; mobs = data.mobs; timePeriodIndex = data.timePeriodIndex; timeProgress = data.timeProgress;
-                    if (data.allPlayers) { players = data.allPlayers; delete players[player.id]; }
+            conn.on('data', (d) => {
+                if (d.type === 'init_world' || d.type === 'sync') {
+                    worldObjects = d.worldObjects; mobs = d.mobs; timePeriodIndex = d.timePeriodIndex; timeProgress = d.timeProgress; nightsSurvived = d.nightsSurvived;
+                    if (d.allPlayers) { players = d.allPlayers; delete players[player.id]; }
+                    if (d.projs) projectiles = d.projs;
                 }
-                if (data.type === 'particle_trigger') spawnParticles(data.x, data.y, data.color, 6);
+                if (d.type === 'particle_trigger') spawnParticles(d.x, d.y, d.color, 5);
             });
         }
-
-        function transmit(data) {
-            if (isHost) connections.forEach(c => { if(c.open) c.send(data); });
-            else if (conn && conn.open) conn.send(data);
+        function transmit(d) {
+            if (isHost) connections.forEach(c => { if(c.open) c.send(d); });
+            else if (conn && conn.open) conn.send(d);
         }
 
-        function spawnParticles(x, y, color, count = 4) {
-            for(let i=0; i<count; i++) {
-                particles.push({ x, y, vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4, alpha: 1.0, size: Math.random() * 3 + 2, color });
-            }
-        }
-
+        // --- MAPA E BIOMAS ---
         function generateWorld() {
-            worldObjects = [];
-            worldObjects.push({ type: 'Fogueira Central', x: 1250, y: 1250, hp: 9999, maxHp: 9999, size: 36, color: '#ea580c' });
-            const bps = [
-                { type: 'Árvore Secoia', color: '#166534', hp: 4, maxHp: 4, res: 'Madeira', size: 24 },
-                { type: 'Mina de Ferro', color: '#94a3b8', hp: 6, maxHp: 6, res: 'Pedra', size: 20 },
-                { type: 'Veta de Carvão', color: '#0f172a', hp: 5, maxHp: 5, res: 'Carvão', size: 18 }
+            worldObjects = [{ type: 'Bancada Real', x: 1500, y: 1500, hp: 9999, size: 36, color: '#f59e0b' }];
+            const blueprints = [
+                { type: 'Árvore Secoia', color: '#15803d', hp: 4, res: 'Madeira', size: 24 },
+                { type: 'Cacto Maciço', color: '#a3e635', hp: 3, res: 'Madeira', size: 22 },
+                { type: 'Mina de Ferro', color: '#94a3b8', hp: 6, res: 'Pedra', size: 22 },
+                { type: 'Cristal de Gelo', color: '#38bdf8', hp: 5, res: 'Pedra', size: 20 },
+                { type: 'Veta Carvão', color: '#020617', hp: 5, res: 'Carvão', size: 18 }
             ];
-            for (let i = 0; i < 75; i++) {
-                let bp = bps[Math.floor(Math.random() * bps.length)];
-                let x = Math.random() * (WORLD_SIZE - 300) + 150, y = Math.random() * (WORLD_SIZE - 300) + 150;
-                if (Math.hypot(x - 1250, y - 1250) < 180) continue;
-                worldObjects.push({ ...bp, x, y });
+            
+            for (let i = 0; i < 150; i++) {
+                let x = Math.random() * (WORLD_SIZE - 200) + 100;
+                let y = Math.random() * (WORLD_SIZE - 200) + 100;
+                if (Math.hypot(x - 1500, y - 1500) < 180) continue;
+
+                // Define Blueprint baseado no quadrante (Bioma)
+                let bp = blueprints[0];
+                if (x < WORLD_SIZE * 0.4) bp = blueprints[1]; // Deserto esquerdo
+                else if (y > WORLD_SIZE * 0.6) bp = blueprints[3]; // Gelo abaixo
+                else if (Math.random() > 0.6) bp = blueprints[2];
+                if (Math.random() > 0.85) bp = blueprints[4];
+
+                worldObjects.push({ ...bp, x, y, maxHp: bp.hp });
             }
-            for(let i=0; i<8; i++) spawnMobInWorld('Vaca', Math.random() * (WORLD_SIZE - 200) + 100, Math.random() * (WORLD_SIZE - 200) + 100);
+            for(let i=0; i<12; i++) spawnMobInWorld('Vaca', Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE);
         }
 
         function spawnMobInWorld(type, x, y) {
-            if(type === 'Vaca') mobs.push({ type: 'Vaca', x, y, hp: 4, maxHp: 4, color: '#854d0e', size: 22, targetX: x, targetY: y, speed: 1.0, animTime: Math.random()*100 });
-            else mobs.push({ type: 'Zumbi Noturno', x, y, hp: 5, maxHp: 5, color: '#064e3b', size: 24, speed: 2.0, animTime: 0 });
+            let mult = 1 + (nightsSurvived * 0.3); // Escalabilidade de força
+            if(type === 'Vaca') mobs.push({ type: 'Vaca', x, y, hp: 4, maxHp: 4, color: '#854d0e', size: 22, targetX: x, targetY: y, speed: 1, animTime: Math.random()*100 });
+            else if(type === 'Zumbi') mobs.push({ type: 'Zumbi Noturno', x, y, hp: 5*mult, maxHp: 5*mult, color: '#14532d', size: 24, speed: 1.8, animTime: 0 });
+            else if(type === 'Mutante') mobs.push({ type: 'Orco Mutante', x, y, hp: 12*mult, maxHp: 12*mult, color: '#701a75', size: 32, speed: 2.2, animTime: 0 });
+            else if(type === 'Boss') mobs.push({ type: 'BOSS: O DESTRUIDOR', x, y, hp: 60, maxHp: 60, color: '#dc2626', size: 55, speed: 1.4, animTime: 0, isBoss: true });
         }
 
         function startGame() {
             document.getElementById('lobby').classList.add('hidden');
             document.getElementById('hud').classList.remove('hidden');
-            canvas.classList.remove('hidden');
-            resizeCanvas();
-            setupMobileControls();
-            renderHotbar();
+            canvas.classList.remove('hidden'); resizeCanvas(); setupMobileControls(); renderHotbar();
             camera.x = player.x; camera.y = player.y;
             requestAnimationFrame(gameLoop);
         }
 
         function renderHotbar() {
-            const container = document.getElementById('hotbar');
-            container.innerHTML = '';
-            Object.keys(inventory).forEach((item, index) => {
-                const selected = currentSlot === item ? 'border-yellow-400 bg-slate-800' : 'border-slate-700 bg-slate-950/60';
-                // Adicionado onclick direto no HTML da célula para o jogador mudar de item tocando nele na tela
+            const container = document.getElementById('hotbar'); container.innerHTML = '';
+            const valid = Object.keys(inventory).filter(k => inventory[k] > 0 || ['Madeira','Pedra','Carne'].includes(k));
+            valid.forEach((item, index) => {
+                const sel = currentSlot === item ? 'border-yellow-400 bg-slate-800 scale-105' : 'border-slate-700 bg-slate-950/70';
                 container.innerHTML += `
-                    <div onclick="currentSlot='${item}'; renderHotbar();" class="border-2 ${selected} px-2.5 py-1.5 text-center min-w-[65px] rounded-lg shadow-inner pointer-events-auto cursor-pointer">
-                        <div class="text-[11px] font-bold text-slate-200 tracking-wide">${item}</div>
-                        <div class="text-xs font-bold text-green-400">x${inventory[item]}</div>
-                    </div>
-                `;
+                    <div onclick="selectSlotIdx(${index})" class="border-2 ${sel} px-2 py-1 text-center min-w-[62px] rounded-lg cursor-pointer">
+                        <div class="text-[10px] font-bold text-slate-200 truncate">${item}</div>
+                        <div class="text-[11px] font-bold text-green-400">x${inventory[item]}</div>
+                    </div>`;
             });
         }
 
         function processObjectInteraction(objIdx) {
             let obj = worldObjects[objIdx]; if(!obj) return;
-            obj.hp -= 1; transmit({ type: 'particle_trigger', x: obj.x, y: obj.y, color: obj.color }); spawnParticles(obj.x, obj.y, obj.color, 6);
+            obj.hp -= 1; spawnParticles(obj.x, obj.y, obj.color, 5);
             if(obj.hp <= 0) worldObjects.splice(objIdx, 1);
         }
 
-        function processMobInteraction(mobIdx, action) {
+        function processMobInteraction(mobIdx, action, dmg=1) {
             let mob = mobs[mobIdx]; if(!mob) return;
             if(action === 'feed') {
-                mob.hp = Math.min(mob.maxHp, mob.hp + 1); transmit({ type: 'particle_trigger', x: mob.x, y: mob.y, color: '#22c55e' }); spawnParticles(mob.x, mob.y, '#22c55e', 8);
+                mob.hp = Math.min(mob.maxHp, mob.hp + 1); spawnParticles(mob.x, mob.y, '#22c55e', 6);
             } else {
-                mob.hp -= 1; transmit({ type: 'particle_trigger', x: mob.x, y: mob.y, color: '#ef4444' }); spawnParticles(mob.x, mob.y, '#ef4444', 8);
+                mob.hp -= dmg; spawnParticles(mob.x, mob.y, '#ef4444', 6);
                 if(mob.hp <= 0) mobs.splice(mobIdx, 1);
             }
         }
 
-        function update() {
-            let dx = 0, dy = 0;
+        function spawnParticles(x, y, color, count = 4) {
+            for(let i=0; i<count; i++) particles.push({ x, y, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5, alpha: 1, size: Math.random()*3+2, color });
+        }
 
-            // Se houver comando vindo do Analógico Mobile, usa ele. Se não, checa o Teclado do PC.
+        // --- ATUALIZAÇÃO DA ENGINE ---
+        function update() {
+            if(player.recargaArma > 0) player.recargaArma--;
+
+            // Movimentação Híbrida Mobile/Teclado
+            let dx = 0, dy = 0;
             if (mobileMoveDir.x !== 0 || mobileMoveDir.y !== 0) {
-                dx = mobileMoveDir.x * player.speed;
-                dy = mobileMoveDir.y * player.speed;
+                dx = mobileMoveDir.x * player.speed; dy = mobileMoveDir.y * player.speed;
             } else {
                 if (keys['w'] || keys['arrowup']) dy -= player.speed;
                 if (keys['s'] || keys['arrowdown']) dy += player.speed;
@@ -341,149 +406,231 @@
                 if(dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
             }
 
-            player.x = Math.max(25, Math.min(WORLD_SIZE - 25, player.x + dx));
-            player.y = Math.max(25, Math.min(WORLD_SIZE - 25, player.y + dy));
+            player.x = Math.max(30, Math.min(WORLD_SIZE - 30, player.x + dx));
+            player.y = Math.max(30, Math.min(WORLD_SIZE - 30, player.y + dy));
             player.isMoving = (dx !== 0 || dy !== 0);
-            if(player.isMoving) player.animTime += 0.2;
+            if(player.isMoving) player.animTime += 0.25;
 
             transmit({
                 type: 'move', id: player.id,
-                playerData: { x: player.x, y: player.y, name: player.name, color: player.color, animTime: player.animTime, isMoving: player.isMoving }
+                playerData: { x: player.x, y: player.y, name: player.name, color: player.color, animTime: player.animTime, isMoving: player.isMoving, currentWeapon: player.currentWeapon }
             });
 
+            // Lógica de Projéteis de Armas de Fogo
+            projectiles.forEach((proj, pIdx) => {
+                proj.x += proj.vx; proj.y += proj.vy;
+                proj.range--;
+                
+                if(isHost) {
+                    mobs.forEach((mob, mIdx) => {
+                        if(Math.hypot(proj.x - mob.x, proj.y - mob.y) < mob.size/2 + 5) {
+                            processMobInteraction(mIdx, 'attack', proj.dmg);
+                            projectiles.splice(pIdx, 1);
+                        }
+                    });
+                }
+                if(proj.range <= 0) projectiles.splice(pIdx, 1);
+            });
+
+            // LÓGICAS EXCLUSIVAS DO HOST
             if (isHost) {
                 timeProgress++;
                 if (timeProgress >= PERIOD_DURATION) {
                     timeProgress = 0; timePeriodIndex = (timePeriodIndex + 1) % 3; 
-                    if (timePeriodIndex === 2) { 
-                        for (let i = 0; i < 5; i++) spawnMobInWorld('Zumbi', Math.random() > 0.5 ? 60 : WORLD_SIZE - 60, Math.random() * WORLD_SIZE);
-                    } else if (timePeriodIndex === 0) { 
-                        mobs = mobs.filter(m => m.type !== 'Zumbi Noturno');
-                        while(mobs.filter(m=>m.type === 'Vaca').length < 6) spawnMobInWorld('Vaca', Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE);
+                    if (timePeriodIndex === 2) { // Início da Noite
+                        let spawnCount = 4 + nightsSurvived * 2;
+                        for (let i = 0; i < spawnCount; i++) {
+                            let type = Math.random() > 0.65 ? 'Mutante' : 'Zumbi';
+                            spawnMobInWorld(type, Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE);
+                        }
+                        if(nightsSurvived >= 3) { // Invoca Boss na terceira noite
+                            spawnMobInWorld('Boss', 1500, 1300);
+                        }
+                    } else if (timePeriodIndex === 0) { // Amanheceu
+                        mobs = mobs.filter(m => !['Zumbi Noturno', 'Orco Mutante', 'BOSS: O DESTRUIDOR'].includes(m.type));
+                        nightsSurvived++;
+                        while(mobs.filter(m=>m.type === 'Vaca').length < 10) spawnMobInWorld('Vaca', Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE);
                     }
                 }
 
                 mobs.forEach(mob => {
                     mob.animTime += 0.15;
-                    if (mob.type === 'Vaca') {
-                        if (Math.random() < 0.015 || Math.hypot(mob.x - mob.targetX, mob.y - mob.targetY) < 15) {
-                            mob.targetX = Math.max(100, Math.min(WORLD_SIZE-100, mob.x + (Math.random()*200 - 100)));
-                            mob.targetY = Math.max(100, Math.min(WORLD_SIZE-100, mob.y + (Math.random()*200 - 100)));
-                        }
-                        let angle = Math.atan2(mob.targetY - mob.y, mob.targetX - mob.x);
-                        mob.x += Math.cos(angle) * mob.speed; mob.y += Math.sin(angle) * mob.speed;
-                    } else if (mob.type === 'Zumbi Noturno') {
-                        let target = player; let distMin = Math.hypot(player.x - mob.x, player.y - mob.y);
-                        Object.values(players).forEach(p => { let d = Math.hypot(p.x - mob.x, p.y - mob.y); if(d < distMin) { distMin = d; target = p; } });
+                    let target = player; let dMin = Math.hypot(player.x - mob.x, player.y - mob.y);
+                    Object.values(players).forEach(p => { let d = Math.hypot(p.x - mob.x, p.y - mob.y); if(d < dMin) { dMin = d; target = p; } });
+
+                    if (mob.type !== 'Vaca') {
                         let angle = Math.atan2(target.y - mob.y, target.x - mob.x);
                         mob.x += Math.cos(angle) * mob.speed; mob.y += Math.sin(angle) * mob.speed;
 
-                        if (target === player && distMin < (player.size/2 + mob.size/2 + 5)) {
-                            if(Math.random() < 0.03) { 
-                                player.health = Math.max(0, player.health - 8);
-                                if(player.health <= 0) { alert("Você morreu! Respawnado no acampamento."); player.health = 100; player.x = 1250; player.y = 1250; }
+                        if (target === player && dMin < (BASE_PLAYER_SIZE/2 + mob.size/2 + 4)) {
+                            if(Math.random() < 0.04) {
+                                let realDmg = mob.isBoss ? 25 : 10;
+                                realDmg = realDmg * (1 - player.defense / 100);
+                                player.health = Math.max(0, player.health - Math.ceil(realDmg));
+                                if(player.health <= 0) { alert("Você caiu em combate! Respawnado."); player.health = 100; player.x = 1500; player.y = 1500; }
                             }
                         }
                     }
                 });
 
-                let allPlayersCopy = { ...players };
-                allPlayersCopy[player.id] = { x: player.x, y: player.y, name: player.name, color: player.color, animTime: player.animTime, isMoving: player.isMoving };
-                transmit({ type: 'sync', worldObjects, mobs, timePeriodIndex, timeProgress, allPlayers: allPlayersCopy });
+                let allP = { ...players };
+                allP[player.id] = { x: player.x, y: player.y, name: player.name, color: player.color, animTime: player.animTime, isMoving: player.isMoving, currentWeapon: player.currentWeapon };
+                transmit({ type: 'sync', worldObjects, mobs, timePeriodIndex, timeProgress, nightsSurvived, allPlayers: allP, projs: projectiles });
             }
 
-            particles.forEach((p, idx) => { p.x += p.vx; p.y += p.vy; p.alpha -= 0.04; if(p.alpha <= 0) particles.splice(idx, 1); });
+            // Partículas
+            particles.forEach((p, idx) => { p.x += p.vx; p.y += p.vy; p.alpha -= 0.05; if(p.alpha <= 0) particles.splice(idx, 1); });
 
-            camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
+            // Foco e Interação por Toque/Espaço
             camera.x += (player.x - camera.x) * camera.lerpSpeed; camera.y += (player.y - camera.y) * camera.lerpSpeed;
+            camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
 
-            let currentFocus = null; let rangeLimit = 75;
-            worldObjects.forEach((obj, index) => { let dist = Math.hypot(player.x - obj.x, player.y - obj.y); if(dist < rangeLimit) { rangeLimit = dist; currentFocus = { ...obj, index, isMob: false }; } });
-            mobs.forEach((mob, index) => { let dist = Math.hypot(player.x - mob.x, player.y - mob.y); if(dist < rangeLimit) { rangeLimit = dist; currentFocus = { ...mob, index, isMob: true }; } });
+            let currentFocus = null; let rangeLimit = 85;
+            worldObjects.forEach((obj, index) => { let d = Math.hypot(player.x - obj.x, player.y - obj.y); if(d < rangeLimit) { rangeLimit = d; currentFocus = { ...obj, index, isMob: false }; } });
+            mobs.forEach((mob, index) => { let d = Math.hypot(player.x - mob.x, player.y - mob.y); if(d < rangeLimit) { rangeLimit = d; currentFocus = { ...mob, index, isMob: true }; } });
 
             const lookLabel = document.getElementById('lookAtText');
             if(currentFocus) {
-                lookLabel.innerText = `${currentFocus.type} (HP: ${currentFocus.hp}/${currentFocus.maxHp || currentFocus.hp})`;
+                lookLabel.innerText = `${currentFocus.type} (HP: ${currentFocus.hp})`;
                 
-                // Dispara a ação tanto por teclado [Espaço] quanto pressionando o Botão Virtual na tela
                 if ((keys[' '] || mobileActionTriggered) && !keys['space_lock']) {
-                    keys['space_lock'] = true; setTimeout(() => keys['space_lock'] = false, 250);
+                    keys['space_lock'] = true; setTimeout(() => keys['space_lock'] = false, 280);
+
+                    // Verifica se está com Arma de Fogo selecionada
+                    let wpData = CRAFT_RECIPES.find(r => r.result === player.currentWeapon);
+                    if(wpData && wpData.type === 'arma_fogo') {
+                        if(player.recargaArma === 0 && inventory['Munição'] > 0) {
+                            inventory['Munição']--;
+                            player.recargaArma = player.currentWeapon === 'Metralhadora' ? 8 : 35;
+                            
+                            // Dispara projétil na direção do alvo
+                            let angle = Math.atan2(currentFocus.y - player.y, currentFocus.x - player.x);
+                            let newProj = { x: player.x, y: player.y, vx: Math.cos(angle)*9, vy: Math.sin(angle)*9, range: 45, dmg: wpData.dano };
+                            
+                            if(isHost) projectiles.push(newProj);
+                            else transmit({ type: 'bullet', proj: newProj });
+                            
+                            if(player.currentWeapon === 'Doze') { // Tiro espalhado
+                                transmit({ type: 'bullet', proj: { ...newProj, vy: newProj.vy + 1.5 } });
+                                transmit({ type: 'bullet', proj: { ...newProj, vy: newProj.vy - 1.5 } });
+                            }
+                            renderHotbar();
+                        }
+                        return;
+                    }
+
+                    // Se for Melee (Facão, Espada ou Punho)
+                    let dmgMelee = player.currentWeapon === 'Espada de Ferro' ? 2.5 : 1;
 
                     if(!currentFocus.isMob) {
-                        if(currentFocus.type !== 'Fogueira Central') {
+                        if(currentFocus.type === 'Bancada Real') { toggleMenu(); }
+                        else {
                             if(isHost) processObjectInteraction(currentFocus.index); else transmit({ type: 'interact_object', objIdx: currentFocus.index });
                             inventory[currentFocus.res] = (inventory[currentFocus.res] || 0) + 1; renderHotbar();
                         }
                     } else {
-                        if(currentFocus.type === 'Vaca' && inventory['Madeira'] > 0) {
+                        if(currentFocus.type === 'Vaca' && inventory['Madeira'] > 0 && player.currentWeapon === 'Punho') {
                             if(isHost) processMobInteraction(currentFocus.index, 'feed'); else transmit({ type: 'interact_mob', mobIdx: currentFocus.index, action: 'feed' });
-                            inventory['Madeira']--; player.health = Math.min(player.maxHealth, player.health + 15); renderHotbar();
+                            inventory['Madeira']--; player.health = Math.min(100, player.health + 12); renderHotbar();
                         } else {
-                            if(isHost) processMobInteraction(currentFocus.index, 'attack'); else transmit({ type: 'interact_mob', mobIdx: currentFocus.index, action: 'attack' });
-                            if(currentFocus.type === 'Vaca') inventory['Carne']++; renderHotbar();
+                            if(isHost) processMobInteraction(currentFocus.index, 'attack', dmgMelee); else transmit({ type: 'interact_mob', mobIdx: currentFocus.index, action: 'attack', dmg: dmgMelee });
+                            if(currentFocus.type === 'Vaca' && currentFocus.hp <= 1) inventory['Carne']++;
+                            renderHotbar();
                         }
                     }
                 }
-            } else { lookLabel.innerText = ''; }
+            } else { 
+                lookLabel.innerText = ''; 
+                // Permite atirar livremente mesmo sem alvo fixado
+                if ((keys[' '] || mobileActionTriggered) && !keys['space_lock']) {
+                    keys['space_lock'] = true; setTimeout(() => keys['space_lock'] = false, 250);
+                    let wpData = CRAFT_RECIPES.find(r => r.result === player.currentWeapon);
+                    if(wpData && wpData.type === 'arma_fogo' && player.recargaArma === 0 && inventory['Munição'] > 0) {
+                        inventory['Munição']--; player.recargaArma = 30;
+                        let newProj = { x: player.x, y: player.y, vx: 9, vy: 0, range: 40, dmg: wpData.dano };
+                        if(isHost) projectiles.push(newProj); else transmit({ type: 'bullet', proj: newProj });
+                        renderHotbar();
+                    }
+                }
+            }
 
-            const currentPeriod = TIME_STATES[timePeriodIndex];
-            document.getElementById('clockIcon').innerText = currentPeriod.icon;
-            document.getElementById('hudTimePeriod').innerText = currentPeriod.label;
-            document.getElementById('hudTimePeriod').className = `text-xs font-bold ${currentPeriod.textCls}`;
-            document.getElementById('hudTimeProgress').innerText = `${Math.ceil((PERIOD_DURATION - timeProgress) / 60)}s`;
-
+            // Atualiza Textos HUD
+            const cp = TIME_STATES[timePeriodIndex];
+            document.getElementById('clockIcon').innerText = cp.icon;
+            document.getElementById('hudTimePeriod').innerText = cp.label;
+            document.getElementById('hudTimePeriod').className = `text-xs font-bold ${cp.textCls}`;
+            document.getElementById('hudNightCounter').innerText = `Noite ${nightsSurvived}`;
+            document.getElementById('hudTimeProgress').innerText = `Fase: ${Math.ceil((PERIOD_DURATION - timeProgress)/60)}s`;
             document.getElementById('healthBar').style.width = `${player.health}%`;
-            document.getElementById('healthText').innerText = `${player.health}/100`;
+            document.getElementById('healthText').innerText = player.health;
         }
 
+        // --- SISTEMA DE RENDERIZAÇÃO GRÁFICA ---
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save();
             ctx.translate(canvas.width / 2, canvas.height / 2); ctx.scale(camera.zoom, camera.zoom); ctx.translate(-camera.x, -camera.y);
 
-            if(timePeriodIndex === 0) ctx.fillStyle = '#4d7c0f'; 
-            else if(timePeriodIndex === 1) ctx.fillStyle = '#b45309'; 
-            else ctx.fillStyle = '#1e293b'; 
-            ctx.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+            // Renderização Inteligente de Biomas baseada em Coordenadas
+            ctx.fillStyle = '#15803d'; ctx.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE); // Floresta (Base)
+            ctx.fillStyle = '#eab308'; ctx.fillRect(0, 0, WORLD_SIZE * 0.4, WORLD_SIZE); // Deserto (Esquerda)
+            ctx.fillStyle = '#a5f3fc'; ctx.fillRect(0, WORLD_SIZE * 0.6, WORLD_SIZE, WORLD_SIZE * 0.4); // Gelo (Inferior)
 
-            ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 2;
-            for(let x=0; x<WORLD_SIZE; x+=100) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD_SIZE); ctx.stroke(); }
-            ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 6; ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+            // Filtro de Iluminação da Noite/Tarde
+            if(timePeriodIndex === 1) { ctx.fillStyle = 'rgba(194,65,12,0.15)'; ctx.fillRect(0,0,WORLD_SIZE,WORLD_SIZE); }
+            else if(timePeriodIndex === 2) { ctx.fillStyle = 'rgba(15,23,42,0.45)'; ctx.fillRect(0,0,WORLD_SIZE,WORLD_SIZE); }
 
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1.5;
+            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+
+            // Elementos Estáticos
             worldObjects.forEach(obj => {
-                ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(obj.x - obj.size/2 + 3, obj.y - obj.size/2 + 3, obj.size, obj.size);
+                ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(obj.x - obj.size/2 + 3, obj.y - obj.size/2 + 3, obj.size, obj.size);
                 ctx.fillStyle = obj.color; ctx.fillRect(obj.x - obj.size/2, obj.y - obj.size/2, obj.size, obj.size);
-                ctx.fillStyle = '#ffffff'; ctx.font = 'bold 10px Courier New'; ctx.textAlign = 'center'; ctx.fillText(obj.type, obj.x, obj.y - obj.size/1.5);
+                ctx.fillStyle = '#ffffff'; ctx.font = 'bold 9px Arial'; ctx.textAlign='center'; ctx.fillText(obj.type, obj.x, obj.y - obj.size/1.3);
             });
 
+            // Mobs & Monstros
             mobs.forEach(mob => {
                 let bob = Math.sin(mob.animTime) * 2;
-                ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(mob.x - mob.size/2 + 2, mob.y - mob.size/2 + 2, mob.size, mob.size);
                 ctx.fillStyle = mob.color; ctx.fillRect(mob.x - mob.size/2, mob.y - mob.size/2 + bob, mob.size, mob.size - bob);
+                // Vida acima do Mob
+                ctx.fillStyle = '#ef4444'; ctx.fillRect(mob.x - 15, mob.y - mob.size/2 - 8, (mob.hp/mob.maxHp)*30, 3);
             });
 
+            // Balas / Projéteis das Armas
+            projectiles.forEach(p => {
+                ctx.fillStyle = '#facc15'; ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+            });
+
+            // Outros Jogadores
             Object.keys(players).forEach(id => {
-                let p = players[id]; let pBob = p.isMoving ? Math.sin(p.animTime) * 3 : 0;
-                ctx.fillStyle = p.color; ctx.fillRect(p.x - BASE_PLAYER_SIZE/2, p.y - BASE_PLAYER_SIZE/2 + pBob, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE - pBob);
-                ctx.fillStyle = '#ffffff'; ctx.font = 'bold 11px Courier New'; ctx.textAlign = 'center'; ctx.fillText(p.name, p.x, p.y - 20);
+                let p = players[id]; let bob = p.isMoving ? Math.sin(p.animTime)*3 : 0;
+                ctx.fillStyle = p.color; ctx.fillRect(p.x - BASE_PLAYER_SIZE/2, p.y - BASE_PLAYER_SIZE/2 + bob, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE - bob);
+                ctx.fillStyle = '#ffffff'; ctx.font = '9px Arial'; ctx.fillText(`${p.name} [${p.currentWeapon}]`, p.x, p.y - 18);
             });
 
+            // Player Local
             let localBob = player.isMoving ? Math.sin(player.animTime) * 3 : 0;
-            ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(player.x - BASE_PLAYER_SIZE/2 + 2, player.y - BASE_PLAYER_SIZE/2 + 2, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE);
             ctx.fillStyle = player.color; ctx.fillRect(player.x - BASE_PLAYER_SIZE/2, player.y - BASE_PLAYER_SIZE/2 + localBob, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE - localBob);
-            ctx.fillStyle = '#ffffff'; ctx.fillRect(player.x - 6, player.y - 4 + localBob, 3, 3); ctx.fillRect(player.x + 3, player.y - 4 + localBob, 3, 3);
-            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 11px Courier New'; ctx.textAlign = 'center'; ctx.fillText(player.name, player.x, player.y - 20);
+            
+            // Visual da Arma Segurada (Render Diferenciado)
+            if(player.currentWeapon !== 'Punho') {
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillRect(player.x + 10, player.y + localBob, 12, 5); // Cano da arma
+            }
+
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 10px Arial'; ctx.textAlign='center'; ctx.fillText(`Você [${player.currentWeapon}]`, player.x, player.y - 20);
 
             particles.forEach(p => { ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha; ctx.fillRect(p.x, p.y, p.size, p.size); });
             ctx.globalAlpha = 1.0; ctx.restore();
         }
 
         function drawMinimap() {
-            mCtx.fillStyle = '#020617'; mCtx.fillRect(0, 0, 90, 90);
-            const scale = 90 / WORLD_SIZE;
-            worldObjects.forEach(obj => { mCtx.fillStyle = obj.color; mCtx.fillRect(obj.x * scale, obj.y * scale, 2, 2); });
-            mobs.forEach(m => { mCtx.fillStyle = m.type === 'Vaca' ? '#a16207' : '#ef4444'; mCtx.fillRect(m.x * scale, m.y * scale, 2, 2); });
-            Object.values(players).forEach(p => { mCtx.fillStyle = '#db2777'; mCtx.fillRect(p.x * scale, p.y * scale, 3, 3); });
-            mCtx.fillStyle = '#ffffff'; mCtx.beginPath(); mCtx.arc(player.x * scale, player.y * scale, 3, 0, Math.PI * 2); mCtx.fill();
+            mCtx.fillStyle = '#0f172a'; mCtx.fillRect(0, 0, 85, 85);
+            const scale = 85 / WORLD_SIZE;
+            worldObjects.forEach(o => { mCtx.fillStyle = o.color; mCtx.fillRect(o.x*scale, o.y*scale, 2, 2); });
+            mobs.forEach(m => { mCtx.fillStyle = m.isBoss ? '#f43f5e' : '#e11d48'; mCtx.fillRect(m.x*scale, m.y*scale, 2.5, 2.5); });
+            mCtx.fillStyle = '#ffffff'; mCtx.beginPath(); mCtx.arc(player.x*scale, player.y*scale, 3, 0, Math.PI*2); mCtx.fill();
         }
 
         function gameLoop() { update(); draw(); drawMinimap(); requestAnimationFrame(gameLoop); }
