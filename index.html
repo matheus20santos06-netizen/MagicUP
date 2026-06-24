@@ -2,68 +2,78 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MiniCraft Ultra Multiplayer</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; background: #0f172a; user-select: none; }
+        body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; background: #0f172a; user-select: none; touch-action: none; }
         canvas { display: block; }
         .pixel-shadow { filter: drop-shadow(0px 4px 0px rgba(0,0,0,0.3)); }
+        /* Impede zoom de duplo clique no mobile */
+        * { touch-action: manipulation; }
     </style>
 </head>
 <body class="flex items-center justify-center h-screen w-screen overflow-hidden text-white select-none">
 
-    <div id="lobby" class="absolute z-50 bg-slate-900 border-4 border-slate-700 p-8 rounded-xl text-center max-w-md w-full mx-4 shadow-2xl">
-        <h1 class="text-4xl font-bold mb-2 text-green-500 tracking-wide pixel-shadow">MINICRAFT ULTRA</h1>
-        <p class="text-xs text-slate-400 mb-6 font-sans">Multiplayer P2P estável via WebRTC</p>
+    <div id="lobby" class="absolute z-50 bg-slate-900 border-4 border-slate-700 p-6 rounded-xl text-center max-w-sm w-full mx-4 shadow-2xl">
+        <h1 class="text-3xl font-bold mb-1 text-green-500 tracking-wide pixel-shadow">MINICRAFT MOBILE</h1>
+        <p class="text-[10px] text-slate-400 mb-4 font-sans">Multiplayer P2P - Funciona em Celular e PC</p>
         
-        <input id="playerName" type="text" placeholder="Apelido do Player" value="Steve" class="w-full p-3 mb-4 bg-slate-800 border-2 border-slate-600 rounded-lg text-center font-bold text-lg focus:border-green-500 outline-none transition-all">
+        <input id="playerName" type="text" placeholder="Apelido do Player" value="Steve" class="w-full p-2.5 mb-3 bg-slate-800 border-2 border-slate-600 rounded-lg text-center font-bold text-md focus:border-green-500 outline-none transition-all">
         
-        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mb-4">
-            <button onclick="startHost()" class="w-full bg-green-600 hover:bg-green-700 font-bold p-3 rounded-lg text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg">Criar Novo Mundo (Host)</button>
-            <div class="text-xs text-slate-500 my-3 font-bold font-sans">OU CONECTAR A UM AMIGO</div>
-            <input id="roomIdInput" type="text" placeholder="Colar ID do Mundo" class="w-full p-2 mb-3 bg-slate-800 border-2 border-slate-600 rounded text-center text-sm focus:border-blue-500 outline-none">
+        <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700 mb-3">
+            <button onclick="startHost()" class="w-full bg-green-600 hover:bg-green-700 font-bold p-2.5 rounded-lg text-md transition-all shadow-lg">Criar Mundo (Host)</button>
+            <div class="text-[10px] text-slate-500 my-2 font-bold font-sans">OU ENTRAR EM UM MUNDO</div>
+            <input id="roomIdInput" type="text" placeholder="Colar ID do Mundo" class="w-full p-2 mb-2 bg-slate-800 border-2 border-slate-600 rounded text-center text-sm focus:border-blue-500 outline-none">
             <button onclick="joinRoom()" class="w-full bg-blue-600 hover:bg-blue-700 font-bold p-2 rounded transition-all shadow-lg">Entrar no Mundo</button>
         </div>
-        <p id="lobbyStatus" class="text-sm text-yellow-500 font-bold animate-pulse"></p>
+        <p id="lobbyStatus" class="text-xs text-yellow-500 font-bold animate-pulse"></p>
     </div>
 
     <div id="hud" class="hidden absolute inset-0 pointer-events-none p-4 flex flex-col justify-between z-40">
         <div class="flex justify-between items-start w-full">
-            <div class="flex flex-col gap-2 pointer-events-auto">
-                <div class="bg-slate-900/90 border-2 border-slate-700 p-3 rounded-lg flex items-center gap-3 shadow-xl">
-                    <div id="clockIcon" class="w-10 h-10 rounded-full flex items-center justify-center text-xl bg-yellow-500 border border-black/20">☀️</div>
+            <div class="flex flex-col gap-1 pointer-events-auto">
+                <div class="bg-slate-900/90 border-2 border-slate-700 p-2 rounded-lg flex items-center gap-2 shadow-xl">
+                    <div id="clockIcon" class="w-8 h-8 rounded-full flex items-center justify-center text-md bg-yellow-500">☀️</div>
                     <div>
-                        <div id="hudTimePeriod" class="text-sm font-bold text-yellow-400">Estado: Dia</div>
-                        <div id="hudTimeProgress" class="text-xs text-slate-400 font-sans">Tempo Restante: --:--</div>
+                        <div id="hudTimePeriod" class="text-xs font-bold text-yellow-400">Dia</div>
+                        <div id="hudTimeProgress" class="text-[9px] text-slate-400 font-sans">--:--</div>
                     </div>
                 </div>
-                <div class="bg-slate-900/80 border border-slate-700 px-3 py-1.5 rounded-md text-xs text-slate-300">
+                <div class="bg-slate-900/80 border border-slate-700 px-2 py-1 rounded-md text-[10px] text-slate-300">
                     <span id="hudRoomId" class="select-all cursor-pointer hover:text-green-400">ID: Gerando...</span>
                 </div>
-                <div class="text-[10px] text-slate-400 font-sans">Zoom: Scroll do Mouse | Interagir: [Espaço]</div>
             </div>
 
-            <div class="pointer-events-auto bg-slate-900/90 p-1 border-2 border-slate-600 rounded-full shadow-2xl overflow-hidden">
-                <canvas id="minimapCanvas" width="120" height="120" class="rounded-full"></canvas>
+            <div class="pointer-events-auto bg-slate-900/90 p-0.5 border-2 border-slate-600 rounded-full shadow-2xl overflow-hidden">
+                <canvas id="minimapCanvas" width="90" height="90" class="rounded-full"></canvas>
             </div>
         </div>
 
         <div class="text-center flex flex-col items-center justify-center">
-            <p id="lookAtText" class="text-md bg-slate-950/80 border border-slate-800 text-yellow-400 px-4 py-1.5 rounded-full shadow-lg font-bold"></p>
+            <p id="lookAtText" class="text-xs bg-slate-950/80 border border-slate-800 text-yellow-400 px-3 py-1 rounded-full shadow-lg font-bold"></p>
         </div>
 
-        <div class="flex flex-col items-center gap-3 w-full pointer-events-auto">
-            <div class="flex items-center gap-3 bg-slate-900/90 border-2 border-slate-700 px-4 py-2 rounded-xl shadow-xl">
-                <span class="text-sm font-bold animate-bounce">❤️</span>
-                <div class="w-48 bg-slate-800 h-4 rounded-full overflow-hidden border border-slate-600 p-[2px]">
-                    <div id="healthBar" class="bg-red-500 h-full w-full rounded-full transition-all duration-300"></div>
+        <div class="flex flex-col items-center gap-2 w-full pointer-events-auto mb-20 md:mb-0">
+            <div class="flex items-center gap-2 bg-slate-900/90 border-2 border-slate-700 px-3 py-1 rounded-xl shadow-xl">
+                <span class="text-xs animate-bounce">❤️</span>
+                <div class="w-32 bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-600 p-[1px]">
+                    <div id="healthBar" class="bg-red-500 h-full w-full rounded-full"></div>
                 </div>
-                <span id="healthText" class="text-xs font-sans text-slate-300 font-bold">100/100</span>
+                <span id="healthText" class="text-[10px] font-sans text-slate-300 font-bold">100/100</span>
             </div>
 
-            <div id="hotbar" class="flex bg-slate-900/95 border-4 border-slate-600 p-1.5 gap-2 rounded-xl shadow-2xl"></div>
+            <div id="hotbar" class="flex bg-slate-900/95 border-2 border-slate-600 p-1 gap-1 rounded-xl shadow-2xl"></div>
+        </div>
+    </div>
+
+    <div id="mobileControls" class="hidden absolute inset-0 pointer-events-none z-50">
+        <div id="joystickZone" class="absolute bottom-6 left-6 w-32 h-32 bg-slate-900/40 border-2 border-slate-500/50 rounded-full flex items-center justify-center pointer-events-auto shadow-lg">
+            <div id="joystickHandle" class="w-12 h-12 bg-slate-400 border-2 border-white rounded-full shadow-md pointer-events-none transition-transform duration-75"></div>
+        </div>
+        <div id="actionButton" class="absolute bottom-8 right-8 w-20 h-20 bg-red-600/80 active:bg-red-700 border-4 border-red-500/50 rounded-full flex items-center justify-center pointer-events-auto shadow-2xl text-white font-bold text-center text-xs tracking-wider">
+            AÇÃO
         </div>
     </div>
 
@@ -75,9 +85,9 @@
         const PERIOD_DURATION = 1800; 
         
         const TIME_STATES = {
-            0: { label: '☀️ Dia', color: '#5ca924', icon: '☀️', textCls: 'text-yellow-400' },
-            1: { label: '🌅 Tarde', color: '#c2410c', icon: '🌅', textCls: 'text-orange-400' },
-            2: { label: '🌃 Noite', color: '#0f172a', icon: '💀', textCls: 'text-red-500' }
+            0: { label: '☀️ Dia', color: '#4d7c0f', icon: '☀️', textCls: 'text-yellow-400' },
+            1: { label: '🌅 Tarde', color: '#b45309', icon: '🌅', textCls: 'text-orange-400' },
+            2: { label: '🌃 Noite', color: '#1e293b', icon: '💀', textCls: 'text-red-500' }
         };
 
         const canvas = document.getElementById('gameCanvas');
@@ -86,9 +96,8 @@
         const mCtx = minimapCanvas.getContext('2d');
 
         let player = {
-            id: '', name: 'Steve',
-            x: 1250, y: 1250, 
-            speed: 5, health: 100, maxHealth: 100,
+            id: '', name: 'Steve', x: 1250, y: 1250, 
+            speed: 4.5, health: 100, maxHealth: 100,
             animTime: 0, isMoving: false, color: '#2563eb'
         };
 
@@ -99,183 +108,180 @@
         let particles = [];    
         let keys = {};
         
+        // Vetor de movimento mobile controlado pelo analógico
+        let mobileMoveDir = { x: 0, y: 0 }; 
+        let mobileActionTriggered = false;
+
         let timePeriodIndex = 0; 
         let timeProgress = 0;
         let inventory = { 'Madeira': 5, 'Pedra': 0, 'Carvão': 0, 'Carne': 0 };
         let currentSlot = 'Madeira';
 
-        let peer = null;
-        let conn = null;
-        let connections = [];
-        let isHost = false;
+        let peer = null; let conn = null; let connections = []; let isHost = false;
 
+        // --- SISTEMA DE ENTRADAS PC/TECLADO ---
         window.addEventListener('keydown', e => {
             keys[e.key.toLowerCase()] = true;
-            if(['1','2','3','4'].includes(e.key)) selectSlotByIndex(e.key);
+            if(['1','2','3','4'].includes(e.key)) selectSlotByNumber(parseInt(e.key));
         });
         window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
         window.addEventListener('resize', resizeCanvas);
-        
         window.addEventListener('wheel', e => {
             if (document.getElementById('hud').classList.contains('hidden')) return;
             camera.targetZoom -= e.deltaY * 0.001;
-            camera.targetZoom = Math.max(0.6, Math.min(1.5, camera.targetZoom));
+            camera.targetZoom = Math.max(0.7, Math.min(1.4, camera.targetZoom));
         });
 
         function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         }
 
-        function selectSlotByIndex(num) {
-            const idx = parseInt(num) - 1;
+        function selectSlotByNumber(num) {
             const itemKeys = Object.keys(inventory);
-            if(itemKeys[idx]) currentSlot = itemKeys[idx];
+            if(itemKeys[num - 1]) currentSlot = itemKeys[num - 1];
             renderHotbar();
         }
 
+        // --- CONFIGURAÇÃO DOS CONTROLES TOUCH (MOBILE) ---
+        function setupMobileControls() {
+            const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+            if (!isTouchDevice) return; // Se for PC, ignora e não mostra os botões virtuais
+
+            document.getElementById('mobileControls').classList.remove('hidden');
+            const zone = document.getElementById('joystickZone');
+            const handle = document.getElementById('joystickHandle');
+            const actionBtn = document.getElementById('actionButton');
+
+            let joystickActive = false;
+            let startX = 0, startY = 0;
+
+            zone.addEventListener('touchstart', e => {
+                joystickActive = true;
+                const touch = e.touches[0];
+                const rect = zone.getBoundingClientRect();
+                startX = rect.left + rect.width / 2;
+                startY = rect.top + rect.height / 2;
+            });
+
+            window.addEventListener('touchmove', e => {
+                if (!joystickActive) return;
+                const touch = Array.from(e.touches).find(t => t.target === zone || zone.contains(t.target));
+                if (!touch) return;
+
+                let diffX = touch.clientX - startX;
+                let diffY = touch.clientY - startY;
+                let dist = Math.hypot(diffX, diffY);
+                let maxDist = 50;
+
+                if (dist > maxDist) {
+                    diffX = (diffX / dist) * maxDist;
+                    diffY = (diffY / dist) * maxDist;
+                    dist = maxDist;
+                }
+
+                handle.style.transform = `translate(${diffX}px, ${diffY}px)`;
+                
+                // Normaliza direção para a velocidade do player (-1 a 1)
+                mobileMoveDir.x = diffX / maxDist;
+                mobileMoveDir.y = diffY / maxDist;
+            });
+
+            const stopJoystick = () => {
+                joystickActive = false;
+                handle.style.transform = 'translate(0px, 0px)';
+                mobileMoveDir.x = 0;
+                mobileMoveDir.y = 0;
+            };
+
+            zone.addEventListener('touchend', stopJoystick);
+            zone.addEventListener('touchcancel', stopJoystick);
+
+            // Botão de Ação virtual (Simula a barra de espaço)
+            actionBtn.addEventListener('touchstart', e => {
+                e.preventDefault();
+                mobileActionTriggered = true;
+            });
+            actionBtn.addEventListener('touchend', e => {
+                mobileActionTriggered = false;
+            });
+        }
+
+        // --- MULTIPLAYER CORE ---
         function initPeer(forcedId = null) {
             peer = new Peer(forcedId, { debug: 1 });
-            
             peer.on('open', (id) => {
                 player.id = id;
-                player.color = isHost ? '#2563eb' : '#db2777'; // Cores diferentes para diferenciar os players
-                document.getElementById('hudRoomId').innerText = `ID do Mundo: ${id} (Clique para copiar)`;
+                player.color = isHost ? '#2563eb' : '#db2777';
+                document.getElementById('hudRoomId').innerText = `ID do Mundo: ${id} (Toque para copiar)`;
                 document.getElementById('hudRoomId').onclick = () => {
                     navigator.clipboard.writeText(id);
                     alert("ID copiado! Envie para o seu amigo.");
                 };
-
-                if (isHost) {
-                    setupHostLogic();
-                    startGame();
-                } else {
-                    const target = document.getElementById('roomIdInput').value.trim();
-                    conn = peer.connect(target);
-                    setupClientLogic();
-                }
+                if (isHost) { setupHostLogic(); startGame(); } 
+                else { conn = peer.connect(document.getElementById('roomIdInput').value.trim()); setupClientLogic(); }
             });
-
-            peer.on('error', err => {
-                alert('Erro na conexão: ' + err.type);
-                location.reload();
-            });
+            peer.on('error', err => { alert('Erro: ' + err.type); location.reload(); });
         }
 
-        function startHost() {
-            player.name = document.getElementById('playerName').value.trim() || 'Host';
-            isHost = true;
-            document.getElementById('lobbyStatus').innerText = "Gerando mundo...";
-            initPeer();
-        }
-
-        function joinRoom() {
-            const targetId = document.getElementById('roomIdInput').value.trim();
-            if(!targetId) return alert('Insira o ID do mundo!');
-            player.name = document.getElementById('playerName').value.trim() || 'Client';
-            isHost = false;
-            document.getElementById('lobbyStatus').innerText = "Conectando...";
-            initPeer();
-        }
+        function startHost() { player.name = document.getElementById('playerName').value.trim() || 'Host'; isHost = true; initPeer(); }
+        function joinRoom() { player.name = document.getElementById('playerName').value.trim() || 'Client'; isHost = false; initPeer(); }
 
         function setupHostLogic() {
             generateWorld();
             peer.on('connection', (connection) => {
                 connections.push(connection);
-                
-                connection.on('open', () => {
-                    connection.send({ type: 'init_world', worldObjects, mobs, timePeriodIndex, timeProgress });
-                });
-
+                connection.on('open', () => connection.send({ type: 'init_world', worldObjects, mobs, timePeriodIndex, timeProgress }));
                 connection.on('data', (data) => {
-                    if (data.type === 'move') {
-                        // O Host salva os dados de movimento vindos do cliente
-                        players[data.id] = data.playerData;
-                    }
+                    if (data.type === 'move') players[data.id] = data.playerData;
                     if (data.type === 'interact_object') processObjectInteraction(data.objIdx);
                     if (data.type === 'interact_mob') processMobInteraction(data.mobIdx, data.action);
                 });
-
-                connection.on('close', () => {
-                    connections = connections.filter(c => c !== connection);
-                    delete players[connection.peer];
-                });
+                connection.on('close', () => { connections = connections.filter(c => c !== connection); delete players[connection.peer]; });
             });
         }
 
         function setupClientLogic() {
-            conn.on('open', () => {
-                startGame();
-            });
-
+            conn.on('open', () => startGame());
             conn.on('data', (data) => {
                 if (data.type === 'init_world' || data.type === 'sync') {
-                    worldObjects = data.worldObjects;
-                    mobs = data.mobs;
-                    timePeriodIndex = data.timePeriodIndex;
-                    timeProgress = data.timeProgress;
-                    // O cliente adquire a lista atualizada de TODOS os outros jogadores calculada pelo host
-                    if (data.allPlayers) {
-                        players = data.allPlayers;
-                        delete players[player.id]; // Remove o próprio cliente da lista de terceiros
-                    }
+                    worldObjects = data.worldObjects; mobs = data.mobs; timePeriodIndex = data.timePeriodIndex; timeProgress = data.timeProgress;
+                    if (data.allPlayers) { players = data.allPlayers; delete players[player.id]; }
                 }
-                if (data.type === 'particle_trigger') {
-                    spawnParticles(data.x, data.y, data.color, 8);
-                }
+                if (data.type === 'particle_trigger') spawnParticles(data.x, data.y, data.color, 6);
             });
         }
 
         function transmit(data) {
-            if (isHost) {
-                connections.forEach(c => { if(c.open) c.send(data); });
-            } else if (conn && conn.open) {
-                conn.send(data);
-            }
+            if (isHost) connections.forEach(c => { if(c.open) c.send(data); });
+            else if (conn && conn.open) conn.send(data);
         }
 
-        function spawnParticles(x, y, color, count = 6) {
+        function spawnParticles(x, y, color, count = 4) {
             for(let i=0; i<count; i++) {
-                particles.push({
-                    x, y,
-                    vx: (Math.random() - 0.5) * 5,
-                    vy: (Math.random() - 0.5) * 5,
-                    alpha: 1.0,
-                    size: Math.random() * 4 + 3,
-                    color: color
-                });
+                particles.push({ x, y, vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4, alpha: 1.0, size: Math.random() * 3 + 2, color });
             }
         }
 
         function generateWorld() {
             worldObjects = [];
             worldObjects.push({ type: 'Fogueira Central', x: 1250, y: 1250, hp: 9999, maxHp: 9999, size: 36, color: '#ea580c' });
-
-            const itemBlueprints = [
+            const bps = [
                 { type: 'Árvore Secoia', color: '#166534', hp: 4, maxHp: 4, res: 'Madeira', size: 24 },
                 { type: 'Mina de Ferro', color: '#94a3b8', hp: 6, maxHp: 6, res: 'Pedra', size: 20 },
                 { type: 'Veta de Carvão', color: '#0f172a', hp: 5, maxHp: 5, res: 'Carvão', size: 18 }
             ];
-
-            for (let i = 0; i < 90; i++) {
-                let bp = itemBlueprints[Math.floor(Math.random() * itemBlueprints.length)];
-                let x = Math.random() * (WORLD_SIZE - 300) + 150;
-                let y = Math.random() * (WORLD_SIZE - 300) + 150;
-                if (Math.hypot(x - 1250, y - 1250) < 180) continue; 
+            for (let i = 0; i < 75; i++) {
+                let bp = bps[Math.floor(Math.random() * bps.length)];
+                let x = Math.random() * (WORLD_SIZE - 300) + 150, y = Math.random() * (WORLD_SIZE - 300) + 150;
+                if (Math.hypot(x - 1250, y - 1250) < 180) continue;
                 worldObjects.push({ ...bp, x, y });
             }
-
-            for(let i=0; i<10; i++) {
-                spawnMobInWorld('Vaca', Math.random() * (WORLD_SIZE - 200) + 100, Math.random() * (WORLD_SIZE - 200) + 100);
-            }
+            for(let i=0; i<8; i++) spawnMobInWorld('Vaca', Math.random() * (WORLD_SIZE - 200) + 100, Math.random() * (WORLD_SIZE - 200) + 100);
         }
 
         function spawnMobInWorld(type, x, y) {
-            if(type === 'Vaca') {
-                mobs.push({ type: 'Vaca', x, y, hp: 4, maxHp: 4, color: '#854d0e', size: 22, targetX: x, targetY: y, speed: 1.2, isMoving: false, animTime: Math.random()*100 });
-            } else {
-                mobs.push({ type: 'Zumbi Noturno', x, y, hp: 6, maxHp: 6, color: '#064e3b', size: 24, speed: 2.3, animTime: 0 });
-            }
+            if(type === 'Vaca') mobs.push({ type: 'Vaca', x, y, hp: 4, maxHp: 4, color: '#854d0e', size: 22, targetX: x, targetY: y, speed: 1.0, animTime: Math.random()*100 });
+            else mobs.push({ type: 'Zumbi Noturno', x, y, hp: 5, maxHp: 5, color: '#064e3b', size: 24, speed: 2.0, animTime: 0 });
         }
 
         function startGame() {
@@ -283,9 +289,9 @@
             document.getElementById('hud').classList.remove('hidden');
             canvas.classList.remove('hidden');
             resizeCanvas();
+            setupMobileControls();
             renderHotbar();
-            camera.x = player.x;
-            camera.y = player.y;
+            camera.x = player.x; camera.y = player.y;
             requestAnimationFrame(gameLoop);
         }
 
@@ -293,77 +299,67 @@
             const container = document.getElementById('hotbar');
             container.innerHTML = '';
             Object.keys(inventory).forEach((item, index) => {
-                const selected = currentSlot === item ? 'border-yellow-400 bg-slate-800 scale-105' : 'border-slate-700 bg-slate-950/60';
+                const selected = currentSlot === item ? 'border-yellow-400 bg-slate-800' : 'border-slate-700 bg-slate-950/60';
+                // Adicionado onclick direto no HTML da célula para o jogador mudar de item tocando nele na tela
                 container.innerHTML += `
-                    <div class="border-2 ${selected} px-3 py-2 text-center min-w-[75px] rounded-lg shadow-inner">
-                        <div class="text-[10px] text-slate-500 font-bold font-sans">${index + 1}</div>
-                        <div class="text-xs font-bold text-slate-200 tracking-wide">${item}</div>
-                        <div class="text-sm font-bold text-green-400 mt-0.5">x${inventory[item]}</div>
+                    <div onclick="currentSlot='${item}'; renderHotbar();" class="border-2 ${selected} px-2.5 py-1.5 text-center min-w-[65px] rounded-lg shadow-inner pointer-events-auto cursor-pointer">
+                        <div class="text-[11px] font-bold text-slate-200 tracking-wide">${item}</div>
+                        <div class="text-xs font-bold text-green-400">x${inventory[item]}</div>
                     </div>
                 `;
             });
         }
 
         function processObjectInteraction(objIdx) {
-            let obj = worldObjects[objIdx];
-            if(!obj) return;
-            obj.hp -= 1;
-            transmit({ type: 'particle_trigger', x: obj.x, y: obj.y, color: obj.color });
-            spawnParticles(obj.x, obj.y, obj.color, 8);
+            let obj = worldObjects[objIdx]; if(!obj) return;
+            obj.hp -= 1; transmit({ type: 'particle_trigger', x: obj.x, y: obj.y, color: obj.color }); spawnParticles(obj.x, obj.y, obj.color, 6);
             if(obj.hp <= 0) worldObjects.splice(objIdx, 1);
         }
 
         function processMobInteraction(mobIdx, action) {
-            let mob = mobs[mobIdx];
-            if(!mob) return;
+            let mob = mobs[mobIdx]; if(!mob) return;
             if(action === 'feed') {
-                mob.hp = Math.min(mob.maxHp, mob.hp + 1);
-                transmit({ type: 'particle_trigger', x: mob.x, y: mob.y, color: '#22c55e' });
-                spawnParticles(mob.x, mob.y, '#22c55e', 10);
-            } else if(action === 'attack') {
-                mob.hp -= 1;
-                transmit({ type: 'particle_trigger', x: mob.x, y: mob.y, color: '#ef4444' });
-                spawnParticles(mob.x, mob.y, '#ef4444', 10);
+                mob.hp = Math.min(mob.maxHp, mob.hp + 1); transmit({ type: 'particle_trigger', x: mob.x, y: mob.y, color: '#22c55e' }); spawnParticles(mob.x, mob.y, '#22c55e', 8);
+            } else {
+                mob.hp -= 1; transmit({ type: 'particle_trigger', x: mob.x, y: mob.y, color: '#ef4444' }); spawnParticles(mob.x, mob.y, '#ef4444', 8);
                 if(mob.hp <= 0) mobs.splice(mobIdx, 1);
             }
         }
 
         function update() {
             let dx = 0, dy = 0;
-            if (keys['w'] || keys['arrowup']) dy -= player.speed;
-            if (keys['s'] || keys['arrowdown']) dy += player.speed;
-            if (keys['a'] || keys['arrowleft']) dx -= player.speed;
-            if (keys['d'] || keys['arrowright']) dx += player.speed;
 
-            if(dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+            // Se houver comando vindo do Analógico Mobile, usa ele. Se não, checa o Teclado do PC.
+            if (mobileMoveDir.x !== 0 || mobileMoveDir.y !== 0) {
+                dx = mobileMoveDir.x * player.speed;
+                dy = mobileMoveDir.y * player.speed;
+            } else {
+                if (keys['w'] || keys['arrowup']) dy -= player.speed;
+                if (keys['s'] || keys['arrowdown']) dy += player.speed;
+                if (keys['a'] || keys['arrowleft']) dx -= player.speed;
+                if (keys['d'] || keys['arrowright']) dx += player.speed;
+                if(dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+            }
 
             player.x = Math.max(25, Math.min(WORLD_SIZE - 25, player.x + dx));
             player.y = Math.max(25, Math.min(WORLD_SIZE - 25, player.y + dy));
-            
             player.isMoving = (dx !== 0 || dy !== 0);
             if(player.isMoving) player.animTime += 0.2;
 
-            // Transmite as coordenadas locais atualizadas a cada frame
             transmit({
-                type: 'move',
-                id: player.id,
+                type: 'move', id: player.id,
                 playerData: { x: player.x, y: player.y, name: player.name, color: player.color, animTime: player.animTime, isMoving: player.isMoving }
             });
 
             if (isHost) {
                 timeProgress++;
                 if (timeProgress >= PERIOD_DURATION) {
-                    timeProgress = 0;
-                    timePeriodIndex = (timePeriodIndex + 1) % 3; 
+                    timeProgress = 0; timePeriodIndex = (timePeriodIndex + 1) % 3; 
                     if (timePeriodIndex === 2) { 
-                        for (let i = 0; i < 6; i++) {
-                            spawnMobInWorld('Zumbi', Math.random() > 0.5 ? 60 : WORLD_SIZE - 60, Math.random() * WORLD_SIZE);
-                        }
+                        for (let i = 0; i < 5; i++) spawnMobInWorld('Zumbi', Math.random() > 0.5 ? 60 : WORLD_SIZE - 60, Math.random() * WORLD_SIZE);
                     } else if (timePeriodIndex === 0) { 
                         mobs = mobs.filter(m => m.type !== 'Zumbi Noturno');
-                        while(mobs.filter(m=>m.type === 'Vaca').length < 8) {
-                            spawnMobInWorld('Vaca', Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE);
-                        }
+                        while(mobs.filter(m=>m.type === 'Vaca').length < 6) spawnMobInWorld('Vaca', Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE);
                     }
                 }
 
@@ -371,242 +367,126 @@
                     mob.animTime += 0.15;
                     if (mob.type === 'Vaca') {
                         if (Math.random() < 0.015 || Math.hypot(mob.x - mob.targetX, mob.y - mob.targetY) < 15) {
-                            mob.targetX = Math.max(100, Math.min(WORLD_SIZE-100, mob.x + (Math.random()*300 - 150)));
-                            mob.targetY = Math.max(100, Math.min(WORLD_SIZE-100, mob.y + (Math.random()*300 - 150)));
+                            mob.targetX = Math.max(100, Math.min(WORLD_SIZE-100, mob.x + (Math.random()*200 - 100)));
+                            mob.targetY = Math.max(100, Math.min(WORLD_SIZE-100, mob.y + (Math.random()*200 - 100)));
                         }
                         let angle = Math.atan2(mob.targetY - mob.y, mob.targetX - mob.x);
-                        mob.x += Math.cos(angle) * mob.speed;
-                        mob.y += Math.sin(angle) * mob.speed;
+                        mob.x += Math.cos(angle) * mob.speed; mob.y += Math.sin(angle) * mob.speed;
                     } else if (mob.type === 'Zumbi Noturno') {
-                        let target = player;
-                        let distMin = Math.hypot(player.x - mob.x, player.y - mob.y);
-
-                        Object.values(players).forEach(p => {
-                            let d = Math.hypot(p.x - mob.x, p.y - mob.y);
-                            if(d < distMin) { distMin = d; target = p; }
-                        });
-
+                        let target = player; let distMin = Math.hypot(player.x - mob.x, player.y - mob.y);
+                        Object.values(players).forEach(p => { let d = Math.hypot(p.x - mob.x, p.y - mob.y); if(d < distMin) { distMin = d; target = p; } });
                         let angle = Math.atan2(target.y - mob.y, target.x - mob.x);
-                        mob.x += Math.cos(angle) * mob.speed;
-                        mob.y += Math.sin(angle) * mob.speed;
+                        mob.x += Math.cos(angle) * mob.speed; mob.y += Math.sin(angle) * mob.speed;
 
                         if (target === player && distMin < (player.size/2 + mob.size/2 + 5)) {
                             if(Math.random() < 0.03) { 
                                 player.health = Math.max(0, player.health - 8);
-                                spawnParticles(player.x, player.y, '#ef4444', 5);
-                                if(player.health <= 0) {
-                                    alert("Você morreu! Respawnado no acampamento.");
-                                    player.health = 100; player.x = 1250; player.y = 1250;
-                                }
+                                if(player.health <= 0) { alert("Você morreu! Respawnado no acampamento."); player.health = 100; player.x = 1250; player.y = 1250; }
                             }
                         }
                     }
                 });
 
-                // Cria mapa contendo TODOS os jogadores agregados no Host
                 let allPlayersCopy = { ...players };
                 allPlayersCopy[player.id] = { x: player.x, y: player.y, name: player.name, color: player.color, animTime: player.animTime, isMoving: player.isMoving };
-
-                // O Host espelha o estado unificado para a rede inteira
-                transmit({
-                    type: 'sync',
-                    worldObjects,
-                    mobs,
-                    timePeriodIndex,
-                    timeProgress,
-                    allPlayers: allPlayersCopy
-                });
+                transmit({ type: 'sync', worldObjects, mobs, timePeriodIndex, timeProgress, allPlayers: allPlayersCopy });
             }
 
-            // Partículas
-            particles.forEach((p, idx) => {
-                p.x += p.vx; p.y += p.vy; p.alpha -= 0.03;
-                if(p.alpha <= 0) particles.splice(idx, 1);
-            });
+            particles.forEach((p, idx) => { p.x += p.vx; p.y += p.vy; p.alpha -= 0.04; if(p.alpha <= 0) particles.splice(idx, 1); });
 
-            // Câmera Dinâmica acompanhando o Player
             camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
-            camera.x += (player.x - camera.x) * camera.lerpSpeed;
-            camera.y += (player.y - camera.y) * camera.lerpSpeed;
+            camera.x += (player.x - camera.x) * camera.lerpSpeed; camera.y += (player.y - camera.y) * camera.lerpSpeed;
 
-            // Interações de toque por Proximidade
-            let currentFocus = null;
-            let rangeLimit = 75;
-
-            worldObjects.forEach((obj, index) => {
-                let dist = Math.hypot(player.x - obj.x, player.y - obj.y);
-                if(dist < rangeLimit) { rangeLimit = dist; currentFocus = { ...obj, index, isMob: false }; }
-            });
-            mobs.forEach((mob, index) => {
-                let dist = Math.hypot(player.x - mob.x, player.y - mob.y);
-                if(dist < rangeLimit) { rangeLimit = dist; currentFocus = { ...mob, index, isMob: true }; }
-            });
+            let currentFocus = null; let rangeLimit = 75;
+            worldObjects.forEach((obj, index) => { let dist = Math.hypot(player.x - obj.x, player.y - obj.y); if(dist < rangeLimit) { rangeLimit = dist; currentFocus = { ...obj, index, isMob: false }; } });
+            mobs.forEach((mob, index) => { let dist = Math.hypot(player.x - mob.x, player.y - mob.y); if(dist < rangeLimit) { rangeLimit = dist; currentFocus = { ...mob, index, isMob: true }; } });
 
             const lookLabel = document.getElementById('lookAtText');
             if(currentFocus) {
-                lookLabel.innerHTML = `<span class="bg-black/50 text-white px-2 py-0.5 rounded mr-2">ESPAÇO</span> ${currentFocus.type} (HP: ${currentFocus.hp}/${currentFocus.maxHp || currentFocus.hp})`;
+                lookLabel.innerText = `${currentFocus.type} (HP: ${currentFocus.hp}/${currentFocus.maxHp || currentFocus.hp})`;
                 
-                if (keys[' '] && !keys['space_lock']) {
-                    keys['space_lock'] = true;
-                    setTimeout(() => keys['space_lock'] = false, 200);
+                // Dispara a ação tanto por teclado [Espaço] quanto pressionando o Botão Virtual na tela
+                if ((keys[' '] || mobileActionTriggered) && !keys['space_lock']) {
+                    keys['space_lock'] = true; setTimeout(() => keys['space_lock'] = false, 250);
 
                     if(!currentFocus.isMob) {
                         if(currentFocus.type !== 'Fogueira Central') {
-                            if(isHost) processObjectInteraction(currentFocus.index);
-                            else transmit({ type: 'interact_object', objIdx: currentFocus.index });
-                            inventory[currentFocus.res] = (inventory[currentFocus.res] || 0) + 1;
-                            renderHotbar();
+                            if(isHost) processObjectInteraction(currentFocus.index); else transmit({ type: 'interact_object', objIdx: currentFocus.index });
+                            inventory[currentFocus.res] = (inventory[currentFocus.res] || 0) + 1; renderHotbar();
                         }
                     } else {
                         if(currentFocus.type === 'Vaca' && inventory['Madeira'] > 0) {
-                            if(isHost) processMobInteraction(currentFocus.index, 'feed');
-                            else transmit({ type: 'interact_mob', mobIdx: currentFocus.index, action: 'feed' });
-                            inventory['Madeira']--;
-                            player.health = Math.min(player.maxHealth, player.health + 15);
-                            renderHotbar();
+                            if(isHost) processMobInteraction(currentFocus.index, 'feed'); else transmit({ type: 'interact_mob', mobIdx: currentFocus.index, action: 'feed' });
+                            inventory['Madeira']--; player.health = Math.min(player.maxHealth, player.health + 15); renderHotbar();
                         } else {
-                            if(isHost) processMobInteraction(currentFocus.index, 'attack');
-                            else transmit({ type: 'interact_mob', mobIdx: currentFocus.index, action: 'attack' });
-                            if(currentFocus.type === 'Vaca') inventory['Carne']++;
-                            renderHotbar();
+                            if(isHost) processMobInteraction(currentFocus.index, 'attack'); else transmit({ type: 'interact_mob', mobIdx: currentFocus.index, action: 'attack' });
+                            if(currentFocus.type === 'Vaca') inventory['Carne']++; renderHotbar();
                         }
                     }
                 }
             } else { lookLabel.innerText = ''; }
 
-            // UI do Relógio
             const currentPeriod = TIME_STATES[timePeriodIndex];
             document.getElementById('clockIcon').innerText = currentPeriod.icon;
             document.getElementById('hudTimePeriod').innerText = currentPeriod.label;
-            document.getElementById('hudTimePeriod').className = `text-sm font-bold ${currentPeriod.textCls}`;
-            
-            let secondsLeft = Math.ceil((PERIOD_DURATION - timeProgress) / 60);
-            document.getElementById('hudTimeProgress').innerText = `Próxima Fase em: ${secondsLeft}s`;
+            document.getElementById('hudTimePeriod').className = `text-xs font-bold ${currentPeriod.textCls}`;
+            document.getElementById('hudTimeProgress').innerText = `${Math.ceil((PERIOD_DURATION - timeProgress) / 60)}s`;
 
             document.getElementById('healthBar').style.width = `${player.health}%`;
             document.getElementById('healthText').innerText = `${player.health}/100`;
         }
 
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            
-            // Centralização da Matriz de Câmera e Aplicação do Zoom Dinâmico
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.scale(camera.zoom, camera.zoom);
-            ctx.translate(-camera.x, -camera.y);
+            ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2); ctx.scale(camera.zoom, camera.zoom); ctx.translate(-camera.x, -camera.y);
 
-            // Mudança do tom de cor do gramado baseado no relógio global
             if(timePeriodIndex === 0) ctx.fillStyle = '#4d7c0f'; 
             else if(timePeriodIndex === 1) ctx.fillStyle = '#b45309'; 
             else ctx.fillStyle = '#1e293b'; 
-
             ctx.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE);
 
-            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-            ctx.lineWidth = 2;
-            for(let x=0; x<WORLD_SIZE; x+=100) {
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD_SIZE); ctx.stroke();
-            }
-            for(let y=0; y<WORLD_SIZE; y+=100) {
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD_SIZE, y); ctx.stroke();
-            }
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 2;
+            for(let x=0; x<WORLD_SIZE; x+=100) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD_SIZE); ctx.stroke(); }
+            ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 6; ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
 
-            ctx.strokeStyle = '#ef4444';
-            ctx.lineWidth = 8;
-            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
-
-            // Objetos do Cenário
             worldObjects.forEach(obj => {
-                ctx.fillStyle = 'rgba(0,0,0,0.2)';
-                ctx.fillRect(obj.x - obj.size/2 + 4, obj.y - obj.size/2 + 4, obj.size, obj.size);
-                ctx.fillStyle = obj.color;
-                ctx.fillRect(obj.x - obj.size/2, obj.y - obj.size/2, obj.size, obj.size);
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 11px Courier New';
-                ctx.textAlign = 'center';
-                ctx.fillText(obj.type, obj.x, obj.y - obj.size/1.5);
+                ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(obj.x - obj.size/2 + 3, obj.y - obj.size/2 + 3, obj.size, obj.size);
+                ctx.fillStyle = obj.color; ctx.fillRect(obj.x - obj.size/2, obj.y - obj.size/2, obj.size, obj.size);
+                ctx.fillStyle = '#ffffff'; ctx.font = 'bold 10px Courier New'; ctx.textAlign = 'center'; ctx.fillText(obj.type, obj.x, obj.y - obj.size/1.5);
             });
 
-            // Mobs (Vacas e Zumbis)
             mobs.forEach(mob => {
-                let bobbing = Math.sin(mob.animTime) * 3;
-                ctx.fillStyle = 'rgba(0,0,0,0.25)';
-                ctx.fillRect(mob.x - mob.size/2 + 2, mob.y - mob.size/2 + 2, mob.size, mob.size);
-                ctx.fillStyle = mob.color;
-                ctx.fillRect(mob.x - mob.size/2, mob.y - mob.size/2 + bobbing, mob.size, mob.size - bobbing);
-
-                ctx.fillStyle = '#334155';
-                ctx.fillRect(mob.x - 18, mob.y - mob.size - 8, 36, 5);
-                ctx.fillStyle = '#22c55e';
-                ctx.fillRect(mob.x - 18, mob.y - mob.size - 8, (mob.hp / mob.maxHp) * 36, 5);
+                let bob = Math.sin(mob.animTime) * 2;
+                ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(mob.x - mob.size/2 + 2, mob.y - mob.size/2 + 2, mob.size, mob.size);
+                ctx.fillStyle = mob.color; ctx.fillRect(mob.x - mob.size/2, mob.y - mob.size/2 + bob, mob.size, mob.size - bob);
             });
 
-            // Renderiza Outros Jogadores Online de forma estável
             Object.keys(players).forEach(id => {
-                let p = players[id];
-                let pBob = p.isMoving ? Math.sin(p.animTime) * 4 : 0;
-                ctx.fillStyle = 'rgba(0,0,0,0.25)';
-                ctx.fillRect(p.x - BASE_PLAYER_SIZE/2 + 3, p.y - BASE_PLAYER_SIZE/2 + 3, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE);
-                ctx.fillStyle = p.color;
-                ctx.fillRect(p.x - BASE_PLAYER_SIZE/2, p.y - BASE_PLAYER_SIZE/2 + pBob, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE - pBob);
-
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 12px Courier New';
-                ctx.textAlign = 'center';
-                ctx.fillText(p.name, p.x, p.y - 22);
+                let p = players[id]; let pBob = p.isMoving ? Math.sin(p.animTime) * 3 : 0;
+                ctx.fillStyle = p.color; ctx.fillRect(p.x - BASE_PLAYER_SIZE/2, p.y - BASE_PLAYER_SIZE/2 + pBob, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE - pBob);
+                ctx.fillStyle = '#ffffff'; ctx.font = 'bold 11px Courier New'; ctx.textAlign = 'center'; ctx.fillText(p.name, p.x, p.y - 20);
             });
 
-            // Renderiza Você Localmente
-            let localBob = player.isMoving ? Math.sin(player.animTime) * 4 : 0;
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.fillRect(player.x - BASE_PLAYER_SIZE/2 + 3, player.y - BASE_PLAYER_SIZE/2 + 3, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE);
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x - BASE_PLAYER_SIZE/2, player.y - BASE_PLAYER_SIZE/2 + localBob, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE - localBob);
+            let localBob = player.isMoving ? Math.sin(player.animTime) * 3 : 0;
+            ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(player.x - BASE_PLAYER_SIZE/2 + 2, player.y - BASE_PLAYER_SIZE/2 + 2, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE);
+            ctx.fillStyle = player.color; ctx.fillRect(player.x - BASE_PLAYER_SIZE/2, player.y - BASE_PLAYER_SIZE/2 + localBob, BASE_PLAYER_SIZE, BASE_PLAYER_SIZE - localBob);
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(player.x - 6, player.y - 4 + localBob, 3, 3); ctx.fillRect(player.x + 3, player.y - 4 + localBob, 3, 3);
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 11px Courier New'; ctx.textAlign = 'center'; ctx.fillText(player.name, player.x, player.y - 20);
 
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(player.x - 7, player.y - 4 + localBob, 4, 4);
-            ctx.fillRect(player.x + 3, player.y - 4 + localBob, 4, 4);
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 13px Courier New';
-            ctx.textAlign = 'center';
-            ctx.fillText(player.name, player.x, player.y - 24);
-
-            // Partículas de Impacto
-            particles.forEach(p => {
-                ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha;
-                ctx.fillRect(p.x, p.y, p.size, p.size);
-            });
-            ctx.globalAlpha = 1.0;
-
-            ctx.restore();
+            particles.forEach(p => { ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha; ctx.fillRect(p.x, p.y, p.size, p.size); });
+            ctx.globalAlpha = 1.0; ctx.restore();
         }
 
         function drawMinimap() {
-            mCtx.fillStyle = '#020617'; mCtx.fillRect(0, 0, 120, 120);
-            const scale = 120 / WORLD_SIZE;
-
-            worldObjects.forEach(obj => {
-                mCtx.fillStyle = obj.color; mCtx.fillRect(obj.x * scale, obj.y * scale, 3, 3);
-            });
-            mobs.forEach(m => {
-                mCtx.fillStyle = m.type === 'Vaca' ? '#a16207' : '#ef4444';
-                mCtx.fillRect(m.x * scale, m.y * scale, 3, 3);
-            });
-            Object.values(players).forEach(p => {
-                mCtx.fillStyle = '#db2777'; mCtx.fillRect(p.x * scale, p.y * scale, 4, 4);
-            });
-            mCtx.fillStyle = '#ffffff'; mCtx.beginPath();
-            mCtx.arc(player.x * scale, player.y * scale, 4, 0, Math.PI * 2); mCtx.fill();
+            mCtx.fillStyle = '#020617'; mCtx.fillRect(0, 0, 90, 90);
+            const scale = 90 / WORLD_SIZE;
+            worldObjects.forEach(obj => { mCtx.fillStyle = obj.color; mCtx.fillRect(obj.x * scale, obj.y * scale, 2, 2); });
+            mobs.forEach(m => { mCtx.fillStyle = m.type === 'Vaca' ? '#a16207' : '#ef4444'; mCtx.fillRect(m.x * scale, m.y * scale, 2, 2); });
+            Object.values(players).forEach(p => { mCtx.fillStyle = '#db2777'; mCtx.fillRect(p.x * scale, p.y * scale, 3, 3); });
+            mCtx.fillStyle = '#ffffff'; mCtx.beginPath(); mCtx.arc(player.x * scale, player.y * scale, 3, 0, Math.PI * 2); mCtx.fill();
         }
 
-        function gameLoop() {
-            update();
-            draw();
-            drawMinimap();
-            requestAnimationFrame(gameLoop);
-        }
+        function gameLoop() { update(); draw(); drawMinimap(); requestAnimationFrame(gameLoop); }
     </script>
 </body>
 </html>
