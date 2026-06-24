@@ -3,666 +3,511 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guerreiros Z: Crônicas dos 50 Níveis</title>
+    <title>MiniCraft Multiplayer</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
-        }
-
-        body {
-            background-color: #080210;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        #game-container {
-            width: 100%;
-            max-width: 450px;
-            height: 100vh;
-            max-height: 850px;
-            background: linear-gradient(to bottom, #110520, #1f0b35);
-            border: 3px solid #ffcc00;
-            border-radius: 12px;
-            position: relative;
-            box-shadow: 0 0 30px rgba(0,0,0,0.9);
-            overflow: hidden;
-        }
-
-        .screen {
-            width: 100%;
-            height: 100%;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            padding: 15px;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        .active { display: flex; }
-
-        h1, h2, h3 {
-            text-align: center;
-            text-shadow: 2px 2px #000;
-            margin-bottom: 10px;
-            color: #ffcc00;
-        }
-
-        button {
-            background: linear-gradient(to bottom, #ff9900, #ff5500);
-            border: 2px solid #fff;
-            border-radius: 8px;
-            color: white;
-            padding: 10px 16px;
-            font-weight: bold;
-            cursor: pointer;
-            text-shadow: 1px 1px #000;
-            box-shadow: 0 4px #993300;
-            transition: 0.1s;
-        }
-
-        button:active {
-            transform: translateY(3px);
-            box-shadow: 0 1px #000;
-        }
-
-        button:disabled {
-            background: #444;
-            box-shadow: none;
-            cursor: not-allowed;
-            opacity: 0.5;
-        }
-
-        .hud-stats {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            background: rgba(0,0,0,0.5);
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-            border: 1px solid #333;
-        }
-
-        /* --- SISTEMA DE ABAS --- */
-        .tabs-container {
-            display: flex;
-            width: 100%;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-        .tab-button {
-            flex: 1;
-            padding: 8px;
-            background: #25123e;
-            border: 1px solid #4f2784;
-            border-bottom: none;
-            color: #aaa;
-            border-radius: 6px 6px 0 0;
-            font-size: 0.8rem;
-            box-shadow: none;
-        }
-        .tab-button.active-tab {
-            background: #ff9900;
-            color: white;
-            border-color: #fff;
-            font-weight: bold;
-        }
-        .tab-content {
-            display: none;
-            width: 100%;
-            flex-direction: column;
-            flex: 1;
-            overflow-y: auto;
-        }
-        .tab-content.active-content { display: flex; }
-
-        /* --- CARDS E SELEÇÃO --- */
-        .char-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            padding: 2px;
-        }
-        .char-card {
-            background: rgba(255, 255, 255, 0.04);
-            border: 2px solid #3b1d5a;
-            border-radius: 8px;
-            padding: 10px;
-            text-align: center;
-            cursor: pointer;
-        }
-        .char-card.selected {
-            border-color: #ffcc00;
-            background: rgba(255, 204, 0, 0.15);
-        }
-        .char-avatar { font-size: 2rem; margin-bottom: 4px; }
-
-        .shop-row {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid #444;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        /* --- TELA DE COMBATE --- */
-        .battle-stage {
-            flex: 1; width: 100%; display: flex; justify-content: space-between;
-            align-items: center; background: linear-gradient(to bottom, #1d4ed8, #60a5fa);
-            border-radius: 8px; padding: 15px; border: 3px solid #111;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
-        }
-        .fighter { display: flex; flex-direction: column; align-items: center; width: 45%; }
-        .fighter-img { font-size: 3.5rem; transition: 0.15s; text-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-        .hp-bar-container { width: 100%; background: #333; border: 2px solid #000; height: 14px; margin-top: 5px; border-radius: 4px; overflow: hidden; }
-        .hp-bar { width: 100%; height: 100%; background: #22c55e; transition: width 0.2s; }
-        .ki-bar-container { width: 100%; background: #222; border: 1px solid #000; height: 8px; margin-top: 3px; border-radius: 2px; }
-        .ki-bar { width: 0%; height: 100%; background: #06b6d4; transition: width 0.2s; }
-        
-        .battle-log {
-            height: 70px; width: 100%; background: rgba(0,0,0,0.85);
-            border: 2px solid #ff5500; border-radius: 6px; margin: 10px 0;
-            padding: 8px; font-size: 0.85rem; overflow-y: auto;
-        }
-        .actions-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 100%; }
-        .action-btn { padding: 8px; font-size: 0.8rem; }
-
-        .hit { animation: shake 0.15s 2; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-8px); } }
+        body { margin: 0; overflow: hidden; font-family: sans-serif; background: #1a1a1a; user-select: none; }
+        #gameCanvas { background: #5c8124; display: block; }
+        .pixel-font { font-family: 'Courier New', Courier, monospace; font-weight: bold; }
     </style>
 </head>
-<body>
+<body class="flex items-center justify-center h-screen w-screen overflow-hidden">
 
-    <div id="game-container">
-        
-        <div id="menu-screen" class="screen active">
-            <h1 style="font-size: 2.3rem; margin-top: 100px; text-shadow: 3px 3px #ff5500; line-height: 1.2;">GUERREIROS Z<br><span style="color:#fff; font-size:1.4rem;">A SAGA DOS 50 NÍVEIS</span></h1>
-            <p style="text-align:center; margin-bottom:50px; color:#aaa; font-size:0.85rem; padding:0 20px;">Atravesse as eras de Dragon Ball, do Raditz até os Deuses Multiversais!</p>
-            <button onclick="playSound('select'); changeScreen('select-screen')">COMEÇAR HISTÓRIA</button>
+    <div id="lobby" class="absolute z-50 bg-gray-900 p-8 rounded-lg border-4 border-gray-700 text-white text-center max-w-sm w-full pixel-font">
+        <h1 class="text-3xl mb-4 text-green-500 uppercase tracking-wider">MiniCraft P2P</h1>
+        <input id="playerName" type="text" placeholder="Seu Nome" value="Player" class="w-full p-2 mb-4 bg-gray-800 border-2 border-gray-600 rounded text-center">
+        <div class="mb-4">
+            <button onclick="startHost()" class="w-full bg-green-600 hover:bg-green-700 p-2 rounded mb-2 transition">Criar Sala (Host)</button>
+            <div class="text-sm text-gray-400 my-1">OU</div>
+            <input id="roomIdInput" type="text" placeholder="ID da Sala do Amigo" class="w-full p-2 mb-2 bg-gray-800 border-2 border-gray-600 rounded text-center text-sm">
+            <button onclick="joinRoom()" class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded transition">Entrar na Sala</button>
         </div>
-
-        <div id="select-screen" class="screen">
-            <div class="hud-stats">
-                <span id="hud-level" style="color:#ffcc00; font-weight:bold;">Fase Atual: 1/50</span>
-                <span id="hud-zeni" style="color:#f59e0b; font-weight:bold;">🪙 0 Zeni</span>
-            </div>
-
-            <div class="tabs-container">
-                <button class="tab-button active-tab" id="tab-chars" onclick="switchTab('chars')">Guerreiros</button>
-                <button class="tab-button" id="tab-shop" onclick="switchTab('shop')">Treino & Upgrades</button>
-            </div>
-
-            <div id="content-chars" class="tab-content active-content">
-                <div class="char-grid" id="available-chars"></div>
-            </div>
-
-            <div id="content-shop" class="tab-content">
-                <div style="background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; text-align:center; margin-bottom:12px; border:1px dashed #f59e0b;">
-                    <strong style="color:#10b981; font-size:0.9rem;">Sala de Gravidade aumentada</strong>
-                    <p style="font-size:0.75rem; color:#ccc; margin-top:4px;">Lute contra simulações rápidas para farmar moedas.</p>
-                    <button style="background:#10b981; margin-top:8px; font-size:0.8rem; box-shadow:0 3px #047857;" onclick="startTrainingMission()">Treino Rápido (+40 Zeni)</button>
-                </div>
-                
-                <div class="shop-row">
-                    <div>
-                        <strong style="font-size:0.9rem;">💪 Treino de Força</strong>
-                        <div style="font-size:0.75rem; color:#aaa;">+6 de Dano Base global</div>
-                    </div>
-                    <button id="btn-up-power" style="background:#3b82f6; box-shadow:0 3px #1d4ed8;" onclick="buyUpgrade('power')">Upar</button>
-                </div>
-
-                <div class="shop-row">
-                    <div>
-                        <strong style="font-size:0.9rem;">❤️ Expansão de Ki Vital</strong>
-                        <div style="font-size:0.75rem; color:#aaa;">+20 de HP Máximo global</div>
-                    </div>
-                    <button id="btn-up-hp" style="background:#ec4899; box-shadow:0 3px #be185d;" onclick="buyUpgrade('hp')">Upar</button>
-                </div>
-            </div>
-
-            <button id="confirm-select-btn" style="width:100%; margin-top:10px; padding:12px;" onclick="startMainVersus()" disabled>ENTRAR NO COMBATE</button>
-        </div>
-
-        <div id="vs-screen" class="screen">
-            <h2 id="vs-saga-title" style="font-size:1.2rem; color:#ff9900; letter-spacing:1px;">SAGA SAIYAJIN</h2>
-            <div id="vs-player" style="font-size: 1.3rem; font-weight: bold; margin-top:20px;">-</div>
-            <div class="vs-circle">VS</div>
-            <div id="vs-enemy" style="font-size: 1.3rem; font-weight: bold; color:#ef4444;">-</div>
-            <p id="vs-mode-text" style="margin-top:20px; color:#888; font-size:0.8rem;"></p>
-        </div>
-
-        <div id="battle-screen" class="screen">
-            <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 6px; font-size:0.8rem;">
-                <span id="stage-indicator" style="font-weight:bold; color:#ffcc00;">Fase 1/50</span>
-                <span id="chances-indicator">Vidas: 3/3</span>
-            </div>
-            
-            <div class="battle-stage" id="battle-bg">
-                <div class="fighter" id="player-fighter">
-                    <div class="fighter-img" id="p-img">🧑‍🦲</div>
-                    <div id="p-name" style="font-size:0.85rem; font-weight:bold;">Kuririn</div>
-                    <div class="hp-bar-container"><div class="hp-bar" id="p-hp"></div></div>
-                    <div class="ki-bar-container"><div class="ki-bar" id="p-ki"></div></div>
-                </div>
-                
-                <div class="fighter" id="enemy-fighter">
-                    <div class="fighter-img" id="e-img">👽</div>
-                    <div id="e-name" style="font-size:0.85rem; font-weight:bold;">Inimigo</div>
-                    <div class="hp-bar-container"><div class="hp-bar" id="e-hp"></div></div>
-                    <div class="ki-bar-container"><div class="ki-bar" id="e-ki"></div></div>
-                </div>
-            </div>
-
-            <div class="battle-log" id="log-box">Carregando dados da arena...</div>
-
-            <div class="actions-grid">
-                <button class="action-btn" onclick="playerAction('soco')">🥊 Soco Curto</button>
-                <button class="action-btn" onclick="playerAction('bola')">☄️ Ki Blast (1 Ki)</button>
-                <button class="action-btn" onclick="playerAction('combo')">🥾 Combo Físico (2 Ki)</button>
-                <button class="action-btn" onclick="playerAction('mega')">💥 Ataque Especial (3 Ki)</button>
-                <button class="action-btn" style="background: #06b6d4;" onclick="playerAction('carregar')">⚡ Carregar Ki</button>
-                <button class="action-btn" style="background: #22c55e;" onclick="playerAction('curar')">💊 Semente</button>
-            </div>
-        </div>
-
+        <p id="lobbyStatus" class="text-xs text-yellow-500"></p>
     </div>
 
+    <div id="hud" class="hidden absolute inset-0 pointer-events-none pixel-font text-white p-4 flex flex-col justify-between">
+        <div class="flex justify-between items-start pointer-events-auto">
+            <div class="bg-black/60 p-3 rounded border border-gray-600">
+                <p id="hudTime">Tempo: Dia</p>
+                <p id="hudRoomId" class="text-xs text-gray-400 select-all">Sala ID: Copiando...</p>
+            </div>
+            <div class="relative w-32 h-32 bg-black/40 border-2 border-white rounded overflow-hidden">
+                <canvas id="minimapCanvas" width="128" height="128" class="w-full h-full"></canvas>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <p id="lookAtText" class="text-lg bg-black/40 px-2 py-1 rounded inline-block text-yellow-400"></p>
+        </div>
+
+        <div class="flex flex-col items-center gap-2 pointer-events-auto">
+            <div class="flex items-center gap-2 bg-black/60 px-4 py-1 rounded">
+                <span>❤️ Vida:</span>
+                <div class="w-32 bg-gray-700 h-4 rounded overflow-hidden border border-gray-500">
+                    <div id="healthBar" class="bg-red-600 h-full w-full transition-all"></div>
+                </div>
+            </div>
+            <div id="hotbar" class="flex bg-gray-800/90 border-4 border-gray-600 p-1 gap-1 rounded shadow-2xl">
+                </div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" class="hidden"></canvas>
+
     <script>
-        // --- ÁUDIO SINTETIZADO NATIVO ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playSound(type) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            if (type === 'hit') {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(140, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.12);
-            } else if (type === 'ki') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(700, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.18);
-            } else if (type === 'charge') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(450, audioCtx.currentTime + 0.25);
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.25);
-            } else if (type === 'heal') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(480, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(900, audioCtx.currentTime + 0.35);
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.35);
-            } else if (type === 'select') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(500, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.08, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.08);
-            }
-        }
+        // --- CONFIGURAÇÕES DO JOGO ---
+        const WORLD_SIZE = 2000;
+        const VIEW_PADDING = 100;
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const mCtx = minimapCanvas.getContext('2d');
 
-        // --- SISTEMA RESTRUTURADO DE HERÓIS DESBLOQUEÁVEIS ---
-        const ALL_CHARACTERS = [
-            { id: 'kuririn', name: 'Kuririn', avatar: '🧑‍🦲', hp: 100, basePower: 12, lvl: 1 },
-            { id: 'piccolo', name: 'Piccolo Mestre', avatar: '🧝‍♂️', hp: 140, basePower: 18, lvl: 5 },
-            { id: 'goku', name: 'Goku (Kaioken)', avatar: '🥋', hp: 190, basePower: 26, lvl: 12 },
-            { id: 'vegeta', name: 'Vegeta SSJ', avatar: '👑', hp: 250, basePower: 38, lvl: 20 },
-            { id: 'gohan', name: 'Gohan Místico', avatar: '🧑‍🎓', hp: 350, basePower: 55, lvl: 30 },
-            { id: 'goku-god', name: 'Goku God', avatar: '🔴', hp: 500, basePower: 80, lvl: 40 },
-            { id: 'gogeta', name: 'Gogeta Blue', avatar: '⚡', hp: 750, basePower: 130, lvl: 48 }
-        ];
-
-        // --- MOTOR MATEMÁTICO DE CRIAÇÃO DAS SAGAS (FASE 1 ATÉ 50) ---
-        function generateEnemyForLevel(level) {
-            let hp = 85 + (level * 18);
-            let damage = 9 + Math.floor(level * 2.3);
-            let zeniReward = 30 + (level * 8);
-            let name = "";
-            let avatar = "";
-            let bgGradient = "linear-gradient(to bottom, #1d4ed8, #60a5fa)"; // Padrão
-            let saga = "";
-
-            if (level <= 10) {
-                saga = "SAGA SAIYAJIN & FREEZA INICIAL";
-                bgGradient = "linear-gradient(to bottom, #1e3a8a, #3b82f6)";
-                const pool = [
-                    {n: 'Saibaman', a:'🌱'}, {n: 'Raditz', a:'🥦'}, {n: 'Nappa', a:'👨‍🦲'}, 
-                    {n: 'Guldo', a:'🦎'}, {n: 'Zarbon', a:'👹'}, {n: 'Capitão Ginyu', a:'😈'}
-                ];
-                let item = pool[(level - 1) % pool.length];
-                name = level === 10 ? "Freeza Forma 1" : item.n;
-                avatar = level === 10 ? "👽" : item.a;
-            } else if (level <= 20) {
-                saga = "SAGA FREEZA FINAL & ANDROIDS";
-                bgGradient = "linear-gradient(to bottom, #581c87, #a855f7)";
-                const pool = [
-                    {n: 'Androide 19', a:'🤡'}, {n: 'Androide 20', a:'👴'}, 
-                    {n: 'Androide 18', a:'👱‍♀️'}, {n: 'Androide 17', a:'🧑'}, {n: 'Cell Imperfeito', a:'🦟'}
-                ];
-                let item = pool[(level - 11) % pool.length];
-                name = level === 20 ? "🔥 Freeza Forma Final" : item.n;
-                avatar = level === 20 ? "👽" : item.a;
-            } else if (level <= 30) {
-                saga = "SAGA JOGOS JOGOS DE CELL & BOO";
-                bgGradient = "linear-gradient(to bottom, #064e3b, #10b981)";
-                const pool = [
-                    {n: 'Cell Jr.', a:'🦕'}, {n: 'Perfect Cell', a:'🪰'}, 
-                    {n: 'Pui Pui', a:'👽'}, {n: 'Dabura', a:'🔱'}, {n: 'Majin Boo Gordo', a:'🐷'}
-                ];
-                let item = pool[(level - 21) % pool.length];
-                name = level === 30 ? "💥 Super Boo (Gotenks)" : item.n;
-                avatar = level === 30 ? "👹" : item.a;
-            } else if (level <= 40) {
-                saga = "SAGA MAJIN BOO PURA & FILMES";
-                bgGradient = "linear-gradient(to bottom, #7c2d12, #f97316)";
-                const pool = [
-                    {n: 'Kid Boo', a:'👶'}, {n: 'Broly Lendário', a:'🟢'}, 
-                    {n: 'Janemba', a:'👿'}, {n: 'Beerus (50%)', a:'🐱'}, {n: 'Goku Black', a:'🐒'}
-                ];
-                let item = pool[(level - 31) % pool.length];
-                name = level === 40 ? "🌌 Zamasu Fusão" : item.n;
-                avatar = level === 40 ? "🟢" : item.a;
-            } else {
-                saga = "SAGA TORNEIO DO PODER E DEUSES";
-                bgGradient = "linear-gradient(to bottom, #4c0519, #e11d48)";
-                const pool = [
-                    {n: 'Toppo Hakaishin', a:'🧔'}, {n: 'Dyspo', a:'🐰'}, 
-                    {n: 'Moro Ancião', a:'🐐'}, {n: 'Granola', a:'🎯'}, {n: 'Jiren Limite', a:'🗿'}
-                ];
-                let item = pool[(level - 41) % pool.length];
-                name = level === 50 ? "👑 FREEZA BLACK (DEUS)" : item.n;
-                avatar = level === 50 ? "🔮" : item.a;
-            }
-
-            return { name, avatar, hp, damage, zeniReward, bgGradient, saga };
-        }
-
-        // --- CONFIGURAÇÃO DE CONTROLE ---
-        let currentHistoryLevel = 1;
-        let globalZeni = 0;
-        let playerChances = 3;
+        // Estado do Jogo
+        let player = { id: '', name: 'Player', x: 1000, y: 1000, size: 24, speed: 4, health: 100, maxHealth: 100, color: '#3b82f6' };
+        let players = {}; // Outros jogadores online
+        let keys = {};
+        let inventory = { 'Madeira': 0, 'Pedra': 0, 'Carvão': 0, 'Carne': 0 };
+        let currentSlot = 'Madeira';
         
-        let upgradeBonusPower = 0;
-        let upgradeBonusHp = 0;
-        let upgradeCost = 30;
+        let worldObjects = [];
+        let mobs = [];
+        let isNight = false;
+        let gameTicks = 0;
 
-        let selectedCharacter = null;
-        let activePlayer = null;
-        let activeEnemy = null;
-        let playerKi = 0;
-        let enemyKi = 0;
-        let isPlayerTurn = true;
-        let isTrainingMode = false;
+        // Redes (PeerJS)
+        let peer = null;
+        let conn = null; // Se for cliente, guarda a conexão com o Host
+        let connections = []; // Se for host, guarda conexões com clientes
+        let isHost = false;
 
-        function changeScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-            if(screenId === 'select-screen') updateSelectScreenHUD();
+        // Inicializa inputs do teclado
+        window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; if(['1','2','3','4'].includes(e.key)) selectSlotByIndex(e.key); });
+        window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+        window.addEventListener('resize', resizeCanvas);
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
 
-        // CONTROLADOR DE ABAS
-        function switchTab(tabName) {
-            playSound('select');
-            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active-tab'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active-content'));
+        // --- MULTIPLAYER LOGIC (PEERJS) ---
+        function initPeer(id = null) {
+            peer = new Peer(id, { debug: 1 });
             
-            document.getElementById(`tab-${tabName}`).classList.add('active-tab');
-            document.getElementById(`content-${tabName}`).classList.add('active-content');
-        }
-
-        function updateSelectScreenHUD() {
-            document.getElementById('hud-level').innerText = `Fase História: ${currentHistoryLevel}/50`;
-            document.getElementById('hud-zeni').innerText = `🪙 ${globalZeni} Zeni`;
-            document.getElementById('btn-up-power').innerText = `Upar (Cost: ${upgradeCost})`;
-            document.getElementById('btn-up-hp').innerText = `Upar (Cost: ${upgradeCost})`;
-            renderSelectionGrid();
-        }
-
-        // --- SISTEMA DE LOJA ---
-        function buyUpgrade(type) {
-            if (globalZeni >= upgradeCost) {
-                globalZeni -= upgradeCost;
-                playSound('heal');
-                if (type === 'power') upgradeBonusPower += 6;
-                if (type === 'hp') upgradeBonusHp += 20;
-                upgradeCost = Math.floor(upgradeCost * 1.25);
-                updateSelectScreenHUD();
-            } else {
-                alert("Zeni insuficiente! Faça missões rápidas na Sala de Gravidade para acumular moedas.");
-            }
-        }
-
-        function renderSelectionGrid() {
-            const grid = document.getElementById('available-chars');
-            grid.innerHTML = '';
-            
-            ALL_CHARACTERS.forEach(char => {
-                const isUnlocked = currentHistoryLevel >= char.lvl;
-                const card = document.createElement('div');
-                card.className = `char-card`;
-                card.style.opacity = isUnlocked ? '1' : '0.35';
-                
-                card.innerHTML = `
-                    <div class="char-avatar">${char.avatar}</div>
-                    <strong style="font-size:0.85rem;">${char.name}</strong>
-                    <div style="font-size:0.7rem; color:#aaa;">Atk: ${char.basePower} | Hp: ${char.hp}</div>
-                    <div style="font-size:0.65rem; color:#f59e0b; font-weight:bold;">${!isUnlocked ? `Desbloqueia no Lvl ${char.lvl}` : 'Pronto'}</div>
-                `;
-                
-                if(isUnlocked) {
-                    if(selectedCharacter && selectedCharacter.id === char.id) card.classList.add('selected');
-                    card.onclick = () => {
-                        playSound('select');
-                        document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
-                        card.classList.add('selected');
-                        selectedCharacter = char;
-                        document.getElementById('confirm-select-btn').disabled = false;
-                    };
+            peer.on('open', (id) => {
+                player.id = id;
+                document.getElementById('hudRoomId').innerText = `Sala ID: ${id}`;
+                if (isHost) {
+                    setupHostLogic();
+                    startGame();
+                } else {
+                    // Se cliente, conecta ao host
+                    conn = peer.connect(document.getElementById('roomIdInput').value.trim());
+                    setupClientLogic();
                 }
-                grid.appendChild(card);
+            });
+
+            peer.on('error', err => {
+                alert('Erro na conexão: ' + err.type);
+                location.reload();
             });
         }
 
-        // --- PREPARAÇÃO DE ENTRADA NA LUTA ---
-        function startMainVersus() {
-            isTrainingMode = false;
-            activePlayer = { 
-                ...selectedCharacter, 
-                maxHp: selectedCharacter.hp + upgradeBonusHp,
-                hp: selectedCharacter.hp + upgradeBonusHp,
-                power: selectedCharacter.basePower + upgradeBonusPower
-            };
-            
-            activeEnemy = generateEnemyForLevel(currentHistoryLevel);
-
-            document.getElementById('vs-saga-title').innerText = activeEnemy.saga;
-            document.getElementById('vs-player').innerText = `${activePlayer.avatar} ${activePlayer.name}`;
-            document.getElementById('vs-enemy').innerText = `${activeEnemy.name} ${activeEnemy.avatar}`;
-            document.getElementById('vs-mode-text').innerText = `Campanha: Batalha pelo destino do Universo`;
-            
-            changeScreen('vs-screen');
-            setTimeout(initBattle, 2200);
+        function startHost() {
+            player.name = document.getElementById('playerName').value || 'Host';
+            isHost = true;
+            document.getElementById('lobbyStatus').innerText = "Criando sala...";
+            initPeer(); // Cria ID aleatório
         }
 
-        function startTrainingMission() {
-            if(!selectedCharacter) { return alert("Escolha um Guerreiro Z na aba de personagens primeiro!"); }
-            isTrainingMode = true;
-            activePlayer = { 
-                ...selectedCharacter, 
-                maxHp: selectedCharacter.hp + upgradeBonusHp,
-                hp: selectedCharacter.hp + upgradeBonusHp,
-                power: selectedCharacter.basePower + upgradeBonusPower
-            };
-
-            activeEnemy = { name: "Holograma de Treino X", avatar: "🤖", hp: 70 + (currentHistoryLevel * 10), damage: 6 + Math.floor(currentHistoryLevel * 1.2), zeniReward: 40 };
-
-            document.getElementById('vs-saga-title').innerText = "SALA DE GRAVIDADE CONTROLADA";
-            document.getElementById('vs-player').innerText = `${activePlayer.avatar} ${activePlayer.name}`;
-            document.getElementById('vs-enemy').innerText = `${activeEnemy.name} ${activeEnemy.avatar}`;
-            document.getElementById('vs-mode-text').innerText = "Simulação sem perda de vidas.";
-
-            changeScreen('vs-screen');
-            setTimeout(initBattle, 1800);
+        function joinRoom() {
+            const targetId = document.getElementById('roomIdInput').value.trim();
+            if(!targetId) return alert('Digite o ID da sala!');
+            player.name = document.getElementById('playerName').value || 'Client';
+            isHost = false;
+            document.getElementById('lobbyStatus').innerText = "Conectando ao amigo...";
+            initPeer();
         }
 
-        function initBattle() {
-            playerKi = 0; enemyKi = 0; isPlayerTurn = true;
+        function setupHostLogic() {
+            // Gerar mapa inicial
+            generateWorld();
             
-            document.getElementById('stage-indicator').innerText = isTrainingMode ? "Treino de Atributos" : `Fase História: ${currentHistoryLevel}/50`;
-            document.getElementById('chances-indicator').innerText = `Vidas: ${playerChances}/3`;
-            
-            document.getElementById('p-name').innerText = activePlayer.name;
-            document.getElementById('p-img').innerText = activePlayer.avatar;
-            document.getElementById('e-name').innerText = activeEnemy.name;
-            document.getElementById('e-img').innerText = activeEnemy.avatar;
-            
-            if(!isTrainingMode) {
-                document.getElementById('battle-bg').style.background = activeEnemy.bgGradient;
-            } else {
-                document.getElementById('battle-bg').style.background = "linear-gradient(to bottom, #1f2937, #4b5563)";
+            peer.on('connection', (connection) => {
+                connections.push(connection);
+                
+                // Envia o mapa atual pro novo jogador
+                connection.on('open', () => {
+                    connection.send({ type: 'init_world', worldObjects, mobs, isNight });
+                });
+
+                connection.on('data', (data) => {
+                    if (data.type === 'move') {
+                        players[data.id] = data.playerData;
+                        broadcast({ type: 'players_update', players });
+                    }
+                    if (data.type === 'object_damage') {
+                        damageObject(data.objIndex, data.damage);
+                    }
+                    if (data.type === 'mob_damage') {
+                        damageMob(data.mobIndex, data.damage);
+                    }
+                    if (data.type === 'feed_animal') {
+                        feedAnimal(data.mobIndex);
+                    }
+                });
+
+                connection.on('close', () => {
+                    connections = connections.filter(c => c !== connection);
+                });
+            });
+        }
+
+        function setupClientLogic() {
+            conn.on('open', () => {
+                startGame();
+            });
+
+            conn.on('data', (data) => {
+                if (data.type === 'init_world') {
+                    worldObjects = data.worldObjects;
+                    mobs = data.mobs;
+                    isNight = data.isNight;
+                }
+                if (data.type === 'players_update') {
+                    players = data.players;
+                }
+                if (data.type === 'world_sync') {
+                    worldObjects = data.worldObjects;
+                    mobs = data.mobs;
+                    isNight = data.isNight;
+                }
+            });
+        }
+
+        function broadcast(data) {
+            if (isHost) {
+                connections.forEach(c => {
+                    if(c.open) c.send(data);
+                });
+            } else if (conn && conn.open) {
+                conn.send(data);
+            }
+        }
+
+        // --- GERADOR DE MUNDO ---
+        function generateWorld() {
+            worldObjects = [];
+            // Acampamento Central (Livre de árvores grandes no meio)
+            worldObjects.push({ type: 'Fogueira', x: 1000, y: 1000, hp: 999, maxHp: 999, size: 30, color: '#ea580c' });
+
+            const types = [
+                { type: 'Árvore', color: '#15803d', hp: 3, res: 'Madeira', size: 20 },
+                { type: 'Pedra', color: '#78716c', hp: 4, res: 'Pedra', size: 18 },
+                { type: 'Carvão', color: '#292524', hp: 5, res: 'Carvão', size: 16 }
+            ];
+
+            for (let i = 0; i < 60; i++) {
+                let t = types[Math.floor(Math.random() * types.length)];
+                let x = Math.random() * (WORLD_SIZE - 200) + 100;
+                let y = Math.random() * (WORLD_SIZE - 200) + 100;
+                // Evita spawn em cima da fogueira
+                if (Math.hypot(x - 1000, y - 1000) < 100) continue;
+                worldObjects.push({ ...t, x, y });
             }
 
-            updateBars();
-            document.getElementById('log-box').innerText = `Combate iniciado. Encontre brechas para usar seu Especial!`;
-            changeScreen('battle-screen');
-        }
-
-        function updateBars() {
-            document.getElementById('p-hp').style.width = `${Math.max(0, (activePlayer.hp / activePlayer.maxHp) * 100)}%`;
-            document.getElementById('e-hp').style.width = `${Math.max(0, (activeEnemy.hp / activeEnemy.hp) * 100)}`; // Correção de exibição dinâmica com trava em 100 base primária
-            document.getElementById('e-hp').style.width = `${Math.max(0, (activeEnemy.hp / (85 + (currentHistoryLevel * 18))) * 100)}%`;
-            
-            document.getElementById('p-ki').style.width = `${(playerKi / 3) * 100}%`;
-            document.getElementById('e-ki').style.width = `${(enemyKi / 3) * 100}%`;
-        }
-
-        // --- SISTEMA DE COMBATE INTERATIVO ---
-        function playerAction(action) {
-            if (!isPlayerTurn) return;
-            let dmg = 0; let logText = "";
-
-            switch(action) {
-                case 'soco':
-                    playSound('hit');
-                    dmg = Math.floor(activePlayer.power * 0.85) + Math.floor(Math.random() * 4);
-                    activeEnemy.hp -= dmg; logText = `Ataque físico desferido! Tirou ${dmg} de HP.`;
-                    animateHit('enemy-fighter');
-                    break;
-                case 'bola':
-                    if (playerKi >= 1) {
-                        playSound('ki');
-                        dmg = activePlayer.power + Math.floor(Math.random() * 8);
-                        activeEnemy.hp -= dmg; playerKi -= 1; logText = `Rajada de energia concentrada causou ${dmg} de dano!`;
-                        animateHit('enemy-fighter');
-                    } else { alert("Precisa de 1 barra de Ki!"); return; }
-                    break;
-                case 'combo':
-                    if (playerKi >= 2) {
-                        playSound('hit');
-                        dmg = Math.floor(activePlayer.power * 1.6) + Math.floor(Math.random() * 10);
-                        activeEnemy.hp -= dmg; playerKi -= 2; logText = `💥 Sequência furiosa de chutes empurrou o inimigo! Dano: ${dmg}`;
-                        animateHit('enemy-fighter');
-                    } else { alert("Precisa de 2 barras de Ki!"); return; }
-                    break;
-                case 'mega':
-                    if (playerKi >= 3) {
-                        playSound('ki');
-                        dmg = Math.floor(activePlayer.power * 2.5) + Math.floor(Math.random() * 16);
-                        activeEnemy.hp -= dmg; playerKi -= 3; logText = `⚡ ATAQUE SUPREMO DISPARADO! Impacto gerou ${dmg} de dano massivo!`;
-                        animateHit('enemy-fighter');
-                    } else { alert("Ataque Máximo requer 3 barras de Ki!"); return; }
-                    break;
-                case 'carregar':
-                    playSound('charge');
-                    if (playerKi < 3) { playerKi++; logText = `Você expandiu sua aura concentrando energia: +1 Ki.`; }
-                    else { logText = `Seu Ki já está explodindo no limite!`; }
-                    break;
-                case 'curar':
-                    playSound('heal');
-                    let heal = Math.floor(activePlayer.maxHp * 0.35);
-                    activePlayer.hp = Math.min(activePlayer.maxHp, activePlayer.hp + heal);
-                    logText = `Você utilizou uma Semente dos Deuses e recuperou +${heal} de Vida!`;
-                    break;
+            // Spawn Animais Iniciais
+            for(let i=0; i<8; i++) {
+                spawnMob('Vaca', Math.random()*WORLD_SIZE, Math.random()*WORLD_SIZE);
             }
-
-            document.getElementById('log-box').innerText = logText;
-            updateBars();
-
-            if (activeEnemy.hp <= 0) { setTimeout(winMatch, 700); } 
-            else { isPlayerTurn = false; setTimeout(enemyTurn, 1100); }
         }
 
-        function enemyTurn() {
-            let logText = "";
-            if (enemyKi < 2 && Math.random() > 0.55) {
-                playSound('charge'); enemyKi++;
-                logText = `${activeEnemy.name} acumulou energia ambiente e ganhou +1 Ki!`;
-            } else if (enemyKi >= 2) {
-                playSound('ki');
-                let dmg = Math.floor(activeEnemy.damage * 1.7);
-                activePlayer.hp -= dmg; enemyKi -= 2;
-                logText = `🚨 ALERTA! ${activeEnemy.name} disparou a técnica especial dele! Recebeu ${dmg} de dano!`;
-                animateHit('player-fighter');
+        function spawnMob(type, x, y) {
+            if(type === 'Vaca') {
+                mobs.push({ type: 'Vaca', x, y, hp: 4, maxHp: 4, color: '#a16207', size: 18, targetX: x, targetY: y, speed: 1 });
             } else {
-                playSound('hit');
-                let dmg = activeEnemy.damage + Math.floor(Math.random() * 4);
-                activePlayer.hp -= dmg;
-                logText = `${activeEnemy.name} desferiu uma sequência de golpes rápidos em você. Dano: ${dmg}`;
-                animateHit('player-fighter');
+                mobs.push({ type: 'Zumbi', x, y, hp: 5, maxHp: 5, color: '#166534', size: 20, speed: 2 });
             }
-
-            document.getElementById('log-box').innerText = logText;
-            updateBars();
-
-            if (activePlayer.hp <= 0) { setTimeout(loseMatch, 700); } 
-            else { isPlayerTurn = true; }
         }
 
-        function animateHit(targetId) {
-            const el = document.getElementById(targetId);
-            el.classList.add('hit'); setTimeout(() => el.classList.remove('hit'), 150);
+        // --- GAME LOOP & LOGIC ---
+        function startGame() {
+            document.getElementById('lobby').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            canvas.classList.remove('hidden');
+            resizeCanvas();
+            renderHotbar();
+            requestAnimationFrame(gameLoop);
         }
 
-        // --- RESOLUÇÃO DAS PARTIDAS ---
-        function winMatch() {
-            globalZeni += activeEnemy.zeniReward;
-            playSound('heal');
-            if (isTrainingMode) {
-                alert(`Treino Concluído! Você derrotou a simulação e ganhou 🪙 ${activeEnemy.zeniReward} Zeni!`);
-            } else {
-                alert(`Vitória Esplêndida! O oponente ${activeEnemy.name} foi superado. Você faturou 🪙 ${activeEnemy.zeniReward} Zeni.`);
-                if (currentHistoryLevel >= 50) {
-                    alert("👑 LENDA ABSOLUTA! Você concluiu a Fase 50 e provou ser o guerreiro mais poderoso de todos os Universos!");
-                } else {
-                    currentHistoryLevel++;
+        function selectSlotByIndex(num) {
+            const idx = parseInt(num) - 1;
+            const keys = Object.keys(inventory);
+            if(keys[idx]) {
+                currentSlot = keys[idx];
+                renderHotbar();
+            }
+        }
+
+        function renderHotbar() {
+            const hotbar = document.getElementById('hotbar');
+            hotbar.innerHTML = '';
+            Object.keys(inventory).forEach((item, i) => {
+                const activeClass = currentSlot === item ? 'border-yellow-400 bg-gray-700' : 'border-transparent';
+                hotbar.innerHTML += `
+                    <div class="border-2 ${activeClass} p-2 text-center min-w-[70px] rounded bg-gray-900/80">
+                        <div class="text-xs text-gray-400">${i+1}</div>
+                        <div class="text-sm font-bold">${item}</div>
+                        <div class="text-xs text-green-400">x${inventory[item]}</div>
+                    </div>
+                `;
+            });
+        }
+
+        function update() {
+            // Movimentação do Jogador
+            let moveX = 0;
+            let moveY = 0;
+            if (keys['w'] || keys['arrowup']) moveY -= player.speed;
+            if (keys['s'] || keys['arrowdown']) moveY += player.speed;
+            if (keys['a'] || keys['arrowleft']) moveX -= player.speed;
+            if (keys['d'] || keys['arrowright']) moveX += player.speed;
+
+            player.x = Math.max(20, Math.min(WORLD_SIZE - 20, player.x + moveX));
+            player.y = Math.max(20, Math.min(WORLD_SIZE - 20, player.y + moveY));
+
+            // Ciclo Dia/Noite e Lógica de Host
+            if (isHost) {
+                gameTicks++;
+                if (gameTicks % 1200 === 0) { // Alterna a cada ~20 segundos
+                    isNight = !isNight;
+                    if (isNight) {
+                        // Spawn zumbis nas bordas à noite
+                        for (let i = 0; i < 4; i++) {
+                            spawnMob('Zumbi', Math.random() > 0.5 ? 50 : WORLD_SIZE - 50, Math.random() * WORLD_SIZE);
+                        }
+                    } else {
+                        // Limpa zumbis de dia
+                        mobs = mobs.filter(m => m.type !== 'Zumbi');
+                    }
+                }
+
+                // Mover Mobs
+                mobs.forEach(mob => {
+                    if (mob.type === 'Vaca') {
+                        // Anda aleatoriamente
+                        if (Math.random() < 0.02 || Math.hypot(mob.x - mob.targetX, mob.y - mob.targetY) < 10) {
+                            mob.targetX = Math.max(50, Math.min(WORLD_SIZE-50, mob.x + (Math.random()*200 - 100)));
+                            mob.targetY = Math.max(50, Math.min(WORLD_SIZE-50, mob.y + (Math.random()*200 - 100)));
+                        }
+                        let angle = Math.atan2(mob.targetY - mob.y, mob.targetX - mob.x);
+                        mob.x += Math.cos(angle) * mob.speed;
+                        mob.y += Math.sin(angle) * mob.speed;
+                    } else if (mob.type === 'Zumbi') {
+                        // Persegue o jogador mais perto
+                        let target = player;
+                        let minDist = Math.hypot(player.x - mob.x, player.y - mob.y);
+                        
+                        Object.values(players).forEach(p => {
+                            let d = Math.hypot(p.x - mob.x, p.y - mob.y);
+                            if(d < minDist) { minDist = d; target = p; }
+                        });
+
+                        let angle = Math.atan2(target.y - mob.y, target.x - mob.x);
+                        mob.x += Math.cos(angle) * mob.speed;
+                        mob.y += Math.sin(angle) * mob.speed;
+
+                        // Dar dano se encostar no player local
+                        if (target === player && minDist < (player.size/2 + mob.size/2)) {
+                            if(Math.random() < 0.05) { // taxa do dano
+                                player.health = Math.max(0, player.health - 5);
+                                if(player.health <= 0) {
+                                    alert("Você morreu para um Zumbi!");
+                                    player.health = 100;
+                                    player.x = 1000; player.y = 1000; // Respawn no acampamento
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Envia sincronização geral do mundo regularmente
+                if(gameTicks % 5 === 0) {
+                    broadcast({ type: 'world_sync', worldObjects, mobs, isNight });
                 }
             }
-            changeScreen('select-screen');
+
+            // Envia posição atual para os outros jogadores
+            broadcast({ type: 'move', id: player.id, playerData: { x: player.x, y: player.y, name: player.name, health: player.health, color: player.color } });
+
+            // Atualiza Interface de Elemento Focado (Olhado/Perto)
+            let closestObj = null;
+            let minDist = 60;
+            worldObjects.forEach((obj, idx) => {
+                let d = Math.hypot(player.x - obj.x, player.y - obj.y);
+                if (d < minDist) { minDist = d; closestObj = { ...obj, idx, isMob: false }; }
+            });
+            mobs.forEach((mob, idx) => {
+                let d = Math.hypot(player.x - mob.x, player.y - mob.y);
+                if (d < minDist) { minDist = d; closestObj = { ...mob, idx, isMob: true }; }
+            });
+
+            const lookText = document.getElementById('lookAtText');
+            if (closestObj) {
+                lookText.innerText = `[Espaço] Interagir: ${closestObj.type} (HP: ${closestObj.hp}/${closestObj.maxHp || closestObj.hp})`;
+                
+                // Ação de Coleta / Interação (Espaço)
+                if (keys[' '] && !keys['space_locked']) {
+                    keys['space_locked'] = true; // Evita cliques contínuos ultra-rápidos
+                    setTimeout(() => keys['space_locked'] = false, 250);
+
+                    if (!closestObj.isMob) {
+                        if (closestObj.type !== 'Fogueira') {
+                            if (isHost) damageObject(closestObj.idx, 1);
+                            else broadcast({ type: 'object_damage', objIndex: closestObj.idx, damage: 1 });
+                            
+                            // Coleta imediata client-side simulada para feedback suave
+                            inventory[closestObj.res] = (inventory[closestObj.res] || 0) + 1;
+                            renderHotbar();
+                        }
+                    } else {
+                        if (closestObj.type === 'Vaca' && inventory['Madeira'] > 0) {
+                            // Alimenta o animal usando madeira/recurso
+                            if (isHost) feedAnimal(closestObj.idx);
+                            else broadcast({ type: 'feed_animal', mobIndex: closestObj.idx });
+                            inventory['Madeira']--;
+                            player.health = Math.min(player.maxHealth, player.health + 20); // Cura o jogador
+                            renderHotbar();
+                        } else {
+                            // Ataca Mobs (Zumbis)
+                            if (isHost) damageMob(closestObj.idx, 1);
+                            else broadcast({ type: 'mob_damage', mobIndex: closestObj.idx, damage: 1 });
+                            if(closestObj.type === 'Vaca') inventory['Carne']++;
+                            renderHotbar();
+                        }
+                    }
+                }
+            } else {
+                lookText.innerText = '';
+            }
+
+            // UI Updates
+            document.getElementById('hudTime').innerText = `Tempo: ${isNight ? '🌃 Noite (Cuidado!)' : '☀️ Dia'}`;
+            document.getElementById('healthBar').style.width = `${player.health}%`;
         }
 
-        function loseMatch() {
-            if (isTrainingMode) {
-                alert("Você perdeu o treino simulado. Sem penalidades! Volte e compre mais upgrades.");
-                changeScreen('select-screen');
-            } else {
-                playerChances--;
-                if (playerChances > 0) {
-                    alert(`Derrota! Você perdeu 1 vida. Vidas restantes na campanha: ${playerChances}. Vá treinar na Sala de Gravidade para ficar mais forte e tentar de novo.`);
-                    changeScreen('select-screen');
-                } else {
-                    alert("Fim de Jogo! Suas vidas acabaram. Seus upgrades de treino continuam salvos, mas a história reinicia na Fase 1.");
-                    currentHistoryLevel = 1;
-                    playerChances = 3;
-                    changeScreen('menu-screen');
-                }
-            }
+        // Funções de Modificação de Estado (Executadas no Host ou sincronizadas)
+        function damageObject(idx, dmg) {
+            if(!worldObjects[idx]) return;
+            worldObjects[idx].hp -= dmg;
+            if(worldObjects[idx].hp <= 0) worldObjects.splice(idx, 1);
+        }
+
+        function damageMob(idx, dmg) {
+            if(!mobs[idx]) return;
+            mobs[idx].hp -= dmg;
+            if(mobs[idx].hp <= 0) mobs.splice(idx, 1);
+        }
+
+        function feedAnimal(idx) {
+            if(!mobs[idx]) return;
+            mobs[idx].hp = Math.min(mobs[idx].maxHp, mobs[idx].hp + 1);
+        }
+
+        // --- RENDERIZAÇÃO (CANVAS) ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Translação da Câmera focada no Jogador Principal
+            let camX = canvas.width / 2 - player.x;
+            let camY = canvas.height / 2 - player.y;
+            ctx.save();
+            ctx.translate(camX, camY);
+
+            // Chão do Mapa / Limites
+            ctx.fillStyle = isNight ? '#1e293b' : '#4d7c0f';
+            ctx.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+
+            // Desenhar Recursos e Objetos do Cenário
+            worldObjects.forEach(obj => {
+                ctx.fillStyle = obj.color;
+                ctx.fillRect(obj.x - obj.size/2, obj.y - obj.size/2, obj.size, obj.size);
+                
+                // Nome do Objeto
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '10px Courier New';
+                ctx.fillText(obj.type, obj.x - 15, obj.y - obj.size);
+            });
+
+            // Desenhar Mobs (Zumbis/Animais)
+            mobs.forEach(mob => {
+                ctx.fillStyle = mob.color;
+                ctx.fillRect(mob.x - mob.size/2, mob.y - mob.size/2, mob.size, mob.size);
+
+                // Vida do Mob
+                ctx.fillStyle = 'red';
+                ctx.fillRect(mob.x - 15, mob.y - mob.size - 5, 30, 4);
+                ctx.fillStyle = 'green';
+                ctx.fillRect(mob.x - 15, mob.y - mob.size - 5, (mob.hp / mob.maxHp) * 30, 4);
+            });
+
+            // Outros Jogadores Conectados
+            Object.values(players).forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x - player.size/2, p.y - player.size/2, player.size, player.size);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '12px Courier New';
+                ctx.fillText(p.name, p.x - 15, p.y - 20);
+            });
+
+            // Jogador Local (Você - Quadrado Azul)
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
+            
+            // Tag de Nome Local
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Courier New';
+            ctx.fillText(player.name, player.x - 15, player.y - 20);
+
+            ctx.restore();
+
+            // Desenhar MiniMapa
+            drawMinimap();
+        }
+
+        function drawMinimap() {
+            mCtx.fillStyle = '#22c55e';
+            mCtx.fillRect(0, 0, 128, 128);
+
+            // Escala do minimapa (128 pixels para o WORLD_SIZE)
+            const scale = 128 / WORLD_SIZE;
+
+            // Desenhar recursos em ponto minúsculo
+            worldObjects.forEach(obj => {
+                mCtx.fillStyle = obj.color;
+                mCtx.fillRect(obj.x * scale, obj.y * scale, 3, 3);
+            });
+
+            // Outros players no minimapa
+            Object.values(players).forEach(p => {
+                mCtx.fillStyle = '#ef4444';
+                mCtx.fillRect(p.x * scale, p.y * scale, 4, 4);
+            });
+
+            // Você no minimapa (Ponto Branco piscando)
+            mCtx.fillStyle = '#ffffff';
+            mCtx.fillRect(player.x * scale, player.y * scale, 5, 5);
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
         }
     </script>
 </body>
