@@ -17,14 +17,24 @@
             max-width: 500px;
         }
 
-        video, canvas { 
+        /* O vídeo agora fica visível para garantir renderização correta no mobile */
+        video { 
             width: 100%; 
             border-radius: 10px; 
             background: #000; 
             display: block;
         }
 
-        #hiddenVideo { display: none; }
+        canvas {
+            display: none; /* O processamento é feito por cima ou via drawImage direto */
+        }
+
+        #outputCanvas {
+            width: 100%;
+            border-radius: 10px;
+            background: #000;
+            display: block;
+        }
 
         .controls { margin-top: 15px; }
         button { padding: 10px 15px; font-size: 14px; background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 4px; }
@@ -37,11 +47,13 @@
 <body>
 
     <h2>Teste Local - Câmara Inteligente</h2>
-    <div id="status">A iniciar câmara...</div>
+    <div id="status">A solicitar câmara...</div>
 
     <div class="video-container">
-        <video id="hiddenVideo" autoplay playsinline muted></video>
-        <canvas id="processedCanvas"></canvas>
+        <!-- Vídeo visível para evitar tela preta no mobile -->
+        <video id="webcamVideo" autoplay playsinline muted></video>
+        <!-- Canvas onde aplicamos filtros e caixas -->
+        <canvas id="outputCanvas"></canvas>
     </div>
 
     <div class="panel">
@@ -70,41 +82,76 @@
         let currentFilter = 'normal';
         let detectedRects = [];
         let usarCamaraTraseira = true;
+        let streamAtivo = null;
+
+        const videoElement = document.getElementById('webcamVideo');
+        const canvasElement = document.getElementById('outputCanvas');
+        const ctx = canvasElement.getContext('2d');
 
         function iniciarCamaraLocal() {
+            document.getElementById('status').innerText = 'A ligar à câmara...';
+
+            if (streamAtivo) {
+                streamAtivo.getTracks().forEach(track => track.stop());
+            }
+
             const constraints = {
-                video: { facingMode: usarCamaraTraseira ? 'environment' : 'user' },
+                video: { 
+                    facingMode: usarCamaraTraseira ? { exact: 'environment' } : 'user',
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                },
                 audio: false
             };
 
             navigator.mediaDevices.getUserMedia(constraints)
                 .then((stream) => {
-                    const hiddenVideo = document.getElementById('hiddenVideo');
-                    hiddenVideo.srcObject = stream;
+                    streamAtivo = stream;
+                    videoElement.srcObject = stream;
                     
-                    hiddenVideo.onloadedmetadata = () => {
-                        const canvas = document.getElementById('processedCanvas');
-                        canvas.width = hiddenVideo.videoWidth || 640;
-                        canvas.height = hiddenVideo.videoHeight || 480;
+                    videoElement.onloadedmetadata = () => {
+                        videoElement.play();
+                        canvasElement.width = videoElement.videoWidth || 640;
+                        canvasElement.height = videoElement.videoHeight || 480;
 
-                        configurarRastreamento(hiddenVideo);
-                        iniciarProcessamentoVisual(hiddenVideo, canvas);
+                        // Esconde o elemento de vídeo nativo e usa o canvas processado
+                        videoElement.style.display = 'none';
+                        canvasElement.style.display = 'block';
+
+                        configurarRastreamento();
+                        iniciarLoopProcessamento();
                         
-                        document.getElementById('status').innerText = 'Câmara Ativa - Rastreio e Filtros Prontos!';
+                        document.getElementById('status').innerText = 'Câmara Ativa e A a funcionar!';
                     };
                 })
                 .catch((err) => {
-                    document.getElementById('status').innerText = 'Erro ao aceder à câmara';
-                    alert('Erro: ' + err);
+                    // Fallback caso o 'exact: environment' falhe em alguns dispositivos
+                    console.warn('Tentando fallback de câmara...', err);
+                    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                        .then((stream) => {
+                            streamAtivo = stream;
+                            videoElement.srcObject = stream;
+                            videoElement.onloadedmetadata = () => {
+                                videoElement.play();
+                                canvasElement.width = videoElement.videoWidth || 640;
+                                canvasElement.height = videoElement.videoHeight || 480;
+                                videoElement.style.display = 'none';
+                                canvasElement.style.display = 'block';
+
+                                configurarRastreamento();
+                                iniciarLoopProcessamento();
+                                document.getElementById('status').innerText = 'Câmara Ativa (Modo Compatibilidade)!';
+                            };
+                        })
+                        .catch((e) => {
+                            document.getElementById('status').innerText = 'Erro de permissão da câmara';
+                            alert('Erro ao aceder à câmara: ' + e);
+                        });
                 });
         }
 
         function alternarCamara() {
             usarCamaraTraseira = !usarCamaraTraseira;
-            const video = document.getElementById('hiddenVideo');
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
-            }
             iniciarCamaraLocal();
         }
 
@@ -113,12 +160,11 @@
             document.getElementById('status').innerText = 'Modo de visão: ' + filtro;
         }
 
-        function configurarRastreamento(videoElement) {
+        function configurarRastreamento() {
             if (trackerTask) {
                 trackerTask.stop();
             }
 
-            // Registo de cor vermelha personalizada
             if (!tracking.ColorTracker.getColor('red')) {
                 tracking.ColorTracker.registerColor('red', function(r, g, b) {
                     return r > 120 && g < 70 && b < 70;
@@ -128,6 +174,7 @@
             tracker = new tracking.ColorTracker([currentColor]);
             tracker.setStepSize(1.7);
 
+            // Rastreia diretamente no elemento de vídeo oculto/nativo
             trackerTask = tracking.track(videoElement, tracker, { camera: false, implicit: true });
 
             tracker.on('track', function(event) {
@@ -138,21 +185,22 @@
         function trackColor(color) {
             currentColor = color;
             document.getElementById('status').innerText = 'A rastrear cor: ' + color;
-            configurarRastreamento(document.getElementById('hiddenVideo'));
+            configurarRastreamento();
         }
 
-        function iniciarProcessamentoVisual(video, canvas) {
-            const ctx = canvas.getContext('2d');
-
+        function iniciarLoopProcessamento() {
             function loop() {
-                if (video.paused || video.ended) return;
+                if (videoElement.paused || videoElement.ended) {
+                    requestAnimationFrame(loop);
+                    return;
+                }
 
-                // Desenha a imagem base da câmara no canvas
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                // Desenha o frame atual da câmara no canvas principal
+                ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
 
-                // Aplica os filtros visuais (Noturno ou Térmico)
+                // Aplica filtros visuais se selecionados
                 if (currentFilter !== 'normal') {
-                    let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    let frame = ctx.getImageData(0, 0, canvasElement.width, canvasElement.height);
                     let data = frame.data;
 
                     for (let i = 0; i < data.length; i += 4) {
@@ -179,7 +227,7 @@
                     ctx.putImageData(frame, 0, 0);
                 }
 
-                // Desenha o Box Verde em cima do objeto detetado com a cor escolhida
+                // Desenha a caixa verde de rastreio por cima
                 if (detectedRects && detectedRects.length > 0) {
                     detectedRects.forEach(rect => {
                         ctx.strokeStyle = '#00FF00';
@@ -197,7 +245,7 @@
             requestAnimationFrame(loop);
         }
 
-        // Iniciar assim que carregar a página
+        // Inicia automaticamente ao carregar
         window.onload = () => {
             iniciarCamaraLocal();
         };
