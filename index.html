@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teste Local - Câmara Inteligente</title>
+    <title>Câmara de Segurança Inteligente P2P</title>
+    <!-- Importando PeerJS -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <!-- Importando tracking.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/data/color-min.js"></script>
@@ -17,28 +19,29 @@
             max-width: 500px;
         }
 
-        /* O vídeo agora fica visível para garantir renderização correta no mobile */
-        video { 
+        video, canvas { 
             width: 100%; 
             border-radius: 10px; 
             background: #000; 
             display: block;
         }
 
-        canvas {
-            display: none; /* O processamento é feito por cima ou via drawImage direto */
-        }
-
-        #outputCanvas {
-            width: 100%;
-            border-radius: 10px;
-            background: #000;
-            display: block;
+        /* Vídeo visível escondido apenas para o tracking processar */
+        #hiddenVideo { 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
         }
 
         .controls { margin-top: 15px; }
         button { padding: 10px 15px; font-size: 14px; background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 4px; }
         button:hover { background: #0051a2; }
+        input { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; width: 80%; max-width: 300px; margin-bottom: 10px; }
+        .hidden { display: none; }
         #status { font-weight: bold; margin: 10px 0; color: #ffcc00; font-size: 1.1em; }
         
         .panel { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 10px; }
@@ -46,113 +49,192 @@
 </head>
 <body>
 
-    <h2>Teste Local - Câmara Inteligente</h2>
-    <div id="status">A solicitar câmara...</div>
+    <h2>Câmara de Segurança Inteligente</h2>
+    <div id="status">Desligado</div>
 
-    <div class="video-container">
-        <!-- Vídeo visível para evitar tela preta no mobile -->
-        <video id="webcamVideo" autoplay playsinline muted></video>
-        <!-- Canvas onde aplicamos filtros e caixas -->
-        <canvas id="outputCanvas"></canvas>
+    <!-- Menu Inicial -->
+    <div id="menu">
+        <p>Escolha o modo deste dispositivo:</p>
+        <button onclick="iniciarModoCamera()" style="font-size: 18px; padding: 15px 25px;">Modo Câmara (Tablet/Dispositivo)</button>
+        <br><br>
+        <button onclick="iniciarModoMonitor()" style="font-size: 18px; padding: 15px 25px;">Modo Monitor (Telemóvel)</button>
     </div>
 
-    <div class="panel">
-        <p><strong>Modos de Visão:</strong></p>
-        <button onclick="mudarFiltro('normal')">Normal</button>
-        <button onclick="mudarFiltro('nightvision')">Noturno (Verde)</button>
-        <button onclick="mudarFiltro('thermal')">Térmico (Calor)</button>
+    <!-- Ecrã da Câmara -->
+    <div id="camera-view" class="hidden">
+        <h3>A Transmitir & Processar</h3>
+        <p>O seu ID: <span id="my-peer-id" style="color: #00ff00;">A gerar...</span></p>
+        
+        <div class="video-container">
+            <!-- Atributos essenciais para evitar tela preta no mobile -->
+            <video id="hiddenVideo" autoplay playsinline muted></video>
+            <canvas id="processedCanvas"></canvas>
+        </div>
+
+        <div class="panel">
+            <p><strong>Modos de Visão:</strong></p>
+            <button onclick="mudarFiltro('normal')">Normal</button>
+            <button onclick="mudarFiltro('nightvision')">Noturno (Verde)</button>
+            <button onclick="mudarFiltro('thermal')">Térmico (Calor)</button>
+        </div>
+
+        <div class="panel">
+            <p><strong>Rastrear Cor (Exibe Box Verde):</strong></p>
+            <button onclick="trackColor('magenta')" style="background: magenta">Magenta</button>
+            <button onclick="trackColor('cyan')" style="background: cyan; color: black">Ciano</button>
+            <button onclick="trackColor('yellow')" style="background: yellow; color: black">Amarelo</button>
+            <button onclick="trackColor('red')" style="background: red">Vermelho</button>
+        </div>
     </div>
 
-    <div class="panel">
-        <p><strong>Rastrear Cor (Exibe Box Verde):</strong></p>
-        <button onclick="trackColor('magenta')" style="background: magenta">Magenta</button>
-        <button onclick="trackColor('cyan')" style="background: cyan; color: black">Ciano</button>
-        <button onclick="trackColor('yellow')" style="background: yellow; color: black">Amarelo</button>
-        <button onclick="trackColor('red')" style="background: red">Vermelho</button>
-    </div>
-
-    <div class="panel">
-        <button onclick="alternarCamara()" style="background: #28a745;">Alternar Câmara (Frente/Trás)</button>
+    <!-- Ecrã do Monitor (Telemóvel) -->
+    <div id="monitor-view" class="hidden">
+        <h3>Visualizador Remoto</h3>
+        <input type="text" id="remote-id-input" placeholder="Digite o ID da Câmara">
+        <br>
+        <button onclick="conectarAoTablet()">Ligar à Câmara</button>
+        <br><br>
+        <div class="video-container">
+            <video id="remoteVideo" autoplay playsinline muted></video>
+        </div>
+        <div class="controls">
+            <button onclick="tirarFoto()">Guardar Captura</button>
+        </div>
+        <canvas id="snapshot" class="hidden"></canvas>
     </div>
 
     <script>
+        let peer;
         let tracker;
         let trackerTask;
         let currentColor = 'magenta';
         let currentFilter = 'normal';
         let detectedRects = [];
-        let usarCamaraTraseira = true;
-        let streamAtivo = null;
 
-        const videoElement = document.getElementById('webcamVideo');
-        const canvasElement = document.getElementById('outputCanvas');
-        const ctx = canvasElement.getContext('2d');
+        function initPeer(isCamera = false) {
+            peer = new Peer({
+                secure: true,
+                config: {
+                    'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
+            });
 
-        function iniciarCamaraLocal() {
-            document.getElementById('status').innerText = 'A ligar à câmara...';
+            peer.on('open', (id) => {
+                if (isCamera) {
+                    document.getElementById('my-peer-id').innerText = id;
+                    document.getElementById('status').innerText = 'À espera de ligação...';
+                } else {
+                    document.getElementById('status').innerText = 'Pronto para ligar';
+                }
+            });
 
-            if (streamAtivo) {
-                streamAtivo.getTracks().forEach(track => track.stop());
-            }
+            peer.on('error', (err) => {
+                console.error(err);
+                document.getElementById('status').innerText = 'Erro na ligação: ' + err.type;
+            });
 
-            const constraints = {
-                video: { 
-                    facingMode: usarCamaraTraseira ? { exact: 'environment' } : 'user',
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
-                },
-                audio: false
-            };
+            if (isCamera) {
+                peer.on('call', (call) => {
+                    const hiddenVideo = document.getElementById('hiddenVideo');
+                    const canvas = document.getElementById('processedCanvas');
+                    const ctx = canvas.getContext('2d');
 
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then((stream) => {
-                    streamAtivo = stream;
-                    videoElement.srcObject = stream;
-                    
-                    videoElement.onloadedmetadata = () => {
-                        videoElement.play();
-                        canvasElement.width = videoElement.videoWidth || 640;
-                        canvasElement.height = videoElement.videoHeight || 480;
-
-                        // Esconde o elemento de vídeo nativo e usa o canvas processado
-                        videoElement.style.display = 'none';
-                        canvasElement.style.display = 'block';
-
-                        configurarRastreamento();
-                        iniciarLoopProcessamento();
-                        
-                        document.getElementById('status').innerText = 'Câmara Ativa e A a funcionar!';
-                    };
-                })
-                .catch((err) => {
-                    // Fallback caso o 'exact: environment' falhe em alguns dispositivos
-                    console.warn('Tentando fallback de câmara...', err);
-                    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
                         .then((stream) => {
-                            streamAtivo = stream;
-                            videoElement.srcObject = stream;
-                            videoElement.onloadedmetadata = () => {
-                                videoElement.play();
-                                canvasElement.width = videoElement.videoWidth || 640;
-                                canvasElement.height = videoElement.videoHeight || 480;
-                                videoElement.style.display = 'none';
-                                canvasElement.style.display = 'block';
+                            hiddenVideo.srcObject = stream;
+                            hiddenVideo.play().then(() => {
+                                canvas.width = hiddenVideo.videoWidth || 640;
+                                canvas.height = hiddenVideo.videoHeight || 480;
 
-                                configurarRastreamento();
-                                iniciarLoopProcessamento();
-                                document.getElementById('status').innerText = 'Câmara Ativa (Modo Compatibilidade)!';
-                            };
+                                configurarRastreamento(hiddenVideo);
+                                iniciarProcessamentoVisual(hiddenVideo, canvas);
+                                
+                                const processedStream = canvas.captureStream(25);
+                                call.answer(processedStream);
+                                
+                                document.getElementById('status').innerText = 'A transmitir com rastreio ativo!';
+                            }).catch(e => {
+                                alert('Toque na tela ou clique para permitir reprodução de vídeo.');
+                            });
                         })
-                        .catch((e) => {
-                            document.getElementById('status').innerText = 'Erro de permissão da câmara';
-                            alert('Erro ao aceder à câmara: ' + e);
-                        });
+                        .catch((err) => alert('Erro ao aceder à câmara: ' + err));
                 });
+            }
         }
 
-        function alternarCamara() {
-            usarCamaraTraseira = !usarCamaraTraseira;
-            iniciarCamaraLocal();
+        function iniciarModoCamera() {
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('camera-view').classList.remove('hidden');
+            
+            // Inicialização imediata local para teste/garantia de feed visível
+            const hiddenVideo = document.getElementById('hiddenVideo');
+            const canvas = document.getElementById('processedCanvas');
+            
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+                .then((stream) => {
+                    hiddenVideo.srcObject = stream;
+                    hiddenVideo.play().then(() => {
+                        canvas.width = hiddenVideo.videoWidth || 640;
+                        canvas.height = hiddenVideo.videoHeight || 480;
+                        configurarRastreamento(hiddenVideo);
+                        iniciarProcessamentoVisual(hiddenVideo, canvas);
+                    });
+                })
+                .catch(err => console.error("Erro local da cam:", err));
+
+            initPeer(true);
+        }
+
+        function iniciarModoMonitor() {
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('monitor-view').classList.remove('hidden');
+            initPeer(false);
+        }
+
+        function conectarAoTablet() {
+            const remoteId = document.getElementById('remote-id-input').value.trim();
+            if (!remoteId) return alert('Insira o ID da câmara!');
+
+            document.getElementById('status').innerText = 'A ligar...';
+            
+            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                .then((stream) => {
+                    const call = peer.call(remoteId, stream);
+                    
+                    call.on('stream', (remoteStream) => {
+                        const remoteVideo = document.getElementById('remoteVideo');
+                        remoteVideo.srcObject = remoteStream;
+                        remoteVideo.play().catch(e => console.log(e));
+                        document.getElementById('status').innerText = 'Ligado! A exibir visão processada.';
+                    });
+
+                    call.on('close', () => {
+                        document.getElementById('status').innerText = 'Ligação encerrada.';
+                    });
+
+                    call.on('error', (err) => {
+                        document.getElementById('status').innerText = 'Erro na chamada: ' + err;
+                    });
+                })
+                .catch((err) => alert('Erro de multimédia no telemóvel: ' + err));
+        }
+
+        function tirarFoto() {
+            const video = document.getElementById('remoteVideo');
+            const canvas = document.getElementById('snapshot');
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const imageURL = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = imageURL;
+            a.download = 'captura-seguranca.png';
+            a.click();
         }
 
         function mudarFiltro(filtro) {
@@ -160,7 +242,7 @@
             document.getElementById('status').innerText = 'Modo de visão: ' + filtro;
         }
 
-        function configurarRastreamento() {
+        function configurarRastreamento(videoElement) {
             if (trackerTask) {
                 trackerTask.stop();
             }
@@ -174,7 +256,6 @@
             tracker = new tracking.ColorTracker([currentColor]);
             tracker.setStepSize(1.7);
 
-            // Rastreia diretamente no elemento de vídeo oculto/nativo
             trackerTask = tracking.track(videoElement, tracker, { camera: false, implicit: true });
 
             tracker.on('track', function(event) {
@@ -185,22 +266,22 @@
         function trackColor(color) {
             currentColor = color;
             document.getElementById('status').innerText = 'A rastrear cor: ' + color;
-            configurarRastreamento();
+            configurarRastreamento(document.getElementById('hiddenVideo'));
         }
 
-        function iniciarLoopProcessamento() {
+        function iniciarProcessamentoVisual(video, canvas) {
+            const ctx = canvas.getContext('2d');
+
             function loop() {
-                if (videoElement.paused || videoElement.ended) {
+                if (video.paused || video.ended) {
                     requestAnimationFrame(loop);
                     return;
                 }
 
-                // Desenha o frame atual da câmara no canvas principal
-                ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // Aplica filtros visuais se selecionados
                 if (currentFilter !== 'normal') {
-                    let frame = ctx.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                    let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     let data = frame.data;
 
                     for (let i = 0; i < data.length; i += 4) {
@@ -211,23 +292,22 @@
                         if (currentFilter === 'nightvision') {
                             let avg = (r + g + b) / 3;
                             data[i] = 0;
-                            data[i + 1] = avg * 2; // Realça o verde
+                            data[i + 1] = avg * 2;
                             data[i + 2] = 0;
                         } else if (currentFilter === 'thermal') {
                             let brightness = (r + g + b) / 3;
                             if (brightness > 160) {
-                                data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; // Quente
+                                data[i] = 255; data[i + 1] = 255; data[i + 2] = 255;
                             } else if (brightness > 80) {
-                                data[i] = 255; data[i + 1] = 120; data[i + 2] = 0;   // Médio
+                                data[i] = 255; data[i + 1] = 120; data[i + 2] = 0;
                             } else {
-                                data[i] = 0; data[i + 1] = 0; data[i + 2] = 180;     // Frio
+                                data[i] = 0; data[i + 1] = 0; data[i + 2] = 180;
                             }
                         }
                     }
                     ctx.putImageData(frame, 0, 0);
                 }
 
-                // Desenha a caixa verde de rastreio por cima
                 if (detectedRects && detectedRects.length > 0) {
                     detectedRects.forEach(rect => {
                         ctx.strokeStyle = '#00FF00';
@@ -244,11 +324,6 @@
             }
             requestAnimationFrame(loop);
         }
-
-        // Inicia automaticamente ao carregar
-        window.onload = () => {
-            iniciarCamaraLocal();
-        };
     </script>
 </body>
 </html>
