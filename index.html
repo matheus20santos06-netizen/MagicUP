@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Câmera de Segurança Inteligente P2P</title>
-    <!-- Importando PeerJS -->
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <title>Teste Local - Câmara Inteligente</title>
     <!-- Importando tracking.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/data/color-min.js"></script>
@@ -31,8 +29,6 @@
         .controls { margin-top: 15px; }
         button { padding: 10px 15px; font-size: 14px; background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 4px; }
         button:hover { background: #0051a2; }
-        input { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; width: 80%; max-width: 300px; margin-bottom: 10px; }
-        .hidden { display: none; }
         #status { font-weight: bold; margin: 10px 0; color: #ffcc00; font-size: 1.1em; }
         
         .panel { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 10px; }
@@ -40,170 +36,76 @@
 </head>
 <body>
 
-    <h2>Câmara de Segurança Inteligente</h2>
-    <div id="status">Desligado</div>
+    <h2>Teste Local - Câmara Inteligente</h2>
+    <div id="status">A iniciar câmara...</div>
 
-    <!-- Menu Inicial -->
-    <div id="menu">
-        <p>Escolha o modo deste dispositivo:</p>
-        <button onclick="iniciarModoCamera()" style="font-size: 18px; padding: 15px 25px;">Modo Câmara (Tablet)</button>
-        <br><br>
-        <button onclick="iniciarModoMonitor()" style="font-size: 18px; padding: 15px 25px;">Modo Monitor (Telemóvel)</button>
+    <div class="video-container">
+        <video id="hiddenVideo" autoplay playsinline muted></video>
+        <canvas id="processedCanvas"></canvas>
     </div>
 
-    <!-- Ecrã da Câmara (Tablet) -->
-    <div id="camera-view" class="hidden">
-        <h3>A Transmitir (Processamento no Tablet)</h3>
-        <p>O seu ID: <span id="my-peer-id" style="color: #00ff00;">A gerar...</span></p>
-        
-        <div class="video-container">
-            <video id="hiddenVideo" autoplay playsinline muted></video>
-            <canvas id="processedCanvas"></canvas>
-        </div>
-
-        <div class="panel">
-            <p><strong>Modos de Visão:</strong></p>
-            <button onclick="mudarFiltro('normal')">Normal</button>
-            <button onclick="mudarFiltro('nightvision')">Noturno (Verde)</button>
-            <button onclick="mudarFiltro('thermal')">Térmico (Calor)</button>
-        </div>
-
-        <div class="panel">
-            <p><strong>Rastrear Cor (Exibe Box Verde):</strong></p>
-            <button onclick="trackColor('magenta')" style="background: magenta">Magenta</button>
-            <button onclick="trackColor('cyan')" style="background: cyan; color: black">Ciano</button>
-            <button onclick="trackColor('yellow')" style="background: yellow; color: black">Amarelo</button>
-            <button onclick="trackColor('red')" style="background: red">Vermelho</button>
-        </div>
+    <div class="panel">
+        <p><strong>Modos de Visão:</strong></p>
+        <button onclick="mudarFiltro('normal')">Normal</button>
+        <button onclick="mudarFiltro('nightvision')">Noturno (Verde)</button>
+        <button onclick="mudarFiltro('thermal')">Térmico (Calor)</button>
     </div>
 
-    <!-- Ecrã do Monitor (Telemóvel) -->
-    <div id="monitor-view" class="hidden">
-        <h3>Visualizador Remoto</h3>
-        <input type="text" id="remote-id-input" placeholder="Digite o ID do Tablet">
-        <br>
-        <button onclick="conectarAoTablet()">Ligar à Câmara</button>
-        <br><br>
-        <div class="video-container">
-            <video id="remoteVideo" autoplay playsinline></video>
-        </div>
-        <div class="controls">
-            <button onclick="tirarFoto()">Guardar Captura</button>
-        </div>
-        <canvas id="snapshot" class="hidden"></canvas>
+    <div class="panel">
+        <p><strong>Rastrear Cor (Exibe Box Verde):</strong></p>
+        <button onclick="trackColor('magenta')" style="background: magenta">Magenta</button>
+        <button onclick="trackColor('cyan')" style="background: cyan; color: black">Ciano</button>
+        <button onclick="trackColor('yellow')" style="background: yellow; color: black">Amarelo</button>
+        <button onclick="trackColor('red')" style="background: red">Vermelho</button>
+    </div>
+
+    <div class="panel">
+        <button onclick="alternarCamara()" style="background: #28a745;">Alternar Câmara (Frente/Trás)</button>
     </div>
 
     <script>
-        let peer;
         let tracker;
         let trackerTask;
         let currentColor = 'magenta';
         let currentFilter = 'normal';
         let detectedRects = [];
+        let usarCamaraTraseira = true;
 
-        function initPeer(isCamera = false) {
-            // Configuração corrigida com secure: true para funcionar em HTTPS (Vercel)
-            peer = new Peer({
-                secure: true,
-                port: 443,
-                debug: 2
-            });
+        function iniciarCamaraLocal() {
+            const constraints = {
+                video: { facingMode: usarCamaraTraseira ? 'environment' : 'user' },
+                audio: false
+            };
 
-            peer.on('open', (id) => {
-                if (isCamera) {
-                    document.getElementById('my-peer-id').innerText = id;
-                    document.getElementById('status').innerText = 'À espera de ligação...';
-                } else {
-                    document.getElementById('status').innerText = 'Pronto para ligar';
-                }
-            });
-
-            peer.on('error', (err) => {
-                console.error(err);
-                document.getElementById('status').innerText = 'Erro na ligação: ' + err.type;
-            });
-
-            if (isCamera) {
-                peer.on('call', (call) => {
-                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-                        .then((stream) => {
-                            const hiddenVideo = document.getElementById('hiddenVideo');
-                            hiddenVideo.srcObject = stream;
-                            
-                            hiddenVideo.onloadedmetadata = () => {
-                                const canvas = document.getElementById('processedCanvas');
-                                canvas.width = hiddenVideo.videoWidth || 640;
-                                canvas.height = hiddenVideo.videoHeight || 480;
-
-                                // 1. Configura o rastreador de cores do tracking.js
-                                configurarRastreamento(hiddenVideo);
-
-                                // 2. Inicia o loop gráfico que desenha o vídeo, filtros e caixas verdes
-                                iniciarProcessamentoVisual(hiddenVideo, canvas);
-                                
-                                // 3. Transmite o canvas atualizado via WebRTC
-                                const processedStream = canvas.captureStream(25);
-                                call.answer(processedStream);
-                                
-                                document.getElementById('status').innerText = 'A transmitir com rastreio ativo!';
-                            };
-                        })
-                        .catch((err) => alert('Erro ao aceder à câmara: ' + err));
-                });
-            }
-        }
-
-        function iniciarModoCamera() {
-            document.getElementById('menu').classList.add('hidden');
-            document.getElementById('camera-view').classList.remove('hidden');
-            initPeer(true);
-        }
-
-        function iniciarModoMonitor() {
-            document.getElementById('menu').classList.add('hidden');
-            document.getElementById('monitor-view').classList.remove('hidden');
-            initPeer(false);
-        }
-
-        function conectarAoTablet() {
-            const remoteId = document.getElementById('remote-id-input').value.trim();
-            if (!remoteId) return alert('Insira o ID do tablet!');
-
-            document.getElementById('status').innerText = 'A ligar...';
-            
-            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+            navigator.mediaDevices.getUserMedia(constraints)
                 .then((stream) => {
-                    const call = peer.call(remoteId, stream);
+                    const hiddenVideo = document.getElementById('hiddenVideo');
+                    hiddenVideo.srcObject = stream;
                     
-                    call.on('stream', (remoteStream) => {
-                        document.getElementById('remoteVideo').srcObject = remoteStream;
-                        document.getElementById('status').innerText = 'Ligado! A exibir visão processada.';
-                    });
+                    hiddenVideo.onloadedmetadata = () => {
+                        const canvas = document.getElementById('processedCanvas');
+                        canvas.width = hiddenVideo.videoWidth || 640;
+                        canvas.height = hiddenVideo.videoHeight || 480;
 
-                    call.on('close', () => {
-                        document.getElementById('status').innerText = 'Ligação encerrada.';
-                    });
-
-                    call.on('error', (err) => {
-                        document.getElementById('status').innerText = 'Erro na chamada: ' + err;
-                    });
+                        configurarRastreamento(hiddenVideo);
+                        iniciarProcessamentoVisual(hiddenVideo, canvas);
+                        
+                        document.getElementById('status').innerText = 'Câmara Ativa - Rastreio e Filtros Prontos!';
+                    };
                 })
-                .catch((err) => alert('Erro de multimédia no telemóvel: ' + err));
+                .catch((err) => {
+                    document.getElementById('status').innerText = 'Erro ao aceder à câmara';
+                    alert('Erro: ' + err);
+                });
         }
 
-        function tirarFoto() {
-            const video = document.getElementById('remoteVideo');
-            const canvas = document.getElementById('snapshot');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            const imageURL = canvas.toDataURL('image/png');
-            const a = document.createElement('a');
-            a.href = imageURL;
-            a.download = 'captura-seguranca.png';
-            a.click();
+        function alternarCamara() {
+            usarCamaraTraseira = !usarCamaraTraseira;
+            const video = document.getElementById('hiddenVideo');
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+            iniciarCamaraLocal();
         }
 
         function mudarFiltro(filtro) {
@@ -216,7 +118,7 @@
                 trackerTask.stop();
             }
 
-            // Registo de cor vermelha customizada caso não exista
+            // Registo de cor vermelha personalizada
             if (!tracking.ColorTracker.getColor('red')) {
                 tracking.ColorTracker.registerColor('red', function(r, g, b) {
                     return r > 120 && g < 70 && b < 70;
@@ -229,7 +131,7 @@
             trackerTask = tracking.track(videoElement, tracker, { camera: false, implicit: true });
 
             tracker.on('track', function(event) {
-                detectedRects = event.data; // Atualiza as coordenadas para o canvas renderizar o box
+                detectedRects = event.data;
             });
         }
 
@@ -239,17 +141,16 @@
             configurarRastreamento(document.getElementById('hiddenVideo'));
         }
 
-        // Renderiza os filtros e desenha o box verde sobre os alvos detetados no canvas
         function iniciarProcessamentoVisual(video, canvas) {
             const ctx = canvas.getContext('2d');
 
             function loop() {
                 if (video.paused || video.ended) return;
 
-                // Desenha a imagem base da câmara
+                // Desenha a imagem base da câmara no canvas
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // Aplica filtros visuais se ativados
+                // Aplica os filtros visuais (Noturno ou Térmico)
                 if (currentFilter !== 'normal') {
                     let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     let data = frame.data;
@@ -278,7 +179,7 @@
                     ctx.putImageData(frame, 0, 0);
                 }
 
-                // Desenha o Box Verde em cima de cada objeto detetado (visível no tablet e telemóvel)
+                // Desenha o Box Verde em cima do objeto detetado com a cor escolhida
                 if (detectedRects && detectedRects.length > 0) {
                     detectedRects.forEach(rect => {
                         ctx.strokeStyle = '#00FF00';
@@ -295,6 +196,11 @@
             }
             requestAnimationFrame(loop);
         }
+
+        // Iniciar assim que carregar a página
+        window.onload = () => {
+            iniciarCamaraLocal();
+        };
     </script>
 </body>
 </html>
