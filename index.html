@@ -40,18 +40,18 @@
 </head>
 <body>
 
-    <h2>Câmera de Segurança Inteligente</h2>
-    <div id="status">Desconectado</div>
+    <h2>Câmara de Segurança Inteligente</h2>
+    <div id="status">Desligado</div>
 
     <!-- Menu Inicial -->
     <div id="menu">
         <p>Escolha o modo deste dispositivo:</p>
-        <button onclick="iniciarModoCamera()" style="font-size: 18px; padding: 15px 25px;">Modo Câmera (Tablet)</button>
+        <button onclick="iniciarModoCamera()" style="font-size: 18px; padding: 15px 25px;">Modo Câmara (Tablet)</button>
         <br><br>
         <button onclick="iniciarModoMonitor()" style="font-size: 18px; padding: 15px 25px;">Modo Monitor (Telemóvel)</button>
     </div>
 
-    <!-- Tela da Câmera (Tablet) -->
+    <!-- Ecrã da Câmara (Tablet) -->
     <div id="camera-view" class="hidden">
         <h3>A Transmitir (Processamento no Tablet)</h3>
         <p>O seu ID: <span id="my-peer-id" style="color: #00ff00;">A gerar...</span></p>
@@ -77,12 +77,12 @@
         </div>
     </div>
 
-    <!-- Tela do Monitor (Telemóvel) -->
+    <!-- Ecrã do Monitor (Telemóvel) -->
     <div id="monitor-view" class="hidden">
         <h3>Visualizador Remoto</h3>
         <input type="text" id="remote-id-input" placeholder="Digite o ID do Tablet">
         <br>
-        <button onclick="conectarAoTablet()">Conectar à Câmera</button>
+        <button onclick="conectarAoTablet()">Ligar à Câmara</button>
         <br><br>
         <div class="video-container">
             <video id="remoteVideo" autoplay playsinline></video>
@@ -102,15 +102,25 @@
         let detectedRects = [];
 
         function initPeer(isCamera = false) {
-            peer = new Peer();
+            // Configuração corrigida com secure: true para funcionar em HTTPS (Vercel)
+            peer = new Peer({
+                secure: true,
+                port: 443,
+                debug: 2
+            });
 
             peer.on('open', (id) => {
                 if (isCamera) {
                     document.getElementById('my-peer-id').innerText = id;
-                    document.getElementById('status').innerText = 'A aguardar ligação...';
+                    document.getElementById('status').innerText = 'À espera de ligação...';
                 } else {
-                    document.getElementById('status').innerText = 'Pronto para conectar';
+                    document.getElementById('status').innerText = 'Pronto para ligar';
                 }
+            });
+
+            peer.on('error', (err) => {
+                console.error(err);
+                document.getElementById('status').innerText = 'Erro na ligação: ' + err.type;
             });
 
             if (isCamera) {
@@ -126,12 +136,12 @@
                                 canvas.height = hiddenVideo.videoHeight || 480;
 
                                 // 1. Configura o rastreador de cores do tracking.js
-                                configurarRastreamento(hiddenVideo, canvas);
+                                configurarRastreamento(hiddenVideo);
 
-                                // 2. Inicia o loop gráfico que desenha o vídeo, filtros e boxes verdes
+                                // 2. Inicia o loop gráfico que desenha o vídeo, filtros e caixas verdes
                                 iniciarProcessamentoVisual(hiddenVideo, canvas);
                                 
-                                // 3. Transmite o canvas atualizado via WebRTC (para aparecer no telemóvel também)
+                                // 3. Transmite o canvas atualizado via WebRTC
                                 const processedStream = canvas.captureStream(25);
                                 call.answer(processedStream);
                                 
@@ -156,7 +166,7 @@
         }
 
         function conectarAoTablet() {
-            const remoteId = document.getElementById('remote-id-input').value;
+            const remoteId = document.getElementById('remote-id-input').value.trim();
             if (!remoteId) return alert('Insira o ID do tablet!');
 
             document.getElementById('status').innerText = 'A ligar...';
@@ -172,6 +182,10 @@
 
                     call.on('close', () => {
                         document.getElementById('status').innerText = 'Ligação encerrada.';
+                    });
+
+                    call.on('error', (err) => {
+                        document.getElementById('status').innerText = 'Erro na chamada: ' + err;
                     });
                 })
                 .catch((err) => alert('Erro de multimédia no telemóvel: ' + err));
@@ -197,12 +211,12 @@
             document.getElementById('status').innerText = 'Modo de visão: ' + filtro;
         }
 
-        function configurarRastreamento(videoElement, canvasElement) {
+        function configurarRastreamento(videoElement) {
             if (trackerTask) {
                 trackerTask.stop();
             }
 
-            // Registo de cor vermelha customizada
+            // Registo de cor vermelha customizada caso não exista
             if (!tracking.ColorTracker.getColor('red')) {
                 tracking.ColorTracker.registerColor('red', function(r, g, b) {
                     return r > 120 && g < 70 && b < 70;
@@ -212,21 +226,20 @@
             tracker = new tracking.ColorTracker([currentColor]);
             tracker.setStepSize(1.7);
 
-            // Rastreia diretamente no vídeo escondido
             trackerTask = tracking.track(videoElement, tracker, { camera: false, implicit: true });
 
             tracker.on('track', function(event) {
-                detectedRects = event.data; // Coordenadas obtidas para desenhar os boxes
+                detectedRects = event.data; // Atualiza as coordenadas para o canvas renderizar o box
             });
         }
 
         function trackColor(color) {
             currentColor = color;
             document.getElementById('status').innerText = 'A rastrear cor: ' + color;
-            configurarRastreamento(document.getElementById('hiddenVideo'), document.getElementById('processedCanvas'));
+            configurarRastreamento(document.getElementById('hiddenVideo'));
         }
 
-        // Renderiza os filtros e desenha o box verde sobre os alvos encontrados no canvas principal
+        // Renderiza os filtros e desenha o box verde sobre os alvos detetados no canvas
         function iniciarProcessamentoVisual(video, canvas) {
             const ctx = canvas.getContext('2d');
 
@@ -236,7 +249,7 @@
                 // Desenha a imagem base da câmara
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // Aplica filtros visuais de visão noturna ou térmica
+                // Aplica filtros visuais se ativados
                 if (currentFilter !== 'normal') {
                     let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     let data = frame.data;
@@ -265,7 +278,7 @@
                     ctx.putImageData(frame, 0, 0);
                 }
 
-                // Desenha o Box Verde em cima de cada objeto detetado (aparece no tablet e no telemóvel)
+                // Desenha o Box Verde em cima de cada objeto detetado (visível no tablet e telemóvel)
                 if (detectedRects && detectedRects.length > 0) {
                     detectedRects.forEach(rect => {
                         ctx.strokeStyle = '#00FF00';
