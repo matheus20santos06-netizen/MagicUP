@@ -3,10 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Câmara Inteligente com Rastreio</title>
-    <!-- Importando tracking.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/data/color-min.js"></script>
+    <title>Câmara Inteligente Avançada</title>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -22,34 +19,34 @@
             position: relative;
             display: inline-block;
             width: 100%;
-            max-width: 500px;
+            max-width: 480px;
             margin-top: 10px;
         }
 
-        /* Vídeo real a correr em background mas pronto */
         #webcamVideo { 
-            display: none;
+            display: none; /* Processado internamente no canvas para máxima performance */
         }
 
-        /* Canvas principal visível que mostra tudo e onde o tracking atua */
         canvas { 
             width: 100%; 
             height: auto;
             border-radius: 10px; 
             background: #222; 
             display: block;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
         .controls { margin-top: 15px; }
         button { 
-            padding: 10px 15px; 
-            font-size: 14px; 
+            padding: 10px 14px; 
+            font-size: 13px; 
             background: #0070f3; 
             color: white; 
             border: none; 
             border-radius: 5px; 
             cursor: pointer; 
             margin: 4px; 
+            transition: background 0.2s;
         }
         button:hover { background: #0051a2; }
         .danger { background: #e00000; }
@@ -61,14 +58,14 @@
 </head>
 <body>
 
-    <h2>Câmara Inteligente com Rastreio</h2>
+    <h2>Câmara Inteligente Avançada</h2>
     <div id="status">Toque no botão para iniciar</div>
 
     <div id="menu">
         <button onclick="iniciarCamara()" style="font-size: 18px; padding: 15px 25px;">Ligar Câmara</button>
     </div>
 
-    <!-- Ecrã da Câmara e Processamento -->
+    <!-- Interface da Câmara -->
     <div id="camera-view" style="display: none;">
         <div class="video-container">
             <video id="webcamVideo" autoplay playsinline muted></video>
@@ -88,30 +85,27 @@
         </div>
 
         <div class="panel">
-            <p><strong>Rastrear Cor (Exibe Box Verde):</strong></p>
-            <button onclick="trackColor('magenta')" style="background: magenta">Magenta</button>
-            <button onclick="trackColor('cyan')" style="background: cyan; color: black">Ciano</button>
-            <button onclick="trackColor('yellow')" style="background: yellow; color: black">Amarelo</button>
-            <button onclick="trackColor('red')" style="background: red">Vermelho</button>
+            <p><strong>Rastrear Cor (Exibe Caixa de Alvo):</strong></p>
+            <button onclick="escolherCor('red')" style="background: red">Vermelho</button>
+            <button onclick="escolherCor('green')" style="background: #00aa00">Verde</button>
+            <button onclick="escolherCor('blue')" style="background: blue">Azul</button>
         </div>
     </div>
 
     <script>
-        let tracker;
-        let trackerTask;
-        let currentColor = 'magenta';
-        let currentFilter = 'normal';
-        let detectedRects = [];
         let mediaStream = null;
+        let currentFilter = 'normal';
+        let targetColor = 'red'; // Cor padrão a rastrear
+        let processingInterval = null;
 
         function iniciarCamara() {
             const video = document.getElementById('webcamVideo');
             const statusDiv = document.getElementById('status');
 
-            statusDiv.innerText = 'A pedir permissão da câmara...';
+            statusDiv.innerText = 'A solicitar acesso à câmara...';
 
             const constraints = {
-                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'environment' },
+                video: { width: { ideal: 480 }, height: { ideal: 640 }, facingMode: 'environment' },
                 audio: false
             };
 
@@ -124,24 +118,22 @@
                         video.play().then(() => {
                             document.getElementById('menu').style.display = 'none';
                             document.getElementById('camera-view').style.display = 'block';
-                            statusDiv.innerText = 'Câmara ativa!';
+                            statusDiv.innerText = 'Câmara ativa & a rastrear!';
 
                             const canvas = document.getElementById('processedCanvas');
-                            canvas.width = video.videoWidth || 640;
-                            canvas.height = video.videoHeight || 480;
+                            canvas.width = 320; // Resolução otimizada para processamento rápido em tempo real
+                            canvas.height = 240;
 
-                            // Inicia o rastreio diretamente no canvas visual para garantir eficácia
-                            configurarRastreamento(canvas);
-                            iniciarLoopProcessamento(video, canvas);
+                            iniciarMotorVisao(video, canvas);
                         }).catch(err => {
-                            statusDiv.innerText = 'Erro ao reproduzir: ' + err.message;
+                            statusDiv.innerText = 'Erro ao reproduzir vídeo: ' + err.message;
                         });
                     };
                 })
                 .catch((err) => {
                     console.error(err);
-                    statusDiv.innerText = 'Erro: ' + err.name;
-                    alert('Erro ao aceder à câmara: ' + err.message);
+                    statusDiv.innerText = 'Erro de acesso: ' + err.name;
+                    alert('Não foi possível aceder à câmara: ' + err.message);
                 });
         }
 
@@ -149,41 +141,18 @@
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
             }
-            if (trackerTask) {
-                trackerTask.stop();
+            if (processingInterval) {
+                cancelAnimationFrame(processingInterval);
             }
             document.getElementById('camera-view').style.display = 'none';
             document.getElementById('menu').style.display = 'block';
             document.getElementById('status').innerText = 'Câmara desligada';
         }
 
-        function configurarRastreamento(elementToTrack) {
-            if (trackerTask) {
-                trackerTask.stop();
-            }
-
-            // Regista a cor vermelha personalizada caso não exista
-            if (!tracking.ColorTracker.getColor('red')) {
-                tracking.ColorTracker.registerColor('red', function(r, g, b) {
-                    return r > 120 && g < 70 && b < 70;
-                });
-            }
-
-            tracker = new tracking.ColorTracker([currentColor]);
-
-            // tracking.track com o canvas configurado para detetar cores em tempo real
-            trackerTask = tracking.track(elementToTrack, tracker, { camera: false, implicit: true });
-
-            tracker.on('track', function(event) {
-                detectedRects = event.data;
-            });
-        }
-
-        function trackColor(color) {
-            currentColor = color;
-            document.getElementById('status').innerText = 'A rastrear cor: ' + color;
-            const canvas = document.getElementById('processedCanvas');
-            configurarRastreamento(canvas);
+        function escolherCor(cor) {
+            targetColor = cor;
+            const nomes = { red: 'Vermelho', green: 'Verde', blue: 'Azul' };
+            document.getElementById('status').innerText = 'A rastrear: ' + nomes[cor];
         }
 
         function mudarFiltro(filtro) {
@@ -191,68 +160,104 @@
             document.getElementById('status').innerText = 'Modo de visão: ' + filtro;
         }
 
-        function iniciarLoopProcessamento(video, canvas) {
-            const ctx = canvas.getContext('2d');
+        // Conversor RGB para HSV para deteção de cor altamente precisa independentemente da luz
+        function rgbToHsv(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            let max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, v = max;
+            let d = max - min;
+            s = max === 0 ? 0 : d / max;
 
-            function loop() {
-                if (video.paused || video.ended) {
-                    requestAnimationFrame(loop);
-                    return;
+            if (max === min) {
+                h = 0;
+            } else {
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
                 }
-
-                if (canvas.width !== video.videoWidth && video.videoWidth > 0) {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                }
-
-                // 1. Desenha o frame limpo da câmara de base
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                // 2. Aplica filtros visuais se selecionados (Noturno ou Térmico)
-                if (currentFilter !== 'normal') {
-                    let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    let data = frame.data;
-
-                    for (let i = 0; i < data.length; i += 4) {
-                        let r = data[i];
-                        let g = data[i + 1];
-                        let b = data[i + 2];
-
-                        if (currentFilter === 'nightvision') {
-                            let avg = (r + g + b) / 3;
-                            data[i] = 0;
-                            data[i + 1] = avg * 2; // Realça o verde
-                            data[i + 2] = 0;
-                        } else if (currentFilter === 'thermal') {
-                            let brightness = (r + g + b) / 3;
-                            if (brightness > 160) {
-                                data[i] = 255; data[i + 1] = 255; data[i + 2] = 255;
-                            } else if (brightness > 80) {
-                                data[i] = 255; data[i + 1] = 120; data[i + 2] = 0;
-                            } else {
-                                data[i] = 0; data[i + 1] = 0; data[i + 2] = 180;
-                            }
-                        }
-                    }
-                    ctx.putImageData(frame, 0, 0);
-                }
-
-                // 3. Desenha as caixas verdes por cima se o tracking detetar o objeto selecionado
-                if (detectedRects && detectedRects.length > 0) {
-                    detectedRects.forEach(rect => {
-                        ctx.strokeStyle = '#00FF00';
-                        ctx.lineWidth = 4;
-                        ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-                        
-                        ctx.fillStyle = '#00FF00';
-                        ctx.font = '16px Arial';
-                        ctx.fillText(`Alvo Detetado`, rect.x, rect.y > 20 ? rect.y - 5 : 20);
-                    });
-                }
-
-                requestAnimationFrame(loop);
+                h /= 6;
             }
-            requestAnimationFrame(loop);
+            return [h * 360, s * 100, v * 100];
+        }
+
+        function iniciarMotorVisao(video, canvas) {
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+            function processFrame() {
+                if (video.paused || video.ended) return;
+
+                // Desenha o vídeo redimensionado para o canvas de processamento
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                let data = frame.data;
+
+                let minX = canvas.width, maxX = 0, minY = canvas.height, maxY = 0;
+                let pixelCount = 0;
+
+                // Loop de análise de píxeis otimizado
+                for (let i = 0; i < data.length; i += 4) {
+                    let r = data[i], g = data[i + 1], b = data[i + 2];
+
+                    // 1. Aplicação de Filtros Visuais nos píxeis
+                    if (currentFilter === 'nightvision') {
+                        let avg = (r + g + b) / 3;
+                        data[i] = 0; data[i + 1] = avg * 2.2; data[i + 2] = 0;
+                    } else if (currentFilter === 'thermal') {
+                        let brightness = (r + g + b) / 3;
+                        if (brightness > 150) { data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; }
+                        else if (brightness > 75) { data[i] = 255; data[i + 1] = 100; data[i + 2] = 0; }
+                        else { data[i] = 0; data[i + 1] = 0; data[i + 2] = 160; }
+                    }
+
+                    // 2. Deteção de Alvo por Cor (HSV)
+                    let [h, s, v] = rgbToHsv(r, g, b);
+                    let isMatch = false;
+
+                    if (targetColor === 'red') {
+                        // O vermelho cruza os 0º e 360º no círculo HSV
+                        if ((h < 15 || h > 345) && s > 45 && v > 35) isMatch = true;
+                    } else if (targetColor === 'green') {
+                        if (h > 75 && h < 165 && s > 40 && v > 30) isMatch = true;
+                    } else if (targetColor === 'blue') {
+                        if (h > 190 && h < 260 && s > 40 && v > 30) isMatch = true;
+                    }
+
+                    if (isMatch) {
+                        let x = (i / 4) % canvas.width;
+                        let y = Math.floor((i / 4) / canvas.width);
+                        
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                        pixelCount++;
+                    }
+                }
+
+                // Atualiza o canvas com os filtros visuais aplicados
+                ctx.putImageData(frame, 0, 0);
+
+                // 3. Desenha a Caixa Verde se encontrar o objeto de cor correspondente
+                if (pixelCount > 350) { // Limiar mínimo de píxeis para evitar falsos positivos
+                    let boxWidth = maxX - minX;
+                    let boxHeight = maxY - minY;
+
+                    if (boxWidth > 15 && boxHeight > 15) {
+                        ctx.strokeStyle = '#00FF00';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(minX, minY, boxWidth, boxHeight);
+
+                        ctx.fillStyle = '#00FF00';
+                        ctx.font = 'bold 12px Arial';
+                        ctx.fillText('ALVO DETETADO', minX, minY > 15 ? minY - 5 : 15);
+                    }
+                }
+
+                processingInterval = requestAnimationFrame(processFrame);
+            }
+
+            processingInterval = requestAnimationFrame(processFrame);
         }
 
         function tirarFoto() {
@@ -260,7 +265,7 @@
             const imageURL = canvas.toDataURL('image/png');
             const a = document.createElement('a');
             a.href = imageURL;
-            a.download = 'foto-capturada.png';
+            a.download = 'captura-inteligente.png';
             a.click();
         }
     </script>
