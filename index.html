@@ -26,7 +26,7 @@
             margin-top: 10px;
         }
 
-        /* Vídeo real invisível que alimenta o motor com segurança */
+        /* Vídeo real invisível para processamento interno e tracking */
         #webcamVideo { 
             position: absolute;
             top: 0;
@@ -37,7 +37,7 @@
             pointer-events: none;
         }
 
-        /* Canvas visível que mostra a imagem processada (normal, noturna, térmica e tracking) */
+        /* Canvas visível que exibe os filtros e as caixas verdes */
         canvas { 
             width: 100%; 
             height: auto;
@@ -77,9 +77,7 @@
     <!-- Ecrã da Câmara e Processamento -->
     <div id="camera-view" style="display: none;">
         <div class="video-container">
-            <!-- Vídeo de suporte oculto mas funcional -->
             <video id="webcamVideo" autoplay playsinline muted></video>
-            <!-- Canvas que exibe o resultado final com filtros e caixas -->
             <canvas id="processedCanvas"></canvas>
         </div>
 
@@ -169,6 +167,7 @@
                 trackerTask.stop();
             }
 
+            // Regista a cor vermelha personalizada caso não exista
             if (!tracking.ColorTracker.getColor('red')) {
                 tracking.ColorTracker.registerColor('red', function(r, g, b) {
                     return r > 120 && g < 70 && b < 70;
@@ -176,9 +175,9 @@
             }
 
             tracker = new tracking.ColorTracker([currentColor]);
-            tracker.setStepSize(1.7);
+            
+            // Removido o setStepSize inválido para o ColorTracker
 
-            // O tracking.js analisa diretamente o elemento de vídeo de origem oculta
             trackerTask = tracking.track(videoElement, tracker, { camera: false, implicit: true });
 
             tracker.on('track', function(event) {
@@ -209,16 +208,15 @@
                     return;
                 }
 
-                // Ajusta dimensões caso mudem
                 if (canvas.width !== video.videoWidth && video.videoWidth > 0) {
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                 }
 
-                // Copia o frame limpo da câmara para o canvas
+                // Desenha a imagem limpa da câmara de base
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // Aplica filtros de visão Noturna ou Térmica pixel a pixel com segurança
+                // Aplica filtros visuais se selecionados
                 if (currentFilter !== 'normal') {
                     let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     let data = frame.data;
@@ -230,24 +228,24 @@
 
                         if (currentFilter === 'nightvision') {
                             let avg = (r + g + b) / 3;
-                            data[i] = 0;         // Vermelho a 0
-                            data[i + 1] = avg * 2; // Verde amplificado
-                            data[i + 2] = 0;     // Azul a 0
+                            data[i] = 0;
+                            data[i + 1] = avg * 2; // Realça o verde
+                            data[i + 2] = 0;
                         } else if (currentFilter === 'thermal') {
                             let brightness = (r + g + b) / 3;
                             if (brightness > 160) {
-                                data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; // Branco (quente)
+                                data[i] = 255; data[i + 1] = 255; data[i + 2] = 255;
                             } else if (brightness > 80) {
-                                data[i] = 255; data[i + 1] = 120; data[i + 2] = 0;   // Laranja/Amarelo (médio)
+                                data[i] = 255; data[i + 1] = 120; data[i + 2] = 0;
                             } else {
-                                data[i] = 0; data[i + 1] = 0; data[i + 2] = 180;   // Azul escuro (frio)
+                                data[i] = 0; data[i + 1] = 0; data[i + 2] = 180;
                             }
                         }
                     }
                     ctx.putImageData(frame, 0, 0);
                 }
 
-                // Desenha o box verde à volta do objeto detetado pelo tracking.js
+                // Desenha as caixas verdes à volta dos alvos detetados
                 if (detectedRects && detectedRects.length > 0) {
                     detectedRects.forEach(rect => {
                         ctx.strokeStyle = '#00FF00';
