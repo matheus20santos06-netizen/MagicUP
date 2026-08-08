@@ -26,7 +26,6 @@
             display: block;
         }
 
-        /* O vídeo da câmera fica oculto e serve apenas como fonte para o processamento */
         #hiddenVideo { display: none; }
 
         .controls { margin-top: 15px; }
@@ -59,7 +58,6 @@
         
         <div class="video-container">
             <video id="hiddenVideo" autoplay playsinline muted></video>
-            <!-- Canvas processado que exibe os filtros e a transmissão -->
             <canvas id="processedCanvas"></canvas>
         </div>
 
@@ -71,12 +69,11 @@
         </div>
 
         <div class="panel">
-            <p><strong>Rastrear Cor:</strong></p>
+            <p><strong>Rastrear Cor (Exibe Box Verde):</strong></p>
             <button onclick="trackColor('magenta')" style="background: magenta">Magenta</button>
             <button onclick="trackColor('cyan')" style="background: cyan; color: black">Ciano</button>
             <button onclick="trackColor('yellow')" style="background: yellow; color: black">Amarelo</button>
             <button onclick="trackColor('red')" style="background: red">Vermelho</button>
-            <button onclick="trackColor('custom')">Personalizada</button>
         </div>
     </div>
 
@@ -127,17 +124,17 @@
                                 canvas.width = hiddenVideo.videoWidth || 640;
                                 canvas.height = hiddenVideo.videoHeight || 480;
 
-                                // Inicia o motor de renderização do canvas e filtros
-                                iniciarProcessamentoVisual(hiddenVideo, canvas);
-                                
-                                // Inicia o rastreamento de cor
+                                // 1. Ativa o motor de rastreamento de cor oficial no vídeo
                                 iniciarRastreamento(hiddenVideo);
 
-                                // Captura o stream gerado PELO CANVAS para enviar ao celular
-                                const processedStream = canvas.captureStream(25); // 25 Quadros por segundo
+                                // 2. Ativa o loop de renderização visual (filtros + box verde)
+                                iniciarProcessamentoVisual(hiddenVideo, canvas);
+                                
+                                // 3. Transmite o canvas processado via WebRTC
+                                const processedStream = canvas.captureStream(25);
                                 call.answer(processedStream);
                                 
-                                document.getElementById('status').innerText = 'Transmitindo com efeitos e rastreio!';
+                                document.getElementById('status').innerText = 'Transmitindo com rastreio ativo!';
                             };
                         })
                         .catch((err) => alert('Erro ao acessar a câmera: ' + err));
@@ -169,7 +166,7 @@
                     
                     call.on('stream', (remoteStream) => {
                         document.getElementById('remoteVideo').srcObject = remoteStream;
-                        document.getElementById('status').innerText = 'Conectado! Exibindo visão processada do tablet.';
+                        document.getElementById('status').innerText = 'Conectado! Exibindo visão processada.';
                     });
 
                     call.on('close', () => {
@@ -194,52 +191,80 @@
             a.click();
         }
 
-        // --- Filtros de Imagem (Modos de Visão) ---
         function mudarFiltro(filtro) {
             currentFilter = filtro;
             document.getElementById('status').innerText = 'Modo de visão: ' + filtro;
         }
 
-        // --- Motor de Processamento do Canvas (Desenha filtros + caixas verdes) ---
+        // Configuração correta do rastreamento de cores do tracking.js
+        function iniciarRastreamento(videoElement) {
+            if (trackerTask) {
+                trackerTask.stop();
+            }
+
+            // Registra cor vermelha personalizada se necessário
+            if (currentColor === 'red') {
+                tracking.ColorTracker.registerColor('red', function(r, g, b) {
+                    return r > 120 && g < 70 && b < 70; // Filtro de vermelho forte
+                });
+            }
+
+            const tracker = new tracking.ColorTracker([currentColor]);
+            tracker.setStepSize(1.7);
+
+            trackerTask = tracking.track(videoElement, tracker, { camera: true, implicit: true });
+
+            tracker.on('track', function(event) {
+                detectedRects = event.data; // Armazena as posições detectadas para o canvas desenhar
+            });
+        }
+
+        function trackColor(color) {
+            currentColor = color;
+            document.getElementById('status').innerText = 'Rastreando cor: ' + color;
+            iniciarRastreamento(document.getElementById('hiddenVideo'));
+        }
+
+        // Renderiza os filtros e desenha o box verde sobre os alvos encontrados
         function iniciarProcessamentoVisual(video, canvas) {
             const ctx = canvas.getContext('2d');
 
             function loop() {
                 if (video.paused || video.ended) return;
 
-                // 1. Desenha o vídeo base no canvas (espelhado ou não, ajuste conforme preferir)
+                // Desenha a imagem base da câmera
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // 2. Aplica manipulação de pixels baseada no filtro escolhido
-                let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                let data = frame.data;
+                // Aplica filtros visuais se estiverem ativados
+                if (currentFilter !== 'normal') {
+                    let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    let data = frame.data;
 
-                for (let i = 0; i < data.length; i += 4) {
-                    let r = data[i];
-                    let g = data[i + 1];
-                    let b = data[i + 2];
+                    for (let i = 0; i < data.length; i += 4) {
+                        let r = data[i];
+                        let g = data[i + 1];
+                        let b = data[i + 2];
 
-                    if (currentFilter === 'nightvision') {
-                        // Visão Noturna: Amplifica o verde e reduz vermelho/azul
-                        let avg = (r + g + b) / 3;
-                        data[i] = 0;        // Vermelho
-                        data[i + 1] = avg * 1.8; // Verde reforçado
-                        data[i + 2] = 0;    // Azul
-                    } else if (currentFilter === 'thermal') {
-                        // Simulação Térmica Básica baseada na luminosidade
-                        let brightness = (r + g + b) / 3;
-                        if (brightness > 180) {
-                            data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; // Quente (Branco/Amarelo)
-                        } else if (brightness > 100) {
-                            data[i] = 255; data[i + 1] = 100; data[i + 2] = 0;   // Médio (Laranja)
-                        } else {
-                            data[i] = 0; data[i + 1] = 0; data[i + 2] = 150;     // Frio (Azul escuro)
+                        if (currentFilter === 'nightvision') {
+                            let avg = (r + g + b) / 3;
+                            data[i] = 0;
+                            data[i + 1] = avg * 2; // Realça o verde
+                            data[i + 2] = 0;
+                        } else if (currentFilter === 'thermal') {
+                            let brightness = (r + g + b) / 3;
+                            if (brightness > 160) {
+                                data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; // Quente
+                            } else if (brightness > 80) {
+                                data[i] = 255; data[i + 1] = 120; data[i + 2] = 0;   // Médio
+                            } else {
+                                data[i] = 0; data[i + 1] = 0; data[i + 2] = 180;     // Frio
+                            }
                         }
                     }
+                    ctx.putImageData(frame, 0, 0);
                 }
-                ctx.putImageData(frame, 0, 0);
 
-                // 3. Desenha as caixas verdes do objeto detectado ao redor dele
+                // Desenha o Box Verde ao redor de cada objeto detectado
                 if (detectedRects && detectedRects.length > 0) {
                     detectedRects.forEach(rect => {
                         ctx.strokeStyle = '#00FF00';
@@ -248,38 +273,13 @@
                         
                         ctx.fillStyle = '#00FF00';
                         ctx.font = '16px Arial';
-                        ctx.fillText('Alvo Detectado', rect.x, rect.y > 20 ? rect.y - 5 : 20);
+                        ctx.fillText(`Alvo (${currentColor})`, rect.x, rect.y > 20 ? rect.y - 5 : 20);
                     });
                 }
 
                 requestAnimationFrame(loop);
             }
             requestAnimationFrame(loop);
-        }
-
-        // --- Rastreamento de Cores ---
-        function trackColor(color) {
-            currentColor = color;
-            document.getElementById('status').innerText = 'Rastreando cor: ' + color;
-            if (trackerTask) trackerTask.stop();
-            iniciarRastreamento(document.getElementById('hiddenVideo'));
-        }
-
-        function iniciarRastreamento(videoElement) {
-            // Extensão customizada de cores caso queira calibrar o vermelho
-            if (currentColor === 'custom') {
-                tracking.ColorTracker.registerColor('red', function(r, g, b) {
-                    return r > 150 && g < 80 && b < 80;
-                });
-                currentColor = 'red';
-            }
-
-            const colors = new tracking.ColorTracker([currentColor]);
-            trackerTask = tracking.track(videoElement, colors, { camera: false });
-
-            colors.on('track', function(event) {
-                detectedRects = event.data; // Salva as coordenadas para o loop do canvas desenhar
-            });
         }
     </script>
 </body>
