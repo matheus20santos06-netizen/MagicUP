@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Câmara Inteligente</title>
+    <title>Câmara Inteligente com Rastreio</title>
     <!-- Importando tracking.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/data/color-min.js"></script>
@@ -26,18 +26,12 @@
             margin-top: 10px;
         }
 
-        /* Vídeo real invisível para processamento interno e tracking */
+        /* Vídeo real a correr em background mas pronto */
         #webcamVideo { 
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            pointer-events: none;
+            display: none;
         }
 
-        /* Canvas visível que exibe os filtros e as caixas verdes */
+        /* Canvas principal visível que mostra tudo e onde o tracking atua */
         canvas { 
             width: 100%; 
             height: auto;
@@ -67,7 +61,7 @@
 </head>
 <body>
 
-    <h2>Câmara Inteligente</h2>
+    <h2>Câmara Inteligente com Rastreio</h2>
     <div id="status">Toque no botão para iniciar</div>
 
     <div id="menu">
@@ -136,7 +130,8 @@
                             canvas.width = video.videoWidth || 640;
                             canvas.height = video.videoHeight || 480;
 
-                            configurarRastreamento(video);
+                            // Inicia o rastreio diretamente no canvas visual para garantir eficácia
+                            configurarRastreamento(canvas);
                             iniciarLoopProcessamento(video, canvas);
                         }).catch(err => {
                             statusDiv.innerText = 'Erro ao reproduzir: ' + err.message;
@@ -162,7 +157,7 @@
             document.getElementById('status').innerText = 'Câmara desligada';
         }
 
-        function configurarRastreamento(videoElement) {
+        function configurarRastreamento(elementToTrack) {
             if (trackerTask) {
                 trackerTask.stop();
             }
@@ -175,10 +170,9 @@
             }
 
             tracker = new tracking.ColorTracker([currentColor]);
-            
-            // Removido o setStepSize inválido para o ColorTracker
 
-            trackerTask = tracking.track(videoElement, tracker, { camera: false, implicit: true });
+            // tracking.track com o canvas configurado para detetar cores em tempo real
+            trackerTask = tracking.track(elementToTrack, tracker, { camera: false, implicit: true });
 
             tracker.on('track', function(event) {
                 detectedRects = event.data;
@@ -188,10 +182,8 @@
         function trackColor(color) {
             currentColor = color;
             document.getElementById('status').innerText = 'A rastrear cor: ' + color;
-            const video = document.getElementById('webcamVideo');
-            if (video.srcObject) {
-                configurarRastreamento(video);
-            }
+            const canvas = document.getElementById('processedCanvas');
+            configurarRastreamento(canvas);
         }
 
         function mudarFiltro(filtro) {
@@ -213,10 +205,10 @@
                     canvas.height = video.videoHeight;
                 }
 
-                // Desenha a imagem limpa da câmara de base
+                // 1. Desenha o frame limpo da câmara de base
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // Aplica filtros visuais se selecionados
+                // 2. Aplica filtros visuais se selecionados (Noturno ou Térmico)
                 if (currentFilter !== 'normal') {
                     let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     let data = frame.data;
@@ -245,7 +237,7 @@
                     ctx.putImageData(frame, 0, 0);
                 }
 
-                // Desenha as caixas verdes à volta dos alvos detetados
+                // 3. Desenha as caixas verdes por cima se o tracking detetar o objeto selecionado
                 if (detectedRects && detectedRects.length > 0) {
                     detectedRects.forEach(rect => {
                         ctx.strokeStyle = '#00FF00';
