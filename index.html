@@ -3,23 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Câmera de Segurança Web</title>
-    <!-- Importando o PeerJS para conexão P2P gratuita -->
+    <title>Câmera de Segurança com Rastreamento</title>
+    <!-- Importando PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- Importando tracking.js para visão computacional -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
+    <!-- Importando os dados de rastreamento de cor (inclui magenta, ciano, amarelo) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/data/color-min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #121212; color: #fff; text-align: center; margin: 0; padding: 20px; }
-        video { width: 100%; max-width: 500px; border-radius: 10px; background: #000; transform: scaleX(-1); }
+        body { font-family: Arial, sans-serif; background: #121212; color: #fff; text-align: center; margin: 0; padding: 10px; overflow-x: hidden;}
+        
+        /* Container do vídeo e canvas */
+        .video-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        video { 
+            width: 100%; 
+            border-radius: 10px; 
+            background: #000; 
+            transform: scaleX(-1); /* Espelhado para o usuário */
+            display: block;
+        }
+
+        /* O Canvas onde a caixa verde é desenhada */
+        #overlayCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1); /* Espelhado para alinhar com o vídeo */
+            pointer-events: none; /* Clique passa através dele */
+        }
+
         .controls { margin-top: 15px; }
         button { padding: 12px 20px; font-size: 16px; background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
         button:hover { background: #0051a2; }
         input { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; width: 80%; max-width: 300px; margin-bottom: 10px; }
         .hidden { display: none; }
-        #status { font-weight: bold; margin: 10px 0; color: #ffcc00; }
+        #status { font-weight: bold; margin: 10px 0; color: #ffcc00; font-size: 1.2em; }
+        
+        /* Configuração do seletor de cor */
+        #color-controls { background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; display: inline-block; margin-top: 10px;}
     </style>
 </head>
 <body>
 
-    <h2>Câmera de Segurança P2P</h2>
+    <h2>Câmera de Segurança Inteligente</h2>
     <div id="status">Desconectado</div>
 
     <!-- Menu Inicial -->
@@ -32,22 +66,38 @@
 
     <!-- Tela da Câmera (Tablet) -->
     <div id="camera-view" class="hidden">
-        <h3>Transmitindo Câmera</h3>
-        <p>Seu ID de Conexão:</p>
-        <h2 id="my-peer-id" style="color: #00ff00;">Gerando...</h2>
-        <video id="localVideo" autoplay playsinline muted></video>
+        <h3>Transmitindo e Rastreador Ativo</h3>
+        <p>Seu ID: <span id="my-peer-id" style="color: #00ff00;">Gerando...</span></p>
+        
+        <div class="video-container">
+            <video id="localVideo" autoplay playsinline muted></video>
+            <!-- Canvas sobreposto para desenhar a caixa verde -->
+            <canvas id="overlayCanvas"></canvas>
+        </div>
+
+        <div id="color-controls">
+            <p>Cor para rastrear:</p>
+            <button onclick="trackColor('magenta')" style="background: magenta">Magenta</button>
+            <button onclick="trackColor('cyan')" style="background: cyan; color: black">Ciano</button>
+            <button onclick="trackColor('yellow')" style="background: yellow; color: black">Amarelo</button>
+            <p><small>Coloque um objeto dessa cor na frente da câmera.</small></p>
+        </div>
     </div>
 
     <!-- Tela do Monitor (Celular) -->
     <div id="monitor-view" class="hidden">
-        <h3>Visualizador</h3>
+        <h3>Visualizador Remoto</h3>
         <input type="text" id="remote-id-input" placeholder="Digite o ID do Tablet">
         <br>
         <button onclick="conectarAoTablet()">Conectar à Câmera</button>
         <br><br>
-        <video id="remoteVideo" autoplay playsinline></video>
+        <div class="video-container">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <!-- Opcional: Canvas no monitor também, se o stream WebRTC passar o canvas junto (complexo) -->
+            <!-- Por simplicidade, no celular mostramos apenas o vídeo puro -->
+        </div>
         <div class="controls">
-            <button onclick="tirarFoto()">Tirar Foto</button>
+            <button onclick="tirarFoto()">Salvar Captura</button>
         </div>
         <canvas id="snapshot" class="hidden"></canvas>
     </div>
@@ -55,9 +105,10 @@
     <script>
         let peer;
         let localStream;
-        let currentCall;
+        let trackerTask;
+        let currentColor = 'magenta'; // Cor padrão
 
-        // Inicializa o Peer
+        // --- Funções de Inicialização ---
         function initPeer(isCamera = false) {
             peer = new Peer();
 
@@ -72,15 +123,17 @@
 
             if (isCamera) {
                 peer.on('call', (call) => {
+                    // Importante: No tablet, usar câmera traseira ('environment')
                     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
                         .then((stream) => {
                             localStream = stream;
-                            document.getElementById('localVideo').srcObject = stream;
-                            call.answer(stream); // Responde à chamada enviando o vídeo
+                            const videoElement = document.getElementById('localVideo');
+                            videoElement.srcObject = stream;
+                            call.answer(stream); 
                             document.getElementById('status').innerText = 'Transmitindo ao vivo!';
                             
-                            // Detecção básica de movimento usando canvas invisível
-                            ativarDetectorDeMovimento(stream);
+                            // Inicia o rastreador de cor no vídeo local
+                            iniciarRastreamento(videoElement);
                         })
                         .catch((err) => alert('Erro ao acessar a câmera: ' + err));
                 });
@@ -99,27 +152,28 @@
             initPeer(false);
         }
 
+        // --- Funções do Monitor (Celular) ---
         function conectarAoTablet() {
             const remoteId = document.getElementById('remote-id-input').value;
             if (!remoteId) return alert('Insira o ID do tablet!');
 
             document.getElementById('status').innerText = 'Conectando...';
             
+            // Pede permissão de áudio/vídeo no celular para iniciar a mão dupla WebRTC
             navigator.mediaDevices.getUserMedia({ video: true, audio: false })
                 .then((stream) => {
                     const call = peer.call(remoteId, stream);
-                    currentCall = call;
                     
                     call.on('stream', (remoteStream) => {
                         document.getElementById('remoteVideo').srcObject = remoteStream;
-                        document.getElementById('status').innerText = 'Conectado com sucesso!';
+                        document.getElementById('status').innerText = 'Conectado com sucesso! Visualizando a câmera do tablet.';
                     });
 
                     call.on('close', () => {
                         document.getElementById('status').innerText = 'Conexão encerrada.';
                     });
                 })
-                .catch((err) => alert('Erro de mídia: ' + err));
+                .catch((err) => alert('Erro de mídia no celular: ' + err));
         }
 
         function tirarFoto() {
@@ -133,45 +187,70 @@
             const imageURL = canvas.toDataURL('image/png');
             const a = document.createElement('a');
             a.href = imageURL;
-            a.download = 'seguranca-captura.png';
+            a.download = 'rastreamento-captura.png';
             a.click();
         }
 
-        // Detecção de movimento simples via JavaScript (Analisa diferença de pixels no Canvas)
-        function ativarDetectorDeMovimento(stream) {
-            const video = document.getElementById('localVideo');
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = 160; // Resolução baixa para processar rápido
-            canvas.height = 120;
+        // --- Funções de Rastreamento de Cor (Mágica Acontece Aqui) ---
 
-            let prevData = null;
-
-            setInterval(() => {
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const currData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-
-                if (prevData) {
-                    let diff = 0;
-                    for (let i = 0; i < currData.inArrayLength || i < currData.length; i += 4) {
-                        // Compara canal Vermelho dos pixels
-                        if (Math.abs(currData[i] - prevData[i]) > 30) {
-                            diff++;
-                        }
-                    }
-
-                    // Se a diferença de pixels passar de um limite, considera movimento
-                    if (diff > 2000) {
-                        console.log('Movimento detectado!');
-                        document.getElementById('status').innerText = '⚠️ Movimento Detectado!';
-                        setTimeout(() => {
-                            document.getElementById('status').innerText = 'Transmitindo ao vivo!';
-                        }, 3000);
-                    }
-                }
-                prevData = currData;
-            }, 1000); // Analisa a cada 1 segundo
+        // Função para alterar a cor alvo pelos botões
+        function trackColor(color) {
+            currentColor = color;
+            document.getElementById('status').innerText = 'Rastreando: ' + color;
+            // Se já estiver rodando, reinicia o rastreador com a nova cor
+            if (trackerTask) {
+                trackerTask.stop();
+                const videoElement = document.getElementById('localVideo');
+                iniciarRastreamento(videoElement);
+            }
         }
+
+        function iniciarRastreamento(videoElement) {
+            // Define que queremos rastrear cores customizadas (magenta, cyan, yellow)
+            const colors = new tracking.ColorTracker([currentColor]);
+            
+            // Anexa o rastreador ao elemento de vídeo na tela
+            trackerTask = tracking.track(videoElement, colors, { camera: true });
+
+            // Configura o canvas para desenhar
+            const canvas = document.getElementById('overlayCanvas');
+            const context = canvas.getContext('2d');
+
+            // Ajusta o tamanho do canvas para coincidir com o vídeo
+            videoElement.addEventListener('loadedmetadata', function() {
+                canvas.width = videoElement.videoWidth;
+                canvas.height = videoElement.videoHeight;
+            });
+
+            // Evento que roda toda vez que o tracking.js encontra a cor
+            colors.on('track', function(event) {
+                // Limpa o desenho anterior do canvas
+                context.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (event.data.length === 0) {
+                    // Nenhum objeto da cor detectado
+                } else {
+                    // Se detectou, itera sobre todos os objetos encontrados daquela cor
+                    event.data.forEach(function(rect) {
+                        // Desenha o retângulo verde
+                        context.strokeStyle = '#00FF00'; // Cor Verde Neon
+                        context.lineWidth = 4;
+                        // rect.x, rect.y, rect.width, rect.height são as coordenadas
+                        context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+                        
+                        // Opcional: Escreve o centro do objeto detectado
+                        context.fillStyle = '#00FF00';
+                        context.fillText('Objeto Detectado', rect.x + 5, rect.y + 15);
+                    });
+                }
+            });
+        }
+
+        // Para garantir que o tracking para se o usuário fechar a aba
+        window.addEventListener('beforeunload', () => {
+            if (trackerTask) trackerTask.stop();
+        });
+
     </script>
 </body>
 </html>
