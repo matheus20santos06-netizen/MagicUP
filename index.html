@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Câmara Inteligente no Telemóvel</title>
+    <title>Câmara Inteligente</title>
     <!-- Importando tracking.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/data/color-min.js"></script>
@@ -26,22 +26,13 @@
             margin-top: 10px;
         }
 
+        /* O elemento de vídeo agora é visível e serve de base principal */
         video, canvas { 
             width: 100%; 
+            height: auto;
             border-radius: 10px; 
-            background: #000; 
+            background: #222; 
             display: block;
-        }
-
-        /* Vídeo original escondido apenas para o motor ler os frames */
-        #hiddenVideo { 
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            pointer-events: none;
         }
 
         .controls { margin-top: 15px; }
@@ -65,24 +56,24 @@
 </head>
 <body>
 
-    <h2>Câmara Inteligente (Modo Único)</h2>
+    <h2>Câmara Inteligente</h2>
     <div id="status">Toque no botão para iniciar</div>
 
     <div id="menu">
-        <button onclick="iniciarCamara()" style="font-size: 18px; padding: 15px 25px;">Ligar Câmara do Telemóvel</button>
+        <button onclick="iniciarCamara()" style="font-size: 18px; padding: 15px 25px;">Ligar Câmara</button>
     </div>
 
     <!-- Ecrã da Câmara e Processamento -->
     <div id="camera-view" style="display: none;">
         <div class="video-container">
-            <!-- Atributos essenciais para evitar tela preta no mobile -->
-            <video id="hiddenVideo" autoplay playsinline muted></video>
-            <canvas id="processedCanvas"></canvas>
+            <!-- Vídeo real visível com propriedades obrigatórias para dispositivos móveis -->
+            <video id="webcamVideo" autoplay playsinline muted></video>
+            <!-- Canvas colocado por cima a processar os filtros e rastreio -->
+            <canvas id="processedCanvas" style="display:none;"></canvas>
         </div>
 
         <div class="controls">
             <button onclick="tirarFoto()">Tirar Foto</button>
-            <button id="btnRec" onclick="alternarGravacao()">Gravar Vídeo</button>
             <button class="danger" onclick="pararCamara()">Desligar</button>
         </div>
 
@@ -109,47 +100,42 @@
         let currentFilter = 'normal';
         let detectedRects = [];
         let mediaStream = null;
-        let mediaRecorder = null;
-        let recordedChunks = [];
-        let isRecording = false;
 
         function iniciarCamara() {
-            const hiddenVideo = document.getElementById('hiddenVideo');
-            const canvas = document.getElementById('processedCanvas');
+            const video = document.getElementById('webcamVideo');
             const statusDiv = document.getElementById('status');
 
-            statusDiv.innerText = 'A solicitar acesso à câmara...';
+            statusDiv.innerText = 'A pedir permissão da câmara...';
 
-            // Tenta usar a câmara traseira por predefinição no telemóvel
-            navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: { ideal: 'environment' } }, 
-                audio: true 
-            })
-            .then((stream) => {
-                mediaStream = stream;
-                hiddenVideo.srcObject = stream;
-                
-                // Força a reprodução para prevenir tela preta no mobile
-                hiddenVideo.play().then(() => {
-                    document.getElementById('menu').style.display = 'none';
-                    document.getElementById('camera-view').style.display = 'block';
-                    statusDiv.innerText = 'Câmara ativa e a processar!';
+            // Restrição simplificada para garantir compatibilidade máxima em qualquer telemóvel
+            const constraints = {
+                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'environment' },
+                audio: false
+            };
 
-                    canvas.width = hiddenVideo.videoWidth || 640;
-                    canvas.height = hiddenVideo.videoHeight || 480;
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then((stream) => {
+                    mediaStream = stream;
+                    video.srcObject = stream;
+                    
+                    video.onloadedmetadata = () => {
+                        video.play().then(() => {
+                            document.getElementById('menu').style.display = 'none';
+                            document.getElementById('camera-view').style.display = 'block';
+                            statusDiv.innerText = 'Câmara ativa!';
 
-                    configurarRastreamento(hiddenVideo);
-                    iniciarProcessamentoVisual(hiddenVideo, canvas);
-                }).catch(e => {
-                    statusDiv.innerText = 'Erro ao reproduzir vídeo. Toque no ecrã.';
-                    console.error(e);
+                            // Inicia o loop de processamento por canvas se houver filtros/rastreio ativados
+                            iniciarProcessamentoReal(video);
+                        }).catch(err => {
+                            statusDiv.innerText = 'Erro ao reproduzir: ' + err.message;
+                        });
+                    };
+                })
+                .catch((err) => {
+                    console.error(err);
+                    statusDiv.innerText = 'Erro: ' + err.name;
+                    alert('Erro ao aceder à câmara. Verifique se deu permissão nas definições do navegador. Detalhe: ' + err.message);
                 });
-            })
-            .catch((err) => {
-                console.error(err);
-                statusDiv.innerText = 'Erro: Permissão negada ou câmara ocupada.';
-                alert('Não foi possível aceder à câmara: ' + err.message);
-            });
         }
 
         function pararCamara() {
@@ -188,16 +174,34 @@
         function trackColor(color) {
             currentColor = color;
             document.getElementById('status').innerText = 'A rastrear cor: ' + color;
-            configurarRastreamento(document.getElementById('hiddenVideo'));
+            if (document.getElementById('webcamVideo').srcObject) {
+                configurarRastreamento(document.getElementById('webcamVideo'));
+            }
         }
 
         function mudarFiltro(filtro) {
             currentFilter = filtro;
+            const canvas = document.getElementById('processedCanvas');
+            const video = document.getElementById('webcamVideo');
+
+            if (filtro === 'normal') {
+                canvas.style.display = 'none';
+                video.style.display = 'block';
+            } else {
+                video.style.display = 'none';
+                canvas.style.display = 'block';
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 480;
+                configurarRastreamento(video);
+            }
             document.getElementById('status').innerText = 'Modo de visão: ' + filtro;
         }
 
-        function iniciarProcessamentoVisual(video, canvas) {
+        function iniciarProcessamentoReal(video) {
+            const canvas = document.getElementById('processedCanvas');
             const ctx = canvas.getContext('2d');
+
+            configurarRastreamento(video);
 
             function loop() {
                 if (video.paused || video.ended) {
@@ -205,11 +209,14 @@
                     return;
                 }
 
-                // Desenha o frame original da câmara no canvas
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                // Aplica filtros visuais (Noturno / Térmico)
                 if (currentFilter !== 'normal') {
+                    if (canvas.width !== video.videoWidth && video.videoWidth > 0) {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                    }
+
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
                     let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     let data = frame.data;
 
@@ -235,19 +242,18 @@
                         }
                     }
                     ctx.putImageData(frame, 0, 0);
-                }
 
-                // Desenha caixas de rastreio de cor se encontrar objetos
-                if (detectedRects && detectedRects.length > 0) {
-                    detectedRects.forEach(rect => {
-                        ctx.strokeStyle = '#00FF00';
-                        ctx.lineWidth = 4;
-                        ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-                        
-                        ctx.fillStyle = '#00FF00';
-                        ctx.font = '16px Arial';
-                        ctx.fillText(`Alvo Detetado`, rect.x, rect.y > 20 ? rect.y - 5 : 20);
-                    });
+                    if (detectedRects && detectedRects.length > 0) {
+                        detectedRects.forEach(rect => {
+                            ctx.strokeStyle = '#00FF00';
+                            ctx.lineWidth = 4;
+                            ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+                            
+                            ctx.fillStyle = '#00FF00';
+                            ctx.font = '16px Arial';
+                            ctx.fillText(`Alvo Detetado`, rect.x, rect.y > 20 ? rect.y - 5 : 20);
+                        });
+                    }
                 }
 
                 requestAnimationFrame(loop);
@@ -256,66 +262,21 @@
         }
 
         function tirarFoto() {
+            const video = document.getElementById('webcamVideo');
             const canvas = document.getElementById('processedCanvas');
-            const imageURL = canvas.toDataURL('image/png');
+            const activeElement = (currentFilter === 'normal') ? video : canvas;
+
+            const fotoCanvas = document.createElement('canvas');
+            fotoCanvas.width = video.videoWidth || 640;
+            fotoCanvas.height = video.videoHeight || 480;
+            const ctx = fotoCanvas.getContext('2d');
+            ctx.drawImage(activeElement, 0, 0, fotoCanvas.width, fotoCanvas.height);
+
+            const imageURL = fotoCanvas.toDataURL('image/png');
             const a = document.createElement('a');
             a.href = imageURL;
-            a.download = 'foto-processada.png';
+            a.download = 'foto-capturada.png';
             a.click();
-        }
-
-        function alternarGravacao() {
-            const canvas = document.getElementById('processedCanvas');
-            const btnRec = document.getElementById('btnRec');
-
-            if (!isRecording) {
-                recordedChunks = [];
-                // Captura o fluxo diretamente do canvas já com os filtros e rastreio aplicados
-                const canvasStream = canvas.captureStream(25);
-                
-                // Junta o som da câmara se estiver disponível
-                if (mediaStream && mediaStream.getAudioTracks().length > 0) {
-                    canvasStream.addTrack(mediaStream.getAudioTracks()[0]);
-                }
-
-                try {
-                    mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
-                } catch (e) {
-                    try {
-                        mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/mp4' });
-                    } catch (err) {
-                        mediaRecorder = new MediaRecorder(canvasStream);
-                    }
-                }
-
-                mediaRecorder.ondataavailable = function(event) {
-                    if (event.data.size > 0) {
-                        recordedChunks.push(event.data);
-                    }
-                };
-
-                mediaRecorder.onstop = function() {
-                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = 'video-processado.webm';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                };
-
-                mediaRecorder.start();
-                isRecording = true;
-                btnRec.innerText = 'Parar Gravação';
-                btnRec.style.background = '#e00000';
-            } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                btnRec.innerText = 'Gravar Vídeo';
-                btnRec.style.background = '#0070f3';
-            }
         }
     </script>
 </body>
