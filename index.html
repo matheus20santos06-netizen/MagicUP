@@ -3,20 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Câmara de Segurança Inteligente P2P</title>
-    <!-- Importando PeerJS -->
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <title>Câmara Inteligente no Telemóvel</title>
     <!-- Importando tracking.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/data/color-min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #121212; color: #fff; text-align: center; margin: 0; padding: 10px; overflow-x: hidden; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #121212; 
+            color: #fff; 
+            text-align: center; 
+            margin: 0; 
+            padding: 10px; 
+            overflow-x: hidden; 
+        }
         
         .video-container {
             position: relative;
             display: inline-block;
             width: 100%;
             max-width: 500px;
+            margin-top: 10px;
         }
 
         video, canvas { 
@@ -26,7 +33,7 @@
             display: block;
         }
 
-        /* Vídeo visível escondido apenas para o tracking processar */
+        /* Vídeo original escondido apenas para o motor ler os frames */
         #hiddenVideo { 
             position: absolute;
             top: 0;
@@ -38,37 +45,45 @@
         }
 
         .controls { margin-top: 15px; }
-        button { padding: 10px 15px; font-size: 14px; background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 4px; }
+        button { 
+            padding: 10px 15px; 
+            font-size: 14px; 
+            background: #0070f3; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 4px; 
+        }
         button:hover { background: #0051a2; }
-        input { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; width: 80%; max-width: 300px; margin-bottom: 10px; }
-        .hidden { display: none; }
-        #status { font-weight: bold; margin: 10px 0; color: #ffcc00; font-size: 1.1em; }
+        .danger { background: #e00000; }
+        .danger:hover { background: #a00000; }
         
+        #status { font-weight: bold; margin: 10px 0; color: #ffcc00; font-size: 1.1em; }
         .panel { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <h2>Câmara de Segurança Inteligente</h2>
-    <div id="status">Desligado</div>
+    <h2>Câmara Inteligente (Modo Único)</h2>
+    <div id="status">Toque no botão para iniciar</div>
 
-    <!-- Menu Inicial -->
     <div id="menu">
-        <p>Escolha o modo deste dispositivo:</p>
-        <button onclick="iniciarModoCamera()" style="font-size: 18px; padding: 15px 25px;">Modo Câmara (Tablet/Dispositivo)</button>
-        <br><br>
-        <button onclick="iniciarModoMonitor()" style="font-size: 18px; padding: 15px 25px;">Modo Monitor (Telemóvel)</button>
+        <button onclick="iniciarCamara()" style="font-size: 18px; padding: 15px 25px;">Ligar Câmara do Telemóvel</button>
     </div>
 
-    <!-- Ecrã da Câmara -->
-    <div id="camera-view" class="hidden">
-        <h3>A Transmitir & Processar</h3>
-        <p>O seu ID: <span id="my-peer-id" style="color: #00ff00;">A gerar...</span></p>
-        
+    <!-- Ecrã da Câmara e Processamento -->
+    <div id="camera-view" style="display: none;">
         <div class="video-container">
             <!-- Atributos essenciais para evitar tela preta no mobile -->
             <video id="hiddenVideo" autoplay playsinline muted></video>
             <canvas id="processedCanvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <button onclick="tirarFoto()">Tirar Foto</button>
+            <button id="btnRec" onclick="alternarGravacao()">Gravar Vídeo</button>
+            <button class="danger" onclick="pararCamara()">Desligar</button>
         </div>
 
         <div class="panel">
@@ -87,159 +102,66 @@
         </div>
     </div>
 
-    <!-- Ecrã do Monitor (Telemóvel) -->
-    <div id="monitor-view" class="hidden">
-        <h3>Visualizador Remoto</h3>
-        <input type="text" id="remote-id-input" placeholder="Digite o ID da Câmara">
-        <br>
-        <button onclick="conectarAoTablet()">Ligar à Câmara</button>
-        <br><br>
-        <div class="video-container">
-            <video id="remoteVideo" autoplay playsinline muted></video>
-        </div>
-        <div class="controls">
-            <button onclick="tirarFoto()">Guardar Captura</button>
-        </div>
-        <canvas id="snapshot" class="hidden"></canvas>
-    </div>
-
     <script>
-        let peer;
         let tracker;
         let trackerTask;
         let currentColor = 'magenta';
         let currentFilter = 'normal';
         let detectedRects = [];
+        let mediaStream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
 
-        function initPeer(isCamera = false) {
-            peer = new Peer({
-                secure: true,
-                config: {
-                    'iceServers': [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ]
-                }
-            });
-
-            peer.on('open', (id) => {
-                if (isCamera) {
-                    document.getElementById('my-peer-id').innerText = id;
-                    document.getElementById('status').innerText = 'À espera de ligação...';
-                } else {
-                    document.getElementById('status').innerText = 'Pronto para ligar';
-                }
-            });
-
-            peer.on('error', (err) => {
-                console.error(err);
-                document.getElementById('status').innerText = 'Erro na ligação: ' + err.type;
-            });
-
-            if (isCamera) {
-                peer.on('call', (call) => {
-                    const hiddenVideo = document.getElementById('hiddenVideo');
-                    const canvas = document.getElementById('processedCanvas');
-                    const ctx = canvas.getContext('2d');
-
-                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-                        .then((stream) => {
-                            hiddenVideo.srcObject = stream;
-                            hiddenVideo.play().then(() => {
-                                canvas.width = hiddenVideo.videoWidth || 640;
-                                canvas.height = hiddenVideo.videoHeight || 480;
-
-                                configurarRastreamento(hiddenVideo);
-                                iniciarProcessamentoVisual(hiddenVideo, canvas);
-                                
-                                const processedStream = canvas.captureStream(25);
-                                call.answer(processedStream);
-                                
-                                document.getElementById('status').innerText = 'A transmitir com rastreio ativo!';
-                            }).catch(e => {
-                                alert('Toque na tela ou clique para permitir reprodução de vídeo.');
-                            });
-                        })
-                        .catch((err) => alert('Erro ao aceder à câmara: ' + err));
-                });
-            }
-        }
-
-        function iniciarModoCamera() {
-            document.getElementById('menu').classList.add('hidden');
-            document.getElementById('camera-view').classList.remove('hidden');
-            
-            // Inicialização imediata local para teste/garantia de feed visível
+        function iniciarCamara() {
             const hiddenVideo = document.getElementById('hiddenVideo');
             const canvas = document.getElementById('processedCanvas');
-            
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-                .then((stream) => {
-                    hiddenVideo.srcObject = stream;
-                    hiddenVideo.play().then(() => {
-                        canvas.width = hiddenVideo.videoWidth || 640;
-                        canvas.height = hiddenVideo.videoHeight || 480;
-                        configurarRastreamento(hiddenVideo);
-                        iniciarProcessamentoVisual(hiddenVideo, canvas);
-                    });
-                })
-                .catch(err => console.error("Erro local da cam:", err));
+            const statusDiv = document.getElementById('status');
 
-            initPeer(true);
+            statusDiv.innerText = 'A solicitar acesso à câmara...';
+
+            // Tenta usar a câmara traseira por predefinição no telemóvel
+            navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: { ideal: 'environment' } }, 
+                audio: true 
+            })
+            .then((stream) => {
+                mediaStream = stream;
+                hiddenVideo.srcObject = stream;
+                
+                // Força a reprodução para prevenir tela preta no mobile
+                hiddenVideo.play().then(() => {
+                    document.getElementById('menu').style.display = 'none';
+                    document.getElementById('camera-view').style.display = 'block';
+                    statusDiv.innerText = 'Câmara ativa e a processar!';
+
+                    canvas.width = hiddenVideo.videoWidth || 640;
+                    canvas.height = hiddenVideo.videoHeight || 480;
+
+                    configurarRastreamento(hiddenVideo);
+                    iniciarProcessamentoVisual(hiddenVideo, canvas);
+                }).catch(e => {
+                    statusDiv.innerText = 'Erro ao reproduzir vídeo. Toque no ecrã.';
+                    console.error(e);
+                });
+            })
+            .catch((err) => {
+                console.error(err);
+                statusDiv.innerText = 'Erro: Permissão negada ou câmara ocupada.';
+                alert('Não foi possível aceder à câmara: ' + err.message);
+            });
         }
 
-        function iniciarModoMonitor() {
-            document.getElementById('menu').classList.add('hidden');
-            document.getElementById('monitor-view').classList.remove('hidden');
-            initPeer(false);
-        }
-
-        function conectarAoTablet() {
-            const remoteId = document.getElementById('remote-id-input').value.trim();
-            if (!remoteId) return alert('Insira o ID da câmara!');
-
-            document.getElementById('status').innerText = 'A ligar...';
-            
-            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-                .then((stream) => {
-                    const call = peer.call(remoteId, stream);
-                    
-                    call.on('stream', (remoteStream) => {
-                        const remoteVideo = document.getElementById('remoteVideo');
-                        remoteVideo.srcObject = remoteStream;
-                        remoteVideo.play().catch(e => console.log(e));
-                        document.getElementById('status').innerText = 'Ligado! A exibir visão processada.';
-                    });
-
-                    call.on('close', () => {
-                        document.getElementById('status').innerText = 'Ligação encerrada.';
-                    });
-
-                    call.on('error', (err) => {
-                        document.getElementById('status').innerText = 'Erro na chamada: ' + err;
-                    });
-                })
-                .catch((err) => alert('Erro de multimédia no telemóvel: ' + err));
-        }
-
-        function tirarFoto() {
-            const video = document.getElementById('remoteVideo');
-            const canvas = document.getElementById('snapshot');
-            canvas.width = video.videoWidth || 640;
-            canvas.height = video.videoHeight || 480;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            const imageURL = canvas.toDataURL('image/png');
-            const a = document.createElement('a');
-            a.href = imageURL;
-            a.download = 'captura-seguranca.png';
-            a.click();
-        }
-
-        function mudarFiltro(filtro) {
-            currentFilter = filtro;
-            document.getElementById('status').innerText = 'Modo de visão: ' + filtro;
+        function pararCamara() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+            if (trackerTask) {
+                trackerTask.stop();
+            }
+            document.getElementById('camera-view').style.display = 'none';
+            document.getElementById('menu').style.display = 'block';
+            document.getElementById('status').innerText = 'Câmara desligada';
         }
 
         function configurarRastreamento(videoElement) {
@@ -269,6 +191,11 @@
             configurarRastreamento(document.getElementById('hiddenVideo'));
         }
 
+        function mudarFiltro(filtro) {
+            currentFilter = filtro;
+            document.getElementById('status').innerText = 'Modo de visão: ' + filtro;
+        }
+
         function iniciarProcessamentoVisual(video, canvas) {
             const ctx = canvas.getContext('2d');
 
@@ -278,8 +205,10 @@
                     return;
                 }
 
+                // Desenha o frame original da câmara no canvas
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+                // Aplica filtros visuais (Noturno / Térmico)
                 if (currentFilter !== 'normal') {
                     let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     let data = frame.data;
@@ -308,6 +237,7 @@
                     ctx.putImageData(frame, 0, 0);
                 }
 
+                // Desenha caixas de rastreio de cor se encontrar objetos
                 if (detectedRects && detectedRects.length > 0) {
                     detectedRects.forEach(rect => {
                         ctx.strokeStyle = '#00FF00';
@@ -323,6 +253,69 @@
                 requestAnimationFrame(loop);
             }
             requestAnimationFrame(loop);
+        }
+
+        function tirarFoto() {
+            const canvas = document.getElementById('processedCanvas');
+            const imageURL = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = imageURL;
+            a.download = 'foto-processada.png';
+            a.click();
+        }
+
+        function alternarGravacao() {
+            const canvas = document.getElementById('processedCanvas');
+            const btnRec = document.getElementById('btnRec');
+
+            if (!isRecording) {
+                recordedChunks = [];
+                // Captura o fluxo diretamente do canvas já com os filtros e rastreio aplicados
+                const canvasStream = canvas.captureStream(25);
+                
+                // Junta o som da câmara se estiver disponível
+                if (mediaStream && mediaStream.getAudioTracks().length > 0) {
+                    canvasStream.addTrack(mediaStream.getAudioTracks()[0]);
+                }
+
+                try {
+                    mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
+                } catch (e) {
+                    try {
+                        mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/mp4' });
+                    } catch (err) {
+                        mediaRecorder = new MediaRecorder(canvasStream);
+                    }
+                }
+
+                mediaRecorder.ondataavailable = function(event) {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = function() {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'video-processado.webm';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                btnRec.innerText = 'Parar Gravação';
+                btnRec.style.background = '#e00000';
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                btnRec.innerText = 'Gravar Vídeo';
+                btnRec.style.background = '#0070f3';
+            }
         }
     </script>
 </body>
