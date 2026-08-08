@@ -26,8 +26,19 @@
             margin-top: 10px;
         }
 
-        /* O elemento de vídeo agora é visível e serve de base principal */
-        video, canvas { 
+        /* Vídeo real invisível que alimenta o motor com segurança */
+        #webcamVideo { 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Canvas visível que mostra a imagem processada (normal, noturna, térmica e tracking) */
+        canvas { 
             width: 100%; 
             height: auto;
             border-radius: 10px; 
@@ -66,10 +77,10 @@
     <!-- Ecrã da Câmara e Processamento -->
     <div id="camera-view" style="display: none;">
         <div class="video-container">
-            <!-- Vídeo real visível com propriedades obrigatórias para dispositivos móveis -->
+            <!-- Vídeo de suporte oculto mas funcional -->
             <video id="webcamVideo" autoplay playsinline muted></video>
-            <!-- Canvas colocado por cima a processar os filtros e rastreio -->
-            <canvas id="processedCanvas" style="display:none;"></canvas>
+            <!-- Canvas que exibe o resultado final com filtros e caixas -->
+            <canvas id="processedCanvas"></canvas>
         </div>
 
         <div class="controls">
@@ -107,7 +118,6 @@
 
             statusDiv.innerText = 'A pedir permissão da câmara...';
 
-            // Restrição simplificada para garantir compatibilidade máxima em qualquer telemóvel
             const constraints = {
                 video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'environment' },
                 audio: false
@@ -124,8 +134,12 @@
                             document.getElementById('camera-view').style.display = 'block';
                             statusDiv.innerText = 'Câmara ativa!';
 
-                            // Inicia o loop de processamento por canvas se houver filtros/rastreio ativados
-                            iniciarProcessamentoReal(video);
+                            const canvas = document.getElementById('processedCanvas');
+                            canvas.width = video.videoWidth || 640;
+                            canvas.height = video.videoHeight || 480;
+
+                            configurarRastreamento(video);
+                            iniciarLoopProcessamento(video, canvas);
                         }).catch(err => {
                             statusDiv.innerText = 'Erro ao reproduzir: ' + err.message;
                         });
@@ -134,7 +148,7 @@
                 .catch((err) => {
                     console.error(err);
                     statusDiv.innerText = 'Erro: ' + err.name;
-                    alert('Erro ao aceder à câmara. Verifique se deu permissão nas definições do navegador. Detalhe: ' + err.message);
+                    alert('Erro ao aceder à câmara: ' + err.message);
                 });
         }
 
@@ -164,6 +178,7 @@
             tracker = new tracking.ColorTracker([currentColor]);
             tracker.setStepSize(1.7);
 
+            // O tracking.js analisa diretamente o elemento de vídeo de origem oculta
             trackerTask = tracking.track(videoElement, tracker, { camera: false, implicit: true });
 
             tracker.on('track', function(event) {
@@ -174,34 +189,19 @@
         function trackColor(color) {
             currentColor = color;
             document.getElementById('status').innerText = 'A rastrear cor: ' + color;
-            if (document.getElementById('webcamVideo').srcObject) {
-                configurarRastreamento(document.getElementById('webcamVideo'));
+            const video = document.getElementById('webcamVideo');
+            if (video.srcObject) {
+                configurarRastreamento(video);
             }
         }
 
         function mudarFiltro(filtro) {
             currentFilter = filtro;
-            const canvas = document.getElementById('processedCanvas');
-            const video = document.getElementById('webcamVideo');
-
-            if (filtro === 'normal') {
-                canvas.style.display = 'none';
-                video.style.display = 'block';
-            } else {
-                video.style.display = 'none';
-                canvas.style.display = 'block';
-                canvas.width = video.videoWidth || 640;
-                canvas.height = video.videoHeight || 480;
-                configurarRastreamento(video);
-            }
             document.getElementById('status').innerText = 'Modo de visão: ' + filtro;
         }
 
-        function iniciarProcessamentoReal(video) {
-            const canvas = document.getElementById('processedCanvas');
+        function iniciarLoopProcessamento(video, canvas) {
             const ctx = canvas.getContext('2d');
-
-            configurarRastreamento(video);
 
             function loop() {
                 if (video.paused || video.ended) {
@@ -209,14 +209,17 @@
                     return;
                 }
 
+                // Ajusta dimensões caso mudem
+                if (canvas.width !== video.videoWidth && video.videoWidth > 0) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                }
+
+                // Copia o frame limpo da câmara para o canvas
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Aplica filtros de visão Noturna ou Térmica pixel a pixel com segurança
                 if (currentFilter !== 'normal') {
-                    if (canvas.width !== video.videoWidth && video.videoWidth > 0) {
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                    }
-
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
                     let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     let data = frame.data;
 
@@ -227,33 +230,34 @@
 
                         if (currentFilter === 'nightvision') {
                             let avg = (r + g + b) / 3;
-                            data[i] = 0;
-                            data[i + 1] = avg * 2;
-                            data[i + 2] = 0;
+                            data[i] = 0;         // Vermelho a 0
+                            data[i + 1] = avg * 2; // Verde amplificado
+                            data[i + 2] = 0;     // Azul a 0
                         } else if (currentFilter === 'thermal') {
                             let brightness = (r + g + b) / 3;
                             if (brightness > 160) {
-                                data[i] = 255; data[i + 1] = 255; data[i + 2] = 255;
+                                data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; // Branco (quente)
                             } else if (brightness > 80) {
-                                data[i] = 255; data[i + 1] = 120; data[i + 2] = 0;
+                                data[i] = 255; data[i + 1] = 120; data[i + 2] = 0;   // Laranja/Amarelo (médio)
                             } else {
-                                data[i] = 0; data[i + 1] = 0; data[i + 2] = 180;
+                                data[i] = 0; data[i + 1] = 0; data[i + 2] = 180;   // Azul escuro (frio)
                             }
                         }
                     }
                     ctx.putImageData(frame, 0, 0);
+                }
 
-                    if (detectedRects && detectedRects.length > 0) {
-                        detectedRects.forEach(rect => {
-                            ctx.strokeStyle = '#00FF00';
-                            ctx.lineWidth = 4;
-                            ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-                            
-                            ctx.fillStyle = '#00FF00';
-                            ctx.font = '16px Arial';
-                            ctx.fillText(`Alvo Detetado`, rect.x, rect.y > 20 ? rect.y - 5 : 20);
-                        });
-                    }
+                // Desenha o box verde à volta do objeto detetado pelo tracking.js
+                if (detectedRects && detectedRects.length > 0) {
+                    detectedRects.forEach(rect => {
+                        ctx.strokeStyle = '#00FF00';
+                        ctx.lineWidth = 4;
+                        ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+                        
+                        ctx.fillStyle = '#00FF00';
+                        ctx.font = '16px Arial';
+                        ctx.fillText(`Alvo Detetado`, rect.x, rect.y > 20 ? rect.y - 5 : 20);
+                    });
                 }
 
                 requestAnimationFrame(loop);
@@ -262,17 +266,8 @@
         }
 
         function tirarFoto() {
-            const video = document.getElementById('webcamVideo');
             const canvas = document.getElementById('processedCanvas');
-            const activeElement = (currentFilter === 'normal') ? video : canvas;
-
-            const fotoCanvas = document.createElement('canvas');
-            fotoCanvas.width = video.videoWidth || 640;
-            fotoCanvas.height = video.videoHeight || 480;
-            const ctx = fotoCanvas.getContext('2d');
-            ctx.drawImage(activeElement, 0, 0, fotoCanvas.width, fotoCanvas.height);
-
-            const imageURL = fotoCanvas.toDataURL('image/png');
+            const imageURL = canvas.toDataURL('image/png');
             const a = document.createElement('a');
             a.href = imageURL;
             a.download = 'foto-capturada.png';
