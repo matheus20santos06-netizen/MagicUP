@@ -2,78 +2,327 @@
 <html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Câmara Inteligente P2P Command</title>
     <!-- PeerJS para ligação direta Tablet <-> Telemóvel -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <style>
-        body { background: #000; color: #fff; text-align: center; font-family: sans-serif; }
-        canvas { width: 90%; border: 3px solid #333; margin-top: 10px; }
-        .controls { padding: 20px; }
-        button { padding: 15px; margin: 5px; border-radius: 8px; border: none; font-weight: bold; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h3>ID do Tablet: <span id="my-id">Aguardando...</span></h3>
-    <canvas id="canvas"></canvas>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center p-4">
 
-    <div class="controls" id="controls">
-        <button onclick="changeTarget('red')" style="background:red">Caçar Vermelho</button>
-        <button onclick="changeTarget('green')" style="background:green">Caçar Verde</button>
-        <button onclick="changeTarget('blue')" style="background:blue">Caçar Azul</button>
+    <header class="w-full max-w-4xl text-center my-4">
+        <h1 class="text-3xl font-extrabold tracking-tight text-emerald-400">Câmara de Segurança Inteligente P2P</h1>
+        <p class="text-slate-400 text-sm mt-1">Transforme o tablet numa câmara de segurança e controle-a a partir do telemóvel.</p>
+    </header>
+
+    <!-- Menu de Seleção de Modo -->
+    <div id="mode-selector" class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl text-center my-auto">
+        <h2 class="text-xl font-bold mb-4">Escolha o seu modo</h2>
+        <div class="flex flex-col gap-4">
+            <button onclick="initMode('tablet')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-xl transition shadow-lg text-lg flex items-center justify-center gap-2">
+                <span>📹</span> Modo Tablet (Câmara de Segurança)
+            </button>
+            <button onclick="initMode('phone')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-xl transition shadow-lg text-lg flex items-center justify-center gap-2">
+                <span>📱</span> Modo Telemóvel (Controlo Remoto)
+            </button>
+        </div>
+    </div>
+
+    <!-- Interface do Modo Tablet -->
+    <div id="tablet-view" class="hidden w-full max-w-4xl flex flex-col items-center gap-4">
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl w-full flex flex-col sm:flex-row justify-between items-center gap-2 shadow-md">
+            <div>
+                <span class="text-xs text-slate-400 uppercase tracking-wider block">ID do Tablet (Para ligar no telemóvel):</span>
+                <span id="my-id" class="text-lg font-mono font-bold text-emerald-400 select-all">A a gerar ID...</span>
+            </div>
+            <div id="connection-status" class="px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full text-xs font-semibold">
+                À espera de ligação...
+            </div>
+        </div>
+
+        <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border-2 border-slate-800 shadow-2xl flex items-center justify-center">
+            <video id="video-element" class="hidden" autoplay playsinline muted></video>
+            <canvas id="canvas-tablet" class="w-full h-full object-contain"></canvas>
+            <div id="tablet-overlay-msg" class="absolute inset-0 flex items-center justify-center bg-black/60 text-slate-300 text-sm">
+                A inicializar câmara...
+            </div>
+        </div>
+        <button onclick="location.reload()" class="text-sm text-slate-400 hover:text-white underline">Mudar de Modo</button>
+    </div>
+
+    <!-- Interface do Modo Telemóvel / Controlo -->
+    <div id="phone-view" class="hidden w-full max-w-4xl flex flex-col gap-4">
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-md flex flex-col sm:flex-row gap-3 items-center">
+            <input type="text" id="remote-id-input" placeholder="Cole aqui o ID do Tablet" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+            <button onclick="connectToTablet()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-lg text-sm transition">
+                Ligar ao Tablet
+            </button>
+        </div>
+
+        <div id="controller-panel" class="hidden flex flex-col gap-4">
+            <!-- Controlo de Cores -->
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-md flex flex-wrap gap-3 items-center justify-between">
+                <span class="text-sm font-semibold text-slate-300">Cor Alvo de Deteção:</span>
+                <div class="flex gap-2">
+                    <button onclick="changeTarget('red')" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg text-sm transition shadow">Vermelho</button>
+                    <button onclick="changeTarget('green')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-sm transition shadow">Verde</button>
+                    <button onclick="changeTarget('blue')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-sm transition shadow">Azul</button>
+                </div>
+            </div>
+
+            <!-- Ecrã de Visualização Remota / Caixas -->
+            <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border-2 border-slate-800 shadow-2xl flex items-center justify-center">
+                <canvas id="canvas-phone" class="w-full h-full object-contain cursor-crosshair" onclick="handleCanvasClick(event)"></canvas>
+                <div id="phone-overlay-msg" class="absolute inset-0 flex items-center justify-center bg-black/70 text-slate-300 text-sm">
+                    Ligue-se ao tablet para ver a transmissão.
+                </div>
+            </div>
+            <p class="text-xs text-center text-slate-400">💡 Toque diretamente num retângulo verde/colorido no vídeo para atribuir um nome personalizado ao objeto detetado.</p>
+        </div>
+        <button onclick="location.reload()" class="text-sm text-slate-400 hover:text-white underline mt-2">Mudar de Modo</button>
+    </div>
+
+    <!-- Modal Personalizado para Nomear Objeto -->
+    <div id="name-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl flex flex-col gap-4">
+            <h3 class="text-lg font-bold text-white">Nomear Objeto Identificado</h3>
+            <p class="text-xs text-slate-400" id="modal-box-info">Dimensões: X=0, Y=0</p>
+            <input type="text" id="object-name-input" placeholder="Ex: Chaves, Telemóvel, Garrafa..." class="bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+            <div class="flex gap-2 justify-end mt-2">
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition">Cancelar</button>
+                <button onclick="saveObjectName()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-sm transition">Guardar</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        let target = 'red';
-        let peer = new Peer(); // O ID será gerado aqui
-        let conn;
+        let currentMode = null;
+        let peer = null;
+        let conn = null;
+        let targetColor = 'red';
+        
+        // Dados partilhados / detetados
+        let lastDetectedBoxes = []; // Guardar caixas ativas para clique
+        let activeSelectedBox = null;
+        let customLabels = {}; // { "x_y_w_h": "Nome" }
 
-        // 1. Setup do Peer-to-Peer
-        peer.on('open', id => document.getElementById('my-id').innerText = id);
-        peer.on('connection', c => {
-            conn = c;
-            conn.on('data', data => target = data); // Recebe o comando do A10s
-        });
-
-        // 2. Lógica da Câmara e Visão Computacional
-        const video = document.createElement('video');
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-            .then(s => { video.srcObject = s; video.play(); requestAnimationFrame(process); });
-
-        function process() {
-            if (video.readyState !== video.HAVE_ENOUGH_DATA) return requestAnimationFrame(process);
-            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
+        function initMode(mode) {
+            currentMode = mode;
+            document.getElementById('mode-selector').classList.add('hidden');
             
-            let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            let d = frame.data;
-            let minX = canvas.width, maxX = 0, minY = canvas.height, maxY = 0, found = false;
-
-            for (let i = 0; i < d.length; i += 4) {
-                let match = false;
-                if (target === 'red' && d[i]>150 && d[i+1]<100) match = true;
-                if (target === 'green' && d[i+1]>150 && d[i]<100) match = true;
-                if (target === 'blue' && d[i+2]>150 && d[i]<100) match = true;
-
-                if (match) {
-                    let x = (i/4)%canvas.width, y = Math.floor((i/4)/canvas.width);
-                    minX = Math.min(minX, x); maxX = Math.max(maxX, x);
-                    minY = Math.min(minY, y); maxY = Math.max(maxY, y);
-                    found = true;
-                }
+            if (mode === 'tablet') {
+                document.getElementById('tablet-view').classList.remove('hidden');
+                startTabletCamera();
+            } else {
+                document.getElementById('phone-view').classList.remove('hidden');
+                initPhonePeer();
             }
-            if (found) {
-                ctx.strokeStyle = '#0f0'; ctx.lineWidth = 8;
-                ctx.strokeRect(minX, minY, maxX-minX, maxY-minY);
-            }
-            requestAnimationFrame(process);
         }
 
-        // 3. Função para o A10s enviar o comando
-        function changeTarget(newColor) {
-            target = newColor;
-            if (conn) conn.send(newColor); // Envia para o Tablet
+        // --- MODO TABLET ---
+        function startTabletCamera() {
+            peer = new Peer();
+            peer.on('open', id => {
+                document.getElementById('my-id').innerText = id;
+            });
+            peer.on('connection', c => {
+                conn = c;
+                document.getElementById('connection-status').innerText = 'Ligado ao Telemóvel ✓';
+                document.getElementById('connection-status').className = 'px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full text-xs font-semibold';
+                
+                conn.on('data', data => {
+                    if (data.type === 'changeTarget') {
+                        targetColor = data.color;
+                    } else if (data.type === 'saveLabel') {
+                        customLabels[data.key] = data.name;
+                    }
+                });
+            });
+
+            const video = document.getElementById('video-element');
+            const canvas = document.getElementById('canvas-tablet');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } })
+                .then(stream => {
+                    video.srcObject = stream;
+                    video.play();
+                    document.getElementById('tablet-overlay-msg').style.display = 'none';
+                    requestAnimationFrame(() => processTabletLoop(video, canvas, ctx));
+                })
+                .catch(err => {
+                    document.getElementById('tablet-overlay-msg').innerText = 'Erro ao aceder à câmara: ' + err.message;
+                });
+        }
+
+        function processTabletLoop(video, canvas, ctx) {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                }
+
+                ctx.drawImage(video, 0, 0);
+                let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                let d = frame.data;
+                let minX = canvas.width, maxX = 0, minY = canvas.height, maxY = 0, found = false;
+
+                // Deteção simples por cor dominante
+                for (let i = 0; i < d.length; i += 16) { // Amostragem otimizada
+                    let r = d[i], g = d[i+1], b = d[i+2];
+                    let match = false;
+                    if (targetColor === 'red' && r > 140 && r > g + 40 && r > b + 40) match = true;
+                    if (targetColor === 'green' && g > 130 && g > r + 30 && g > b + 30) match = true;
+                    if (targetColor === 'blue' && b > 130 && b > r + 30 && b > g + 30) match = true;
+
+                    if (match) {
+                        let idx = i / 4;
+                        let x = idx % canvas.width;
+                        let y = Math.floor(idx / canvas.width);
+                        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+                        found = true;
+                    }
+                }
+
+                let currentBoxes = [];
+                if (found && (maxX - minX > 20) && (maxY - minY > 20)) {
+                    let boxWidth = maxX - minX;
+                    let boxHeight = maxY - minY;
+                    // Criar chave aproximada para etiqueta personalizada
+                    let boxKey = `${Math.round(minX/50)}_${Math.round(minY/50)}_${Math.round(boxWidth/50)}_${Math.round(boxHeight/50)}`;
+                    let label = customLabels[boxKey] || ('Objeto ' + targetColor.toUpperCase());
+
+                    currentBoxes.push({ x: minX, y: minY, w: boxWidth, h: boxHeight, key: boxKey, label: label });
+
+                    // Desenhar retângulo no canvas do tablet
+                    ctx.strokeStyle = targetColor === 'red' ? '#ef4444' : targetColor === 'green' ? '#10b981' : '#3b82f6';
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(minX, minY, boxWidth, boxHeight);
+                    
+                    ctx.fillStyle = ctx.strokeStyle;
+                    ctx.font = '16px sans-serif';
+                    ctx.fillText(label, minX, Math.max(20, minY - 8));
+                }
+
+                // Enviar frame atualizado e dados para o telemóvel se conectado
+                if (conn && conn.open) {
+                    conn.send({
+                        image: canvas.toDataURL('image/jpeg', 0.6),
+                        boxes: currentBoxes
+                    });
+                }
+            }
+            requestAnimationFrame(() => processTabletLoop(video, canvas, ctx));
+        }
+
+
+        // --- MODO TELEMÓVEL ---
+        function initPhonePeer() {
+            peer = new Peer();
+            peer.on('open', id => {
+                // Pronto para ligar
+            });
+        }
+
+        function connectToTablet() {
+            let remoteId = document.getElementById('remote-id-input').value.trim();
+            if (!remoteId) {
+                alert('Insira o ID do Tablet.');
+                return;
+            }
+
+            conn = peer.connect(remoteId);
+            conn.on('open', () => {
+                document.getElementById('controller-panel').classList.remove('hidden');
+                document.getElementById('phone-overlay-msg').style.display = 'none';
+            });
+
+            conn.on('data', data => {
+                let canvas = document.getElementById('canvas-phone');
+                let ctx = canvas.getContext('2d');
+                let img = new Image();
+                img.onload = () => {
+                    if (canvas.width !== img.width || canvas.height !== img.height) {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                    }
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+
+                    lastDetectedBoxes = data.boxes || [];
+
+                    // Redesenhar caixas no telemóvel para feedback visual
+                    lastDetectedBoxes.forEach(box => {
+                        ctx.strokeStyle = '#10b981';
+                        ctx.lineWidth = 4;
+                        ctx.strokeRect(box.x, box.y, box.w, box.h);
+
+                        ctx.fillStyle = '#10b981';
+                        ctx.font = 'bold 16px sans-serif';
+                        ctx.fillRect(box.x, Math.max(0, box.y - 24), ctx.measureText(box.label).width + 16, 24);
+                        ctx.fillStyle = '#000';
+                        ctx.fillText(box.label, box.x + 8, Math.max(16, box.y - 6));
+                    });
+                };
+                img.src = data.image;
+            });
+
+            conn.on('error', err => {
+                alert('Erro na ligação: ' + err);
+            });
+        }
+
+        function changeTarget(color) {
+            targetColor = color;
+            if (conn && conn.open) {
+                conn.send({ type: 'changeTarget', color: color });
+            }
+        }
+
+        // Clicar no canvas do telemóvel para nomear caixa
+        function handleCanvasClick(event) {
+            let canvas = document.getElementById('canvas-phone');
+            let rect = canvas.getBoundingClientRect();
+            let scaleX = canvas.width / rect.width;
+            let scaleY = canvas.height / rect.height;
+            
+            let clickX = (event.clientX - rect.left) * scaleX;
+            let clickY = (event.clientY - rect.top) * scaleY;
+
+            // Verificar se o clique está dentro de alguma caixa detetada
+            let clickedBox = lastDetectedBoxes.find(b => 
+                clickX >= b.x && clickX <= (b.x + b.w) &&
+                clickY >= b.y && clickY <= (b.y + b.h)
+            );
+
+            if (clickedBox) {
+                activeSelectedBox = clickedBox;
+                document.getElementById('modal-box-info').innerText = `Objeto detetado em X:${Math.round(clickedBox.x)} Y:${Math.round(clickedBox.y)} (Medida: ${Math.round(clickedBox.w)}x${Math.round(clickedBox.h)})`;
+                document.getElementById('object-name-input').value = clickedBox.label.startsWith('Objeto') ? '' : clickedBox.label;
+                document.getElementById('name-modal').classList.remove('hidden');
+                document.getElementById('name-modal').classList.add('flex');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('name-modal').classList.add('hidden');
+            document.getElementById('name-modal').classList.remove('flex');
+            activeSelectedBox = null;
+        }
+
+        function saveObjectName() {
+            let nameInput = document.getElementById('object-name-input').value.trim();
+            if (!nameInput) return;
+
+            if (activeSelectedBox && conn && conn.open) {
+                conn.send({
+                    type: 'saveLabel',
+                    key: activeSelectedBox.key,
+                    name: nameInput
+                });
+            }
+            closeModal();
         }
     </script>
 </body>
