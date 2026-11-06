@@ -1,4 +1,250 @@
-<!-- ... existing code ... -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>God of War: A Fúria de Esparta (2D)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #020617;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #f8fafc;
+        }
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* HUD SUPERIOR */
+        #hud {
+            position: fixed;
+            top: 8px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .bars-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: rgba(15, 23, 42, 0.78);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+        }
+
+        .bar-wrap {
+            width: 145px;
+            height: 10px;
+            background: #1e293b;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+
+        #hp-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #16a34a, #22c55e);
+            transition: width 0.15s;
+        }
+
+        #mp-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #0284c7, #38bdf8);
+            transition: width 0.15s;
+        }
+
+        .hud-stats {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 800;
+            color: #fbbf24;
+        }
+
+        .objective-box {
+            text-align: center;
+            background: rgba(15, 23, 42, 0.78);
+            padding: 5px 12px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            max-width: 44%;
+        }
+
+        #stage-label {
+            font-size: 10px;
+            font-weight: 900;
+            color: #f59e0b;
+            letter-spacing: 0.06em;
+        }
+
+        #objective-text {
+            font-size: 11px;
+            color: #e2e8f0;
+            margin-top: 2px;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 6px;
+            pointer-events: auto;
+        }
+
+        .mini-btn {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #64748b;
+            color: #f8fafc;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* BANNERS & AVISOS */
+        #banner-msg {
+            position: fixed;
+            top: 24%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(127, 29, 29, 0.92);
+            border: 2px solid #f59e0b;
+            color: #fef3c7;
+            font-size: 13px;
+            font-weight: 900;
+            padding: 8px 18px;
+            border-radius: 8px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+            z-index: 15;
+            text-align: center;
+        }
+
+        #context-prompt {
+            position: fixed;
+            bottom: 105px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.92);
+            border: 1.5px solid #38bdf8;
+            color: #bae6fd;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 6px 14px;
+            border-radius: 20px;
+            display: none;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        /* CONTROLES TOUCH */
+        #controls {
+            position: fixed;
+            bottom: 12px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .dpad, .action-pad {
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .action-pad {
+            flex-wrap: wrap;
+            max-width: 240px;
+            justify-content: flex-end;
+        }
+
+        .ctrl-btn {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.78);
+            border: 2px solid #64748b;
+            color: #f8fafc;
+            font-size: 12px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .ctrl-btn:active {
+            background: rgba(220, 38, 38, 0.85);
+            border-color: #fbbf24;
+            transform: scale(0.93);
+        }
+
+        .btn-atk { border-color: #ef4444; color: #fecaca; }
+        .btn-heavy { border-color: #f97316; color: #fed7aa; }
+        .btn-magic {
+            border-color: #38bdf8;
+            color: #bae6fd;
+            background: rgba(3, 105, 161, 0.75);
+            display: none;
+        }
+
+        /* TELAS DE MENU */
+        .overlay-screen {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.92);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            z-index: 30;
+        }
+
+        .game-title {
+            font-size: 26px;
+            font-weight: 900;
+            color: #ef4444;
+            text-shadow: 0 2px 10px rgba(239, 68, 68, 0.5);
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .game-sub {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 16px;
+            max-width: 440px;
+        }
+
         .play-btn {
             background: linear-gradient(180deg, #dc2626, #7f1d1d);
             border: 2px solid #f59e0b;
@@ -35,7 +281,86 @@
             min-width: 110px;
             cursor: pointer;
         }
-<!-- ... existing code ... -->
+
+        .diff-btn.selected {
+            border-color: #f59e0b;
+            background: rgba(127, 29, 29, 0.85);
+            color: #fef3c7;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+    <div class="bars-box">
+        <div class="bar-wrap"><div id="hp-bar"></div></div>
+        <div class="bar-wrap"><div id="mp-bar"></div></div>
+        <div class="hud-stats">
+            <span id="orbs-label">ORBES: 0</span>
+            <span>•</span>
+            <span id="diff-badge">MORTAL</span>
+        </div>
+    </div>
+
+    <div class="objective-box">
+        <div id="stage-label">FASE 1 • MAR EGEU</div>
+        <div id="objective-text">Derrote os mortos-vivos no convés!</div>
+    </div>
+
+    <div class="top-actions">
+        <button class="mini-btn" id="btn-mute">SOM: ON</button>
+        <button class="mini-btn" id="btn-fs">TELA CHEIA</button>
+    </div>
+</div>
+
+<div id="banner-msg"></div>
+<div id="context-prompt"></div>
+
+<!-- CONTROLES TOUCH -->
+<div id="controls">
+    <div class="dpad">
+        <button class="ctrl-btn" id="btn-left">◀</button>
+        <button class="ctrl-btn" id="btn-right">▶</button>
+        <button class="ctrl-btn" id="btn-jump">PULO</button>
+    </div>
+    <div class="action-pad">
+        <button class="ctrl-btn btn-magic" id="btn-lightning">⚡ RAIO</button>
+        <button class="ctrl-btn" id="btn-dodge">ESQ</button>
+        <button class="ctrl-btn btn-atk" id="btn-light">LÂMINA</button>
+        <button class="ctrl-btn btn-heavy" id="btn-heavy">FORTE</button>
+    </div>
+</div>
+
+<!-- TELA INICIAL -->
+<div class="overlay-screen" id="screen-start">
+    <div class="game-title">GOD OF WAR: ESPARTA 2D</div>
+    <div class="game-sub">Enfrente a Hidra no Mar Egeu e liberte Atenas. Escolha a dificuldade:</div>
+    <div class="diff-row">
+        <button class="diff-btn selected" data-diff="EASY">MORTAL (FÁCIL)</button>
+        <button class="diff-btn" data-diff="NORMAL">HERÓI (NORMAL)</button>
+        <button class="diff-btn" data-diff="HARD">DEUS (DIFÍCIL)</button>
+    </div>
+    <button class="play-btn" id="btn-start">INICIAR JORNADA</button>
+</div>
+
+<!-- TELA DERROTA -->
+<div class="overlay-screen" id="screen-loss" style="display:none;">
+    <div class="game-title">VOCÊ MORREU</div>
+    <div class="game-sub">A fúria de Kratos ainda não terminou.</div>
+    <button class="play-btn" id="btn-retry">TENTAR NOVAMENTE</button>
+</div>
+
+<!-- TELA VITÓRIA -->
+<div class="overlay-screen" id="screen-win" style="display:none;">
+    <div class="game-title" style="color:#f59e0b;">VITÓRIA DE KRATOS!</div>
+    <div class="game-sub" id="win-summary">A Hidra foi derrotada e Atenas está a salvo!</div>
+    <button class="play-btn" id="btn-again">JOGAR NOVAMENTE</button>
+</div>
+
+<script>
 /**
  * ÁUDIO SINTETIZADO LEVE (WEB AUDIO API)
  */
@@ -106,7 +431,7 @@ class SoundFX {
 const sfx = new SoundFX();
 
 /**
- * CANVAS & OTIMIZAÇÃO A10s (DPR = 1, ZERO SHADOWBLUR, FALLBACK SEGURO PARA content://)
+ * CANVAS & OTIMIZAÇÃO A10s (DPR = 1, ZERO SHADOWBLUR, FALLBACK SEGURO)
  */
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d', { alpha: false }) || canvas.getContext('2d');
@@ -122,6 +447,8 @@ function getSafeViewport() {
         h: Math.max(240, Math.floor(rawH))
     };
 }
+
+let player = null;
 
 function resize(force = false) {
     try {
@@ -162,7 +489,47 @@ function resize(force = false) {
 }
 window.addEventListener('resize', () => resize(true));
 resize(true);
-<!-- ... existing code ... -->
+
+/**
+ * ESTADO GLOBAL DO JOGO
+ */
+let gameState = 'MENU';
+let currentStage = 0;
+let checkpointStage = 0;
+let currentDifficulty = 'EASY';
+let orbsScore = 0;
+let frame = 0;
+let shake = 0;
+let flashTimer = 200;
+let flashAlpha = 0;
+
+let enemies = [];
+let hydras = [];
+let orbs = [];
+let particles = [];
+let projectiles = [];
+let sceneObjects = {};
+const keys = { left: false, right: false };
+
+const DIFF_TABLE = {
+    EASY:   { label: 'MORTAL', hpMult: 0.8, dmgMult: 0.7, healAmount: 22 },
+    NORMAL: { label: 'HERÓI',  hpMult: 1.0, dmgMult: 1.0, healAmount: 15 },
+    HARD:   { label: 'DEUS',   hpMult: 1.35, dmgMult: 1.4, healAmount: 10 }
+};
+
+function getDiff() {
+    return DIFF_TABLE[currentDifficulty] || DIFF_TABLE.EASY;
+}
+
+function syncHUD() {
+    const hpBar = document.getElementById('hp-bar');
+    const mpBar = document.getElementById('mp-bar');
+    const orbsEl = document.getElementById('orbs-label');
+    if (hpBar && player) hpBar.style.width = Math.max(0, Math.min(100, player.hp)) + '%';
+    if (mpBar && player) mpBar.style.width = Math.max(0, Math.min(100, player.magic)) + '%';
+    if (orbsEl) orbsEl.textContent = 'ORBES: ' + orbsScore;
+}
+
 function spawnParticles(x, y, color, count) {
     for (let i = 0; i < count; i++) {
         if (particles.length > 75) particles.shift();
@@ -235,7 +602,128 @@ class Kratos {
         if (this.invuln > 0) this.invuln--;
         if (this.atkCd > 0) this.atkCd--;
         if (this.dodgeCd > 0) this.dodgeCd--;
-<!-- ... existing code ... -->
+        if (this.lightningBurstTimer > 0) this.lightningBurstTimer--;
+
+        if (this.onZipline) {
+            this.zipProgress += 0.025;
+            const z = sceneObjects.zipline;
+            if (z) {
+                this.x = z.x1 + (z.x2 - z.x1) * this.zipProgress;
+                this.y = z.y1 + (z.y2 - z.y1) * this.zipProgress;
+            }
+            if (this.zipProgress >= 1) {
+                this.onZipline = false;
+                this.y = floorY;
+                this.grounded = true;
+                advanceStage();
+            }
+            return;
+        }
+
+        if (this.climbing) {
+            if (this.climbUpHold) this.y -= 4;
+            const r = sceneObjects.climbRope;
+            if (r && this.y <= r.topY) {
+                this.climbing = false;
+                advanceStage();
+            }
+            return;
+        }
+
+        if (this.dodgeTimer > 0) {
+            this.dodgeTimer--;
+            this.vx = this.dir * 10.5;
+        } else {
+            const speed = 5.4;
+            if (keys.left) {
+                this.vx = -speed;
+                this.dir = -1;
+            } else if (keys.right) {
+                this.vx = speed;
+                this.dir = 1;
+            } else {
+                this.vx *= 0.72;
+            }
+        }
+
+        this.x += this.vx;
+        this.x = Math.max(28, Math.min(W - 28, this.x));
+
+        if (!this.grounded) {
+            this.vy += 0.68;
+            this.y += this.vy;
+            if (this.y >= floorY) {
+                this.y = floorY;
+                this.vy = 0;
+                this.grounded = true;
+            }
+        }
+
+        if (this.atkTimer > 0) {
+            this.atkTimer--;
+            const reach = this.atkType === 'HEAVY' ? 115 : 88;
+            const ang = (1 - this.atkTimer / (this.atkType === 'HEAVY' ? 18 : 11)) * Math.PI - 1.2;
+            const tx = this.x + this.dir * Math.cos(ang) * reach;
+            const ty = (this.y - 44) + Math.sin(ang) * 48;
+            this.trail.push({ x: tx, y: ty });
+            if (this.trail.length > 6) this.trail.shift();
+
+            if (this.atkTimer === (this.atkType === 'HEAVY' ? 9 : 6)) {
+                this.applyAttackHitbox();
+            }
+        } else if (this.trail.length > 0) {
+            this.trail.shift();
+        }
+    }
+
+    applyAttackHitbox() {
+        const isHeavy = this.atkType === 'HEAVY';
+        const range = isHeavy ? 125 : 95;
+        const dmg = isHeavy ? 38 : 20;
+        let hitAny = false;
+
+        enemies.forEach(e => {
+            if (e.dead) return;
+            const dx = e.x - this.x;
+            const dy = Math.abs(e.y - this.y);
+            if (Math.sign(dx) === this.dir && Math.abs(dx) <= range && dy < 95) {
+                e.takeDamage(dmg, isHeavy);
+                hitAny = true;
+            }
+        });
+
+        hydras.forEach(h => {
+            if (!h.active || h.dead) return;
+            const dist = Math.hypot(h.hx - (this.x + this.dir * 55), h.hy - (this.y - 45));
+            if (dist < 105) {
+                h.takeDamage(dmg);
+                hitAny = true;
+            }
+        });
+
+        if (sceneObjects.portal && !sceneObjects.portal.used && Math.abs(this.x - sceneObjects.portal.x) < 75) {
+            activatePoseidonPortal();
+            hitAny = true;
+        }
+
+        if (sceneObjects.zipline && sceneObjects.zipline.active && Math.abs(this.x - sceneObjects.zipline.x1) < 75) {
+            this.onZipline = true;
+            this.zipProgress = 0;
+            sfx.zipline();
+            hitAny = true;
+        }
+
+        if (sceneObjects.ballista && sceneObjects.ballista.active && Math.abs(this.x - sceneObjects.ballista.x) < 75) {
+            fireBallista();
+            hitAny = true;
+        }
+
+        if (hitAny) {
+            sfx.hit();
+            shake = isHeavy ? 8 : 4;
+        }
+    }
+
     jump() {
         if (this.onZipline) return;
         if (this.climbing) {
@@ -267,7 +755,56 @@ class Kratos {
     }
 
     attack(type) {
-<!-- ... existing code ... -->
+        if (this.atkCd > 0 || this.dodgeTimer > 0 || this.climbing || this.onZipline) return;
+        this.atkType = type;
+        this.atkTimer = type === 'HEAVY' ? 18 : 11;
+        this.atkCd = type === 'HEAVY' ? 24 : 14;
+        this.trail = [];
+        sfx.slash(type === 'HEAVY');
+    }
+
+    castLightning() {
+        if (!this.hasPoseidon || this.magic < 25 || this.lightningBurstTimer > 0) return;
+        this.magic = Math.max(0, this.magic - 25);
+        this.lightningBurstTimer = 26;
+        this.invuln = 30;
+        shake = 14;
+        sfx.lightning();
+        syncHUD();
+
+        enemies.forEach(e => {
+            if (!e.dead && Math.abs(e.x - this.x) < 220) {
+                e.takeDamage(55, true);
+                spawnParticles(e.x, e.y - 30, '#38bdf8', 10);
+            }
+        });
+
+        hydras.forEach(h => {
+            if (h.active && !h.dead && Math.abs(h.hx - this.x) < 240) {
+                h.takeDamage(45);
+                spawnParticles(h.hx, h.hy, '#38bdf8', 12);
+            }
+        });
+    }
+
+    takeDamage(amt) {
+        if (this.invuln > 0 || this.dodgeTimer > 0 || gameState !== 'PLAYING') return;
+        this.hp -= Math.round(amt * getDiff().dmgMult);
+        this.invuln = 42;
+        shake = 7;
+        sfx.hit();
+        spawnParticles(this.x, this.y - 40, '#ef4444', 10);
+        syncHUD();
+
+        if (this.hp <= 0) {
+            this.hp = 0;
+            syncHUD();
+            gameState = 'LOSS';
+            const scrLoss = document.getElementById('screen-loss');
+            if (scrLoss) scrLoss.style.display = 'flex';
+        }
+    }
+
     draw() {
         ctx.save();
         ctx.translate(this.x, this.y);
@@ -366,7 +903,210 @@ class Kratos {
         }
     }
 }
-<!-- ... existing code ... -->
+
+/**
+ * INIMIGOS COMUNS
+ */
+class Enemy {
+    constructor(x, y, type) {
+        this.x = x;
+        this.y = y;
+        this.type = type; // 'SWORD', 'SHIELD', 'ARCHER', 'HARPY'
+        const mult = getDiff().hpMult;
+        this.maxHp = Math.round((type === 'SHIELD' ? 90 : (type === 'HARPY' ? 45 : 60)) * mult);
+        this.hp = this.maxHp;
+        this.hasShield = type === 'SHIELD';
+        this.dir = -1;
+        this.cd = 40 + Math.floor(Math.random() * 40);
+        this.flash = 0;
+        this.dead = false;
+    }
+
+    takeDamage(dmg, isHeavy) {
+        if (this.dead) return;
+        if (this.hasShield) {
+            if (isHeavy) {
+                this.hasShield = false;
+                sfx.shieldBreak();
+                spawnParticles(this.x, this.y - 35, '#fbbf24', 12);
+                showBanner('ESCUDO QUEBRADO!');
+            } else {
+                sfx.shieldClang();
+                spawnParticles(this.x + this.dir * 12, this.y - 35, '#94a3b8', 6);
+                return;
+            }
+        }
+        this.hp -= dmg;
+        this.flash = 6;
+        spawnParticles(this.x, this.y - 35, '#ef4444', 8);
+
+        if (this.hp <= 0) {
+            this.dead = true;
+            orbs.push(new Orb(this.x, this.y - 25, 'RED'));
+            if (Math.random() < 0.45) orbs.push(new Orb(this.x + 10, this.y - 25, 'GREEN'));
+            if (player.hasPoseidon) {
+                player.magic = Math.min(100, player.magic + 18);
+                syncHUD();
+            }
+        }
+    }
+
+    update() {
+        if (this.dead) return;
+        if (this.flash > 0) this.flash--;
+        if (this.cd > 0) this.cd--;
+
+        const dx = player.x - this.x;
+        this.dir = dx >= 0 ? 1 : -1;
+
+        if (this.type === 'HARPY') {
+            const targetY = floorY - 55 + Math.sin(frame * 0.08 + this.x) * 28;
+            this.y += (targetY - this.y) * 0.08;
+            if (Math.abs(dx) > 45) this.x += this.dir * 3.1;
+            else if (this.cd === 0) {
+                player.takeDamage(12);
+                this.cd = 65;
+            }
+            return;
+        }
+
+        if (this.type === 'ARCHER') {
+            if (this.cd === 0) {
+                projectiles.push({
+                    x: this.x + this.dir * 15,
+                    y: this.y - 42,
+                    vx: this.dir * 6.5,
+                    vy: 0,
+                    life: 110
+                });
+                sfx.arrow();
+                this.cd = 115;
+            }
+            return;
+        }
+
+        if (Math.abs(dx) > 48) {
+            this.x += this.dir * (this.hasShield ? 1.6 : 2.3);
+        } else if (this.cd === 0) {
+            player.takeDamage(this.hasShield ? 16 : 12);
+            this.cd = 60;
+        }
+    }
+
+    draw() {
+        if (this.dead) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.scale(this.dir, 1);
+
+        ctx.fillStyle = this.flash > 0 ? '#ffffff' : (this.type === 'HARPY' ? '#7e22ce' : '#475569');
+        if (this.type === 'HARPY') {
+            ctx.beginPath();
+            ctx.arc(0, -25, 16, 0, Math.PI * 2);
+            ctx.fill();
+            const flap = Math.sin(frame * 0.4) * 18;
+            ctx.strokeStyle = '#c084fc';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(-24, -28 + flap);
+            ctx.lineTo(0, -25);
+            ctx.lineTo(24, -28 + flap);
+            ctx.stroke();
+        } else {
+            ctx.fillRect(-12, -58, 24, 58);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(3, -50, 5, 4);
+            if (this.hasShield) {
+                ctx.fillStyle = '#d97706';
+                ctx.fillRect(10, -52, 8, 44);
+            }
+        }
+
+        ctx.restore();
+
+        // Barra de vida do inimigo
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(this.x - 18, this.y - 70, 36, 4);
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(this.x - 18, this.y - 70, 36 * Math.max(0, this.hp / this.maxHp), 4);
+    }
+}
+
+/**
+ * CHEFE HIDRA
+ */
+class HydraHead {
+    constructor(side, isBoss = false) {
+        this.side = side;
+        this.isBoss = isBoss;
+        this.active = true;
+        this.dead = false;
+        this.maxHp = Math.round((isBoss ? 260 : 130) * getDiff().hpMult);
+        this.hp = this.maxHp;
+        this.bx = side === 'LEFT' ? 40 : W - 40;
+        this.by = floorY - 30;
+        this.hx = side === 'LEFT' ? W * 0.28 : W * 0.72;
+        this.hy = floorY - 120;
+        this.mode = 'IDLE';
+        this.timer = 60;
+        this.flash = 0;
+    }
+
+    takeDamage(dmg) {
+        if (!this.active || this.dead) return;
+        this.hp -= dmg;
+        this.flash = 6;
+        spawnParticles(this.hx, this.hy, '#22c55e', 10);
+        if (this.hp <= 0) {
+            if (this.isBoss && sceneObjects.ballista && !sceneObjects.ballista.fired) {
+                this.hp = 10;
+                this.mode = 'STUN';
+                this.timer = 180;
+                sceneObjects.ballista.active = true;
+                showBanner('HIDRA ATORDOADA! USE A BALISTA!');
+            } else {
+                this.dead = true;
+                sfx.roar();
+                shake = 16;
+                for (let i = 0; i < 6; i++) orbs.push(new Orb(this.hx, this.hy, 'RED'));
+            }
+        }
+    }
+
+    update() {
+        if (!this.active || this.dead) return;
+        if (this.flash > 0) this.flash--;
+        this.timer--;
+
+        if (this.mode === 'STUN') {
+            this.hy += ((floorY - 45) - this.hy) * 0.1;
+            if (this.timer <= 0) this.mode = 'IDLE';
+            return;
+        }
+
+        if (this.mode === 'IDLE') {
+            const targetX = (this.side === 'LEFT' ? W * 0.26 : W * 0.74) + Math.sin(frame * 0.05) * 25;
+            const targetY = (floorY - 115) + Math.cos(frame * 0.06) * 20;
+            this.hx += (targetX - this.hx) * 0.08;
+            this.hy += (targetY - this.hy) * 0.08;
+            if (this.timer <= 0) {
+                this.mode = 'STRIKE';
+                this.timer = 38;
+                sfx.roar();
+            }
+        } else if (this.mode === 'STRIKE') {
+            this.hx += (player.x - this.hx) * 0.12;
+            this.hy += ((floorY - 42) - this.hy) * 0.14;
+            if (Math.hypot(this.hx - player.x, this.hy - (player.y - 35)) < 48) {
+                player.takeDamage(18);
+            }
+            if (this.timer <= 0) {
+                this.mode = 'IDLE';
+                this.timer = 85;
+            }
+        }
+    }
+
     draw() {
         if (!this.active || this.dead) return;
         ctx.save();
@@ -415,9 +1155,16 @@ class Kratos {
         ctx.fill();
 
         ctx.restore();
+
+        // Barra de vida da Hidra
+        const bw = this.isBoss ? 140 : 90;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(this.hx - bw / 2, this.hy - 42, bw, 6);
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(this.hx - bw / 2, this.hy - 42, bw * Math.max(0, this.hp / this.maxHp), 6);
     }
 }
-<!-- ... existing code ... -->
+
 /**
  * ORBES (VERMELHOS E VERDES)
  */
@@ -467,7 +1214,10 @@ class Orb {
         ctx.fill();
     }
 }
-<!-- ... existing code ... -->
+
+/**
+ * PROGRESSÃO DE FASES & EVENTOS ESPECIAIS
+ */
 function activatePoseidonPortal() {
     sceneObjects.portal.used = true;
     player.hasPoseidon = true;
@@ -489,7 +1239,152 @@ function activatePoseidonPortal() {
         new Enemy(W * 0.72, floorY - 120, 'HARPY')
     );
 }
-<!-- ... existing code ... -->
+
+function fireBallista() {
+    sceneObjects.ballista.fired = true;
+    sceneObjects.ballista.active = false;
+    sfx.ballista();
+    shake = 22;
+    hydras.forEach(h => {
+        if (!h.dead) {
+            spawnParticles(h.hx, h.hy, '#ef4444', 35);
+            h.dead = true;
+        }
+    });
+    showBanner('HIDRA EMPALADA PELA BALISTA!');
+    setTimeout(() => advanceStage(), 1600);
+}
+
+function loadStage(idx) {
+    currentStage = idx;
+    checkpointStage = idx;
+    enemies = [];
+    hydras = [];
+    orbs = [];
+    projectiles = [];
+    sceneObjects = {};
+    player.x = W * 0.14;
+    player.y = floorY;
+    player.climbing = false;
+    player.onZipline = false;
+    setContextPrompt(null);
+
+    if (idx === 0) {
+        setObjective('FASE 1 • CONVÉS 1', 'Derrote os mortos-vivos no navio!');
+        enemies.push(new Enemy(W * 0.62, floorY, 'SWORD'), new Enemy(W * 0.82, floorY, 'SWORD'));
+    } else if (idx === 1) {
+        setObjective('FASE 1 • CABEÇA DA HIDRA', 'Ataque a cabeça da Hidra menor!');
+        hydras.push(new HydraHead('RIGHT', false));
+    } else if (idx === 2) {
+        setObjective('FASE 1 • BARCO 2', 'Use ataque FORTE para quebrar os escudos!');
+        enemies.push(new Enemy(W * 0.6, floorY, 'SHIELD'), new Enemy(W * 0.84, floorY, 'ARCHER'));
+    } else if (idx === 3) {
+        setObjective('FASE 1 • MASTRO', 'Suba pela corda até o topo!');
+        sceneObjects.climbRope = { x: W * 0.75, topY: 95, bottomY: floorY, active: true };
+    } else if (idx === 4) {
+        setObjective('FASE 1 • TIROLESA', 'Ataque a corda da tirolesa para atravessar!');
+        sceneObjects.zipline = { x1: W * 0.25, y1: floorY, x2: W * 0.88, y2: floorY, active: true };
+    } else if (idx === 5) {
+        setObjective('FASE 1 • SANTUÁRIO', 'Ataque o portal azul para receber o poder de Poseidon!');
+        sceneObjects.portal = { x: W * 0.55, used: false };
+    } else if (idx === 6) {
+        setObjective('CHEFE • REI HIDRA', 'Derrote a Hidra Gigante e ative a Balista!');
+        hydras.push(new HydraHead('RIGHT', true));
+        sceneObjects.ballista = { x: W * 0.22, active: false, fired: false };
+    } else if (idx === 7) {
+        setObjective('FASE 2 • CERCO DE ATENAS', 'Elimine as tropas invasoras em Atenas!');
+        enemies.push(
+            new Enemy(W * 0.58, floorY, 'SHIELD'),
+            new Enemy(W * 0.74, floorY, 'ARCHER'),
+            new Enemy(W * 0.85, floorY - 100, 'HARPY')
+        );
+    } else {
+        gameState = 'WIN';
+        const winEl = document.getElementById('win-summary');
+        const scrWin = document.getElementById('screen-win');
+        if (winEl) winEl.textContent = `Atenas foi libertada! Pontuação total de Orbes: ${orbsScore}`;
+        if (scrWin) scrWin.style.display = 'flex';
+    }
+}
+
+function advanceStage() {
+    showBanner('ÁREA CONCLUÍDA!');
+    loadStage(currentStage + 1);
+}
+
+/**
+ * DESENHO DO CENÁRIO
+ */
+function drawEnvironment() {
+    const isAthens = currentStage >= 7;
+    ctx.fillStyle = isAthens ? (athensSkyGrad || '#5c1908') : (skyGrad || '#0f172a');
+    ctx.fillRect(0, 0, W, floorY);
+
+    if (flashAlpha > 0) {
+        ctx.fillStyle = `rgba(224, 242, 254, ${flashAlpha})`;
+        ctx.fillRect(0, 0, W, floorY);
+        flashAlpha *= 0.86;
+        if (flashAlpha < 0.01) flashAlpha = 0;
+    }
+
+    // Mar / Fundo
+    if (!isAthens) {
+        ctx.fillStyle = '#0c4a6e';
+        ctx.fillRect(0, floorY - 26, W, 26);
+    }
+
+    // Piso
+    ctx.fillStyle = isAthens ? (stoneGrad || '#334155') : (woodGrad || '#451a03');
+    ctx.fillRect(0, floorY, W, H - floorY);
+    ctx.fillStyle = isAthens ? '#64748b' : '#78350f';
+    ctx.fillRect(0, floorY, W, 5);
+
+    // Objetos interativos da fase
+    if (sceneObjects.climbRope && sceneObjects.climbRope.active) {
+        const r = sceneObjects.climbRope;
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(r.x, r.topY);
+        ctx.lineTo(r.x, r.bottomY);
+        ctx.stroke();
+        if (Math.abs(player.x - r.x) < 45) setContextPrompt('APERTE [PULO] PARA SUBIR A CORDA');
+    }
+
+    if (sceneObjects.zipline && sceneObjects.zipline.active) {
+        const z = sceneObjects.zipline;
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(z.x1, z.y1 - 50);
+        ctx.lineTo(z.x2, z.y2 - 50);
+        ctx.stroke();
+        if (Math.abs(player.x - z.x1) < 75) setContextPrompt('APERTE [LÂMINA] PARA USAR A TIROLESA');
+    }
+
+    if (sceneObjects.portal && !sceneObjects.portal.used) {
+        const px = sceneObjects.portal.x;
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.arc(px, floorY - 42, 24 + Math.sin(frame * 0.15) * 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#7dd3fc';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        if (Math.abs(player.x - px) < 75) setContextPrompt('ATAQUE O PORTAL DE POSEIDON!');
+    }
+
+    if (sceneObjects.ballista && !sceneObjects.ballista.fired) {
+        const bx = sceneObjects.ballista.x;
+        ctx.fillStyle = sceneObjects.ballista.active ? '#f59e0b' : '#64748b';
+        ctx.fillRect(bx - 22, floorY - 28, 44, 28);
+        ctx.fillRect(bx - 6, floorY - 42, 34, 8);
+        if (sceneObjects.ballista.active && Math.abs(player.x - bx) < 75) {
+            setContextPrompt('APERTE [LÂMINA] PARA DISPARAR A BALISTA!');
+        }
+    }
+}
+
 /**
  * LOOP PRINCIPAL (60 FPS)
  */
@@ -502,7 +1397,72 @@ function loop() {
         flashAlpha = 0.42;
         flashTimer = 260 + Math.floor(Math.random() * 220);
     }
-<!-- ... existing code ... -->
+
+    ctx.save();
+    if (shake > 0) {
+        ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+        shake *= 0.82;
+        if (shake < 0.4) shake = 0;
+    }
+
+    drawEnvironment();
+
+    if (gameState === 'PLAYING' && player) {
+        player.update();
+        enemies.forEach(e => e.update());
+        hydras.forEach(h => h.update());
+        orbs.forEach(o => o.update());
+        orbs = orbs.filter(o => !o.done);
+
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+            const p = projectiles[i];
+            p.x += p.vx;
+            p.life--;
+            if (Math.hypot(p.x - player.x, p.y - (player.y - 38)) < 24) {
+                player.takeDamage(11);
+                projectiles.splice(i, 1);
+            } else if (p.life <= 0) {
+                projectiles.splice(i, 1);
+            }
+        }
+
+        // Verifica limpeza da onda atual
+        const activeEnemies = enemies.filter(e => !e.dead).length;
+        const activeHydras = hydras.filter(h => !h.dead).length;
+        const waitingEvent = (sceneObjects.climbRope && sceneObjects.climbRope.active) ||
+                             (sceneObjects.zipline && sceneObjects.zipline.active) ||
+                             (sceneObjects.portal && !sceneObjects.portal.used);
+
+        if (activeEnemies === 0 && activeHydras === 0 && !waitingEvent) {
+            advanceStage();
+        }
+    }
+
+    // Desenho das entidades
+    hydras.forEach(h => h.draw());
+    enemies.forEach(e => e.draw());
+    orbs.forEach(o => o.draw());
+
+    ctx.fillStyle = '#fbbf24';
+    projectiles.forEach(p => ctx.fillRect(p.x - 8, p.y - 2, 16, 4));
+
+    if (player) player.draw();
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const pt = particles[i];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.vy += 0.25;
+        pt.l--;
+        ctx.fillStyle = pt.c;
+        ctx.fillRect(pt.x, pt.y, 4, 4);
+        if (pt.l <= 0) particles.splice(i, 1);
+    }
+
+    ctx.restore();
+    requestAnimationFrame(loop);
+}
+
 /**
  * INICIALIZAÇÃO & CHECKPOINT
  */
@@ -560,6 +1520,55 @@ function bindMenuTap(el, action) {
     el.addEventListener('click', trigger);
 }
 
+function bindHoldControl(id, onDown, onUp) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const start = (e) => { if (e.cancelable) e.preventDefault(); onDown(); };
+    const end = (e) => { if (e.cancelable) e.preventDefault(); if (onUp) onUp(); };
+    el.addEventListener('touchstart', start, { passive: false });
+    el.addEventListener('touchend', end, { passive: false });
+    el.addEventListener('touchcancel', end, { passive: false });
+    el.addEventListener('mousedown', start);
+    el.addEventListener('mouseup', end);
+    el.addEventListener('mouseleave', end);
+}
+
+// Controles Touch & Teclado
+bindHoldControl('btn-left', () => { keys.left = true; }, () => { keys.left = false; });
+bindHoldControl('btn-right', () => { keys.right = true; }, () => { keys.right = false; });
+bindHoldControl('btn-jump', () => {
+    if (player) {
+        player.climbUpHold = true;
+        player.jump();
+    }
+}, () => { if (player) player.climbUpHold = false; });
+
+bindMenuTap(document.getElementById('btn-dodge'), () => { if (player) player.dodge(); });
+bindMenuTap(document.getElementById('btn-light'), () => { if (player) player.attack('LIGHT'); });
+bindMenuTap(document.getElementById('btn-heavy'), () => { if (player) player.attack('HEAVY'); });
+bindMenuTap(document.getElementById('btn-lightning'), () => { if (player) player.castLightning(); });
+
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+    if ((e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') && player) {
+        player.climbUpHold = true;
+        player.jump();
+    }
+    if (e.code === 'KeyJ' && player) player.attack('LIGHT');
+    if (e.code === 'KeyK' && player) player.attack('HEAVY');
+    if (e.code === 'KeyL' && player) player.dodge();
+    if (e.code === 'KeyE' && player) player.castLightning();
+});
+
+window.addEventListener('keyup', (e) => {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+    if ((e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') && player) {
+        player.climbUpHold = false;
+    }
+});
+
 // Seletor de Dificuldade na Tela Inicial (Touch + Click)
 document.querySelectorAll('.diff-btn').forEach(btn => {
     bindMenuTap(btn, () => {
@@ -568,7 +1577,7 @@ document.querySelectorAll('.diff-btn').forEach(btn => {
         currentDifficulty = btn.getAttribute('data-diff') || 'EASY';
     });
 });
-<!-- ... existing code ... -->
+
 // Botões de Tela Cheia, Som e Menus (Touch + Click seguros)
 bindMenuTap(document.getElementById('btn-fs'), () => {
     try {
