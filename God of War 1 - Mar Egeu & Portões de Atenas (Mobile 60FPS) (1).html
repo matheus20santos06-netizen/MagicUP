@@ -1,0 +1,610 @@
+<!-- ... existing code ... -->
+        .play-btn {
+            background: linear-gradient(180deg, #dc2626, #7f1d1d);
+            border: 2px solid #f59e0b;
+            color: #fef3c7;
+            font-size: 15px;
+            font-weight: 900;
+            padding: 11px 30px;
+            border-radius: 8px;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+        }
+
+        .play-btn:active {
+            transform: scale(0.96);
+        }
+
+        .diff-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .diff-btn {
+            background: rgba(15, 23, 42, 0.92);
+            border: 2px solid #475569;
+            color: #cbd5e1;
+            padding: 8px 12px;
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: 800;
+            text-align: center;
+            min-width: 110px;
+            cursor: pointer;
+        }
+<!-- ... existing code ... -->
+/**
+ * ÁUDIO SINTETIZADO LEVE (WEB AUDIO API)
+ */
+class SoundFX {
+    constructor() {
+        this.ctx = null;
+        this.muted = false;
+    }
+
+    unlock() {
+        try {
+            if (!this.ctx) {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) this.ctx = new AC();
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+                this.ctx.resume().catch(() => {});
+            }
+        } catch (e) {
+            this.ctx = null;
+        }
+    }
+
+    toggle() {
+        this.muted = !this.muted;
+        return !this.muted;
+    }
+
+    tone(type, f1, f2, dur, vol = 0.12) {
+        if (this.muted || !this.ctx) return;
+        try {
+            const t = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(f1, t);
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
+            g.gain.setValueAtTime(vol, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            osc.connect(g);
+            g.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + dur + 0.02);
+        } catch (e) {}
+    }
+
+    slash(heavy) { this.tone(heavy ? 'sawtooth' : 'triangle', heavy ? 300 : 480, heavy ? 60 : 110, heavy ? 0.28 : 0.14, 0.15); }
+    hit() { this.tone('square', 130, 35, 0.1, 0.14); }
+    orb(green) { this.tone('sine', green ? 520 : 660, green ? 880 : 1040, 0.09, 0.08); }
+    roar() { this.tone('sawtooth', 110, 44, 0.7, 0.2); }
+    arrow() { this.tone('triangle', 680, 260, 0.1, 0.08); }
+    zipline() { this.tone('sawtooth', 320, 560, 0.35, 0.09); }
+    shieldClang() { this.tone('square', 620, 290, 0.12, 0.16); }
+    shieldBreak() {
+        this.tone('sawtooth', 340, 55, 0.32, 0.2);
+        this.tone('square', 520, 90, 0.25, 0.16);
+    }
+    ballista() {
+        this.tone('sawtooth', 190, 42, 0.55, 0.25);
+        this.tone('square', 110, 30, 0.65, 0.22);
+    }
+    lightning() {
+        this.tone('sawtooth', 880, 140, 0.35, 0.2);
+        this.tone('square', 420, 75, 0.4, 0.16);
+    }
+}
+
+const sfx = new SoundFX();
+
+/**
+ * CANVAS & OTIMIZAÇÃO A10s (DPR = 1, ZERO SHADOWBLUR, FALLBACK SEGURO PARA content://)
+ */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d', { alpha: false }) || canvas.getContext('2d');
+
+let W = 800, H = 450, floorY = 346;
+let skyGrad = null, woodGrad = null, hullGrad = null, athensSkyGrad = null, stoneGrad = null;
+
+function getSafeViewport() {
+    const rawW = window.innerWidth || (document.documentElement && document.documentElement.clientWidth) || (document.body && document.body.clientWidth) || 800;
+    const rawH = window.innerHeight || (document.documentElement && document.documentElement.clientHeight) || (document.body && document.body.clientHeight) || 450;
+    return {
+        w: Math.max(320, Math.floor(rawW)),
+        h: Math.max(240, Math.floor(rawH))
+    };
+}
+
+function resize(force = false) {
+    try {
+        const vp = getSafeViewport();
+        if (!force && vp.w === W && vp.h === H && skyGrad) return;
+
+        const prevFloor = floorY || Math.round(vp.h * 0.77);
+        W = canvas.width = vp.w;
+        H = canvas.height = vp.h;
+        floorY = Math.max(180, Math.round(H * 0.77));
+
+        skyGrad = ctx.createLinearGradient(0, 0, 0, floorY);
+        skyGrad.addColorStop(0, '#020617');
+        skyGrad.addColorStop(1, '#1e293b');
+
+        woodGrad = ctx.createLinearGradient(0, floorY, 0, H);
+        woodGrad.addColorStop(0, '#451a03');
+        woodGrad.addColorStop(1, '#140701');
+
+        hullGrad = ctx.createLinearGradient(0, 0, 0, H);
+        hullGrad.addColorStop(0, '#1c0d04');
+        hullGrad.addColorStop(0.5, '#2b1407');
+        hullGrad.addColorStop(1, '#0f0602');
+
+        athensSkyGrad = ctx.createLinearGradient(0, 0, 0, floorY);
+        athensSkyGrad.addColorStop(0, '#180704');
+        athensSkyGrad.addColorStop(0.55, '#5c1908');
+        athensSkyGrad.addColorStop(1, '#b45309');
+
+        stoneGrad = ctx.createLinearGradient(0, floorY, 0, H);
+        stoneGrad.addColorStop(0, '#334155');
+        stoneGrad.addColorStop(1, '#0f172a');
+
+        if (player && Math.abs(player.y - prevFloor) < 24 && !player.climbing && !player.onZipline) {
+            player.y = floorY;
+        }
+    } catch (e) {}
+}
+window.addEventListener('resize', () => resize(true));
+resize(true);
+<!-- ... existing code ... -->
+function spawnParticles(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+        if (particles.length > 75) particles.shift();
+        particles.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 9,
+            vy: (Math.random() - 0.8) * 8,
+            c: color,
+            l: 16 + Math.random() * 10
+        });
+    }
+}
+
+function showBanner(text) {
+    const el = document.getElementById('banner-msg');
+    if (!el) return;
+    el.textContent = text;
+    el.style.opacity = '1';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.style.opacity = '0'; }, 2400);
+}
+
+function setObjective(stageTitle, desc) {
+    const sEl = document.getElementById('stage-label');
+    const oEl = document.getElementById('objective-text');
+    if (sEl) sEl.textContent = stageTitle;
+    if (oEl) oEl.textContent = desc;
+}
+
+function setContextPrompt(text) {
+    const el = document.getElementById('context-prompt');
+    if (!el) return;
+    if (text) {
+        el.textContent = text;
+        el.style.display = 'block';
+    } else {
+        el.style.display = 'none';
+    }
+}
+
+/**
+ * CLASSE DO PROTAGONISTA: KRATOS
+ */
+class Kratos {
+    constructor() {
+        this.x = W * 0.16;
+        this.y = floorY;
+        this.vx = 0;
+        this.vy = 0;
+        this.dir = 1;
+        this.hp = 100;
+        this.magic = 0;
+        this.hasPoseidon = false;
+        this.lightningBurstTimer = 0;
+        this.grounded = true;
+        this.climbing = false;
+        this.onZipline = false;
+        this.zipProgress = 0;
+        this.atkType = null;
+        this.atkTimer = 0;
+        this.atkCd = 0;
+        this.dodgeTimer = 0;
+        this.dodgeCd = 0;
+        this.invuln = 0;
+        this.trail = [];
+        this.climbUpHold = false;
+    }
+
+    update() {
+        if (this.invuln > 0) this.invuln--;
+        if (this.atkCd > 0) this.atkCd--;
+        if (this.dodgeCd > 0) this.dodgeCd--;
+<!-- ... existing code ... -->
+    jump() {
+        if (this.onZipline) return;
+        if (this.climbing) {
+            this.y -= 24;
+            return;
+        }
+        if (sceneObjects.climbRope && sceneObjects.climbRope.active) {
+            if (Math.abs(this.x - sceneObjects.climbRope.x) < 34 &&
+                this.y <= sceneObjects.climbRope.bottomY + 12 &&
+                this.y >= sceneObjects.climbRope.topY) {
+                this.climbing = true;
+                this.x = sceneObjects.climbRope.x;
+                this.vy = 0;
+                return;
+            }
+        }
+        if (this.grounded) {
+            this.vy = -13.2;
+            this.grounded = false;
+        }
+    }
+
+    dodge() {
+        if (this.dodgeCd > 0 || this.dodgeTimer > 0 || this.climbing || this.onZipline) return;
+        this.dodgeTimer = 14;
+        this.dodgeCd = 32;
+        this.atkTimer = 0;
+        this.atkType = null;
+    }
+
+    attack(type) {
+<!-- ... existing code ... -->
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        if (this.invuln > 0 && Math.floor(this.invuln / 3) % 2 === 0 && this.lightningBurstTimer === 0) {
+            ctx.globalAlpha = 0.55;
+        }
+
+        if (this.dodgeTimer > 0) {
+            ctx.translate(0, -24);
+            ctx.rotate(this.dir * (1 - this.dodgeTimer / 14) * 6.28);
+            ctx.translate(0, 24);
+        }
+
+        ctx.scale(this.dir, 1);
+
+        const walk = (this.grounded && Math.abs(this.vx) > 0.6) ? Math.sin(frame * 0.28) * 7 : 0;
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(-10 + walk, -26, 8, 26);
+        ctx.fillRect(3 - walk, -26, 8, 26);
+
+        ctx.fillStyle = '#7f1d1d';
+        ctx.fillRect(-14, -36, 28, 15);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(-14, -38, 28, 4);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(-15, -64, 30, 26);
+
+        ctx.fillStyle = '#b91c1c';
+        ctx.beginPath();
+        ctx.moveTo(-14, -64);
+        ctx.lineTo(-4, -64);
+        ctx.lineTo(6, -38);
+        ctx.lineTo(-2, -38);
+        ctx.fill();
+
+        ctx.fillStyle = '#d97706';
+        ctx.beginPath();
+        ctx.arc(13, -59, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.beginPath();
+        ctx.arc(2, -73, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#b91c1c';
+        ctx.fillRect(-2, -81, 4, 12);
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(5, -69, 5, 5);
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(6, -75, 4, 2);
+
+        if (this.atkTimer === 0) {
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(12, -46, 20, 5);
+            ctx.fillStyle = '#f97316';
+            ctx.fillRect(12, -46, 20, 2);
+        }
+
+        ctx.restore();
+
+        if (this.lightningBurstTimer > 0) {
+            ctx.save();
+            ctx.strokeStyle = frame % 2 === 0 ? '#7dd3fc' : '#38bdf8';
+            ctx.lineWidth = 3;
+            for (let b = 0; b < 5; b++) {
+                const ang = (frame * 0.35) + (b * 1.25);
+                const rMax = 110 + (b % 2) * 55;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y - 42);
+                ctx.lineTo(this.x + Math.cos(ang + 0.2) * (rMax * 0.5), (this.y - 42) + Math.sin(ang - 0.2) * 35);
+                ctx.lineTo(this.x + Math.cos(ang) * rMax, (this.y - 42) + Math.sin(ang) * 45);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        if (this.trail.length > 1) {
+            const last = this.trail[this.trail.length - 1];
+            ctx.strokeStyle = '#f97316';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y - 48);
+            ctx.lineTo(last.x, last.y);
+            ctx.stroke();
+
+            for (let i = 1; i < this.trail.length; i++) {
+                ctx.strokeStyle = i === this.trail.length - 1 ? '#fef08a' : '#ea580c';
+                ctx.lineWidth = i * 1.6;
+                ctx.beginPath();
+                ctx.moveTo(this.trail[i - 1].x, this.trail[i - 1].y);
+                ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                ctx.stroke();
+            }
+        }
+    }
+}
+<!-- ... existing code ... -->
+    draw() {
+        if (!this.active || this.dead) return;
+        ctx.save();
+
+        const cx = (this.bx + this.hx) * 0.5 + (this.side === 'LEFT' ? -30 : 30);
+        const cy = Math.min(this.by, this.hy) - 45;
+        ctx.strokeStyle = this.flash > 0 ? '#fca5a5' : (this.isBoss ? '#064e3b' : '#14532d');
+        ctx.lineWidth = this.isBoss ? 38 : 28;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(this.bx, this.by);
+        ctx.quadraticCurveTo(cx, cy, this.hx, this.hy);
+        ctx.stroke();
+
+        ctx.translate(this.hx, this.hy);
+        if (this.side === 'LEFT') ctx.scale(-1, 1);
+        if (this.mode === 'STUN') ctx.rotate(Math.sin(frame * 0.4) * 0.1);
+
+        ctx.fillStyle = this.flash > 0 ? '#ffffff' : '#166534';
+        ctx.beginPath();
+        ctx.moveTo(14, 8);
+        ctx.lineTo(-46, 20);
+        ctx.lineTo(-36, 30);
+        ctx.lineTo(16, 22);
+        ctx.fill();
+
+        ctx.fillStyle = this.flash > 0 ? '#ffffff' : (this.isBoss ? '#15803d' : '#16a34a');
+        ctx.beginPath();
+        ctx.moveTo(22, -20);
+        ctx.lineTo(-54, -6);
+        ctx.lineTo(-48, 10);
+        ctx.lineTo(20, 12);
+        ctx.fill();
+
+        if (this.isBoss) {
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(-18, 12, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillRect(-14, 10, 14, 4);
+        }
+
+        ctx.fillStyle = this.mode === 'STUN' ? '#ef4444' : '#facc15';
+        ctx.beginPath();
+        ctx.arc(-20, -4, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+}
+<!-- ... existing code ... -->
+/**
+ * ORBES (VERMELHOS E VERDES)
+ */
+class Orb {
+    constructor(x, y, type) {
+        this.x = x;
+        this.y = y;
+        this.type = type;
+        this.vx = (Math.random() - 0.5) * 8;
+        this.vy = -4 - Math.random() * 5;
+        this.done = false;
+    }
+
+    update() {
+        this.vy += 0.35;
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.y > floorY - 5) {
+            this.y = floorY - 5;
+            this.vy *= -0.4;
+            this.vx *= 0.7;
+        }
+        const dx = player.x - this.x;
+        const dy = (player.y - 36) - this.y;
+        const d = Math.hypot(dx, dy);
+        if (d < 200) {
+            this.x += (dx / d) * 8;
+            this.y += (dy / d) * 8;
+        }
+        if (d < 26) {
+            this.done = true;
+            if (this.type === 'RED') {
+                orbsScore += 15;
+                sfx.orb(false);
+            } else {
+                player.hp = Math.min(100, player.hp + getDiff().healAmount);
+                sfx.orb(true);
+            }
+            syncHUD();
+        }
+    }
+
+    draw() {
+        ctx.fillStyle = this.type === 'RED' ? '#ef4444' : '#22c55e';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+<!-- ... existing code ... -->
+function activatePoseidonPortal() {
+    sceneObjects.portal.used = true;
+    player.hasPoseidon = true;
+    player.magic = 100;
+    syncHUD();
+
+    const btnL = document.getElementById('btn-lightning');
+    if (btnL) btnL.style.display = 'flex';
+    shake = 14;
+    sfx.lightning();
+    spawnParticles(sceneObjects.portal.x, floorY - 45, '#38bdf8', 28);
+    showBanner('PODER OBTIDO: RAIO DE POSEIDON [⚡ RAIO]!');
+    setObjective('FASE 1 • BARCO 3', 'Use o [⚡ RAIO] para destruir os inimigos da emboscada!');
+
+    enemies.push(
+        new Enemy(W * 0.65, floorY, 'SWORD'),
+        new Enemy(W * 0.78, floorY, 'SWORD'),
+        new Enemy(W * 0.88, floorY, 'SWORD'),
+        new Enemy(W * 0.72, floorY - 120, 'HARPY')
+    );
+}
+<!-- ... existing code ... -->
+/**
+ * LOOP PRINCIPAL (60 FPS)
+ */
+function loop() {
+    frame++;
+    resize(false);
+
+    flashTimer--;
+    if (flashTimer <= 0) {
+        flashAlpha = 0.42;
+        flashTimer = 260 + Math.floor(Math.random() * 220);
+    }
+<!-- ... existing code ... -->
+/**
+ * INICIALIZAÇÃO & CHECKPOINT
+ */
+let lastStartTap = 0;
+function startCampaign(fromCheckpoint = false) {
+    const now = Date.now();
+    if (now - lastStartTap < 250) return;
+    lastStartTap = now;
+
+    try { sfx.unlock(); } catch (e) {}
+    try { resize(true); } catch (e) {}
+
+    const scrStart = document.getElementById('screen-start');
+    const scrLoss = document.getElementById('screen-loss');
+    const scrWin = document.getElementById('screen-win');
+    const diffBadge = document.getElementById('diff-badge');
+    const btnLightning = document.getElementById('btn-lightning');
+
+    if (scrStart) scrStart.style.display = 'none';
+    if (scrLoss) scrLoss.style.display = 'none';
+    if (scrWin) scrWin.style.display = 'none';
+    if (diffBadge) diffBadge.textContent = getDiff().label;
+
+    const hadPoseidon = player ? player.hasPoseidon : false;
+    player = new Kratos();
+
+    if (fromCheckpoint) {
+        if (checkpointStage >= 5 || hadPoseidon) {
+            player.hasPoseidon = true;
+            player.magic = 100;
+            if (btnLightning) btnLightning.style.display = 'flex';
+        }
+        loadStage(checkpointStage);
+    } else {
+        orbsScore = 0;
+        if (btnLightning) btnLightning.style.display = 'none';
+        loadStage(0);
+    }
+
+    syncHUD();
+    gameState = 'PLAYING';
+}
+
+function bindMenuTap(el, action) {
+    if (!el) return;
+    let locked = false;
+    const trigger = (e) => {
+        if (e && e.cancelable) e.preventDefault();
+        if (locked) return;
+        locked = true;
+        setTimeout(() => { locked = false; }, 220);
+        action(e);
+    };
+    el.addEventListener('touchstart', trigger, { passive: false });
+    el.addEventListener('click', trigger);
+}
+
+// Seletor de Dificuldade na Tela Inicial (Touch + Click)
+document.querySelectorAll('.diff-btn').forEach(btn => {
+    bindMenuTap(btn, () => {
+        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        currentDifficulty = btn.getAttribute('data-diff') || 'EASY';
+    });
+});
+<!-- ... existing code ... -->
+// Botões de Tela Cheia, Som e Menus (Touch + Click seguros)
+bindMenuTap(document.getElementById('btn-fs'), () => {
+    try {
+        const el = document.documentElement;
+        if (!document.fullscreenElement && el.requestFullscreen) {
+            el.requestFullscreen().catch(() => {});
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => {});
+            }
+        } else if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        }
+    } catch (e) {}
+});
+
+bindMenuTap(document.getElementById('btn-mute'), () => {
+    try { sfx.unlock(); } catch (e) {}
+    const on = sfx.toggle();
+    const mBtn = document.getElementById('btn-mute');
+    if (mBtn) mBtn.textContent = on ? 'SOM: ON' : 'SOM: OFF';
+});
+
+bindMenuTap(document.getElementById('btn-start'), () => startCampaign(false));
+bindMenuTap(document.getElementById('btn-retry'), () => startCampaign(true));
+bindMenuTap(document.getElementById('btn-again'), () => startCampaign(false));
+
+function bootGame() {
+    try { resize(true); } catch (e) {}
+    requestAnimationFrame(loop);
+}
+
+if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', bootGame);
+} else {
+    bootGame();
+}
+</script>
+</body>
+</html>
