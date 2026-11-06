@@ -337,7 +337,7 @@
 <!-- TELA INICIAL -->
 <div class="overlay-screen" id="screen-start">
     <div class="game-title">GOD OF WAR: ESPARTA 2D</div>
-    <div class="game-sub">Enfrente a Hidra no Mar Egeu e liberte Atenas. Escolha a dificuldade:</div>
+    <div class="game-sub">Enfrente a Hidra no Mar Egeu e os Minotauros em Atenas. Escolha a dificuldade:</div>
     <div class="diff-row">
         <button class="diff-btn selected" data-diff="EASY">MORTAL (FÁCIL)</button>
         <button class="diff-btn" data-diff="NORMAL">HERÓI (NORMAL)</button>
@@ -356,7 +356,7 @@
 <!-- TELA VITÓRIA -->
 <div class="overlay-screen" id="screen-win" style="display:none;">
     <div class="game-title" style="color:#f59e0b;">VITÓRIA DE KRATOS!</div>
-    <div class="game-sub" id="win-summary">A Hidra foi derrotada e Atenas está a salvo!</div>
+    <div class="game-sub" id="win-summary">A Hidra e os Minotauros foram derrotados! Atenas está a salvo!</div>
     <button class="play-btn" id="btn-again">JOGAR NOVAMENTE</button>
 </div>
 
@@ -411,6 +411,7 @@ class SoundFX {
     hit() { this.tone('square', 130, 35, 0.1, 0.14); }
     orb(green) { this.tone('sine', green ? 520 : 660, green ? 880 : 1040, 0.09, 0.08); }
     roar() { this.tone('sawtooth', 110, 44, 0.7, 0.2); }
+    minotaurCharge() { this.tone('sawtooth', 145, 52, 0.45, 0.22); }
     arrow() { this.tone('triangle', 680, 260, 0.1, 0.08); }
     zipline() { this.tone('sawtooth', 320, 560, 0.35, 0.09); }
     shieldClang() { this.tone('square', 620, 290, 0.12, 0.16); }
@@ -906,19 +907,25 @@ class Kratos {
 }
 
 /**
- * INIMIGOS COMUNS
+ * INIMIGOS (INCLUINDO MINOTAURO)
  */
 class Enemy {
     constructor(x, y, type) {
         this.x = x;
         this.y = y;
-        this.type = type; // 'SWORD', 'SHIELD', 'ARCHER', 'HARPY'
+        this.type = type; // 'SWORD', 'SHIELD', 'ARCHER', 'HARPY', 'MINOTAUR'
         const mult = getDiff().hpMult;
-        this.maxHp = Math.round((type === 'SHIELD' ? 90 : (type === 'HARPY' ? 45 : 60)) * mult);
+        let baseHp = 60;
+        if (type === 'SHIELD') baseHp = 90;
+        else if (type === 'HARPY') baseHp = 45;
+        else if (type === 'MINOTAUR') baseHp = 165;
+
+        this.maxHp = Math.round(baseHp * mult);
         this.hp = this.maxHp;
         this.hasShield = type === 'SHIELD';
         this.dir = -1;
-        this.cd = 40 + Math.floor(Math.random() * 40);
+        this.cd = 45 + Math.floor(Math.random() * 35);
+        this.chargeTimer = 0;
         this.flash = 0;
         this.dead = false;
     }
@@ -939,14 +946,19 @@ class Enemy {
         }
         this.hp -= dmg;
         this.flash = 6;
-        spawnParticles(this.x, this.y - 35, '#ef4444', 8);
+        spawnParticles(this.x, this.y - (this.type === 'MINOTAUR' ? 45 : 35), '#ef4444', 8);
 
         if (this.hp <= 0) {
             this.dead = true;
-            orbs.push(new Orb(this.x, this.y - 25, 'RED'));
-            if (Math.random() < 0.45) orbs.push(new Orb(this.x + 10, this.y - 25, 'GREEN'));
+            const orbCount = this.type === 'MINOTAUR' ? 4 : 1;
+            for (let i = 0; i < orbCount; i++) {
+                orbs.push(new Orb(this.x + (i - 1) * 8, this.y - 25, 'RED'));
+            }
+            if (this.type === 'MINOTAUR' || Math.random() < 0.45) {
+                orbs.push(new Orb(this.x + 10, this.y - 25, 'GREEN'));
+            }
             if (player.hasPoseidon) {
-                player.magic = Math.min(100, player.magic + 18);
+                player.magic = Math.min(100, player.magic + (this.type === 'MINOTAUR' ? 35 : 18));
                 syncHUD();
             }
         }
@@ -958,6 +970,38 @@ class Enemy {
         if (this.cd > 0) this.cd--;
 
         const dx = player.x - this.x;
+
+        if (this.type === 'MINOTAUR') {
+            if (this.chargeTimer > 0) {
+                this.chargeTimer--;
+                this.x += this.dir * 7.2;
+                this.x = Math.max(35, Math.min(W - 35, this.x));
+                if (Math.abs(player.x - this.x) < 55 && Math.abs(player.y - this.y) < 60) {
+                    player.takeDamage(22);
+                    this.chargeTimer = 0;
+                    this.cd = 75;
+                }
+                return;
+            }
+
+            this.dir = dx >= 0 ? 1 : -1;
+            if (Math.abs(dx) > 190 && this.cd === 0) {
+                this.chargeTimer = 32;
+                sfx.minotaurCharge();
+                shake = 6;
+                return;
+            }
+
+            if (Math.abs(dx) > 58) {
+                this.x += this.dir * 2.1;
+            } else if (this.cd === 0) {
+                player.takeDamage(20);
+                shake = 6;
+                this.cd = 65;
+            }
+            return;
+        }
+
         this.dir = dx >= 0 ? 1 : -1;
 
         if (this.type === 'HARPY') {
@@ -999,6 +1043,54 @@ class Enemy {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.scale(this.dir, 1);
+
+        if (this.type === 'MINOTAUR') {
+            // Pernas & Tronco pesado
+            ctx.fillStyle = this.flash > 0 ? '#ffffff' : '#451a03';
+            ctx.fillRect(-16, -32, 12, 32);
+            ctx.fillRect(5, -32, 12, 32);
+
+            ctx.fillStyle = this.flash > 0 ? '#ffffff' : '#78350f';
+            ctx.fillRect(-20, -76, 40, 46);
+
+            // Ombreira / Peitoral metálico
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(-20, -74, 40, 14);
+
+            // Cabeça de Touro + Chifres
+            ctx.fillStyle = this.flash > 0 ? '#ffffff' : '#5c2408';
+            ctx.fillRect(-12, -96, 26, 22);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(6, -88, 6, 5); // Olho vermelho
+
+            // Chifres curvos
+            ctx.strokeStyle = '#fde68a';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(4, -94);
+            ctx.quadraticCurveTo(22, -104, 18, -114);
+            ctx.stroke();
+
+            // Machado Gigante
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(16, -68, 6, 54);
+            ctx.fillStyle = '#cbd5e1';
+            ctx.beginPath();
+            ctx.moveTo(19, -66);
+            ctx.lineTo(38, -76);
+            ctx.lineTo(38, -46);
+            ctx.lineTo(19, -54);
+            ctx.fill();
+
+            ctx.restore();
+
+            // Barra de vida maior do Minotauro
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(this.x - 28, this.y - 122, 56, 6);
+            ctx.fillStyle = '#f97316';
+            ctx.fillRect(this.x - 28, this.y - 122, 56 * Math.max(0, this.hp / this.maxHp), 6);
+            return;
+        }
 
         ctx.fillStyle = this.flash > 0 ? '#ffffff' : (this.type === 'HARPY' ? '#7e22ce' : '#475569');
         if (this.type === 'HARPY') {
@@ -1299,11 +1391,17 @@ function loadStage(idx) {
         hydras.push(new HydraHead('RIGHT', true));
         sceneObjects.ballista = { x: W * 0.22, active: false, fired: false };
     } else if (idx === 7) {
-        setObjective('FASE 2 • CERCO DE ATENAS', 'Elimine as tropas invasoras em Atenas!');
+        setObjective('FASE 2 • CERCO DE ATENAS', 'Cuidado com a investida do Minotauro!');
         enemies.push(
-            new Enemy(W * 0.58, floorY, 'SHIELD'),
-            new Enemy(W * 0.74, floorY, 'ARCHER'),
-            new Enemy(W * 0.85, floorY - 100, 'HARPY')
+            new Enemy(W * 0.66, floorY, 'MINOTAUR'),
+            new Enemy(W * 0.86, floorY, 'ARCHER')
+        );
+    } else if (idx === 8) {
+        setObjective('FASE 3 • PORTÕES DE ATENAS', 'Derrote a guarda de elite dos Minotauros!');
+        enemies.push(
+            new Enemy(W * 0.58, floorY, 'MINOTAUR'),
+            new Enemy(W * 0.82, floorY, 'MINOTAUR'),
+            new Enemy(W * 0.72, floorY - 105, 'HARPY')
         );
     } else {
         gameState = 'WIN';
@@ -1433,7 +1531,7 @@ function loop() {
             }
         }
 
-        // Verifica limpeza da onda atual com controle explícito do Santuário e do Chefe Hidra
+        // Verifica limpeza da onda atual
         if (!stageTransitionLock) {
             const activeEnemies = enemies.filter(e => !e.dead).length;
             const activeHydras = hydras.filter(h => !h.dead).length;
