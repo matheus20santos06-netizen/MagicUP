@@ -502,6 +502,7 @@ let frame = 0;
 let shake = 0;
 let flashTimer = 200;
 let flashAlpha = 0;
+let stageTransitionLock = false;
 
 let enemies = [];
 let hydras = [];
@@ -1061,7 +1062,7 @@ class HydraHead {
             if (this.isBoss && sceneObjects.ballista && !sceneObjects.ballista.fired) {
                 this.hp = 10;
                 this.mode = 'STUN';
-                this.timer = 180;
+                this.timer = 220;
                 sceneObjects.ballista.active = true;
                 showBanner('HIDRA ATORDOADA! USE A BALISTA!');
             } else {
@@ -1230,7 +1231,7 @@ function activatePoseidonPortal() {
     sfx.lightning();
     spawnParticles(sceneObjects.portal.x, floorY - 45, '#38bdf8', 28);
     showBanner('PODER OBTIDO: RAIO DE POSEIDON [⚡ RAIO]!');
-    setObjective('FASE 1 • BARCO 3', 'Use o [⚡ RAIO] para destruir os inimigos da emboscada!');
+    setObjective('FASE 1 • EMBOSCADA', 'Use o [⚡ RAIO] para destruir os inimigos antes da Hidra!');
 
     enemies.push(
         new Enemy(W * 0.65, floorY, 'SWORD'),
@@ -1241,6 +1242,8 @@ function activatePoseidonPortal() {
 }
 
 function fireBallista() {
+    if (stageTransitionLock) return;
+    stageTransitionLock = true;
     sceneObjects.ballista.fired = true;
     sceneObjects.ballista.active = false;
     sfx.ballista();
@@ -1252,12 +1255,16 @@ function fireBallista() {
         }
     });
     showBanner('HIDRA EMPALADA PELA BALISTA!');
-    setTimeout(() => advanceStage(), 1600);
+    setTimeout(() => {
+        stageTransitionLock = false;
+        advanceStage();
+    }, 1600);
 }
 
 function loadStage(idx) {
     currentStage = idx;
     checkpointStage = idx;
+    stageTransitionLock = false;
     enemies = [];
     hydras = [];
     orbs = [];
@@ -1426,15 +1433,26 @@ function loop() {
             }
         }
 
-        // Verifica limpeza da onda atual
-        const activeEnemies = enemies.filter(e => !e.dead).length;
-        const activeHydras = hydras.filter(h => !h.dead).length;
-        const waitingEvent = (sceneObjects.climbRope && sceneObjects.climbRope.active) ||
-                             (sceneObjects.zipline && sceneObjects.zipline.active) ||
-                             (sceneObjects.portal && !sceneObjects.portal.used);
+        // Verifica limpeza da onda atual com controle explícito do Santuário e do Chefe Hidra
+        if (!stageTransitionLock) {
+            const activeEnemies = enemies.filter(e => !e.dead).length;
+            const activeHydras = hydras.filter(h => !h.dead).length;
+            const waitingEvent = (sceneObjects.climbRope && sceneObjects.climbRope.active) ||
+                                 (sceneObjects.zipline && sceneObjects.zipline.active) ||
+                                 (sceneObjects.portal && !sceneObjects.portal.used);
 
-        if (activeEnemies === 0 && activeHydras === 0 && !waitingEvent) {
-            advanceStage();
+            if (currentStage === 5 && sceneObjects.portal && sceneObjects.portal.used) {
+                if (activeEnemies === 0) {
+                    showBanner('ÁREA CONCLUÍDA!');
+                    loadStage(6);
+                }
+            } else if (currentStage === 6) {
+                if (activeHydras === 0 && activeEnemies === 0) {
+                    advanceStage();
+                }
+            } else if (activeEnemies === 0 && activeHydras === 0 && !waitingEvent) {
+                advanceStage();
+            }
         }
     }
 
