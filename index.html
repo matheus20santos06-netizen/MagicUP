@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Block Blast - Modo King & Auto-Play Definitivo</title>
+    <title>Block Blast - Modo King Full Auto (Girar & Quebrar)</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * {
@@ -267,12 +267,12 @@
             flex-shrink: 0;
         }
 
-        /* BARRA DE PODERES EXTRAS NO JOGO (Girar, Bomba, Auto-Play) */
+        /* BARRA DE PODERES FULL AUTO */
         .power-bar {
             width: 100%;
             max-width: 460px;
             display: flex;
-            gap: 6px;
+            gap: 5px;
             margin-top: 4px;
         }
 
@@ -281,9 +281,9 @@
             background: rgba(30, 41, 59, 0.9);
             border: 1.5px solid #38bdf8;
             color: #38bdf8;
-            padding: 6px;
+            padding: 6px 4px;
             border-radius: 8px;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 800;
             cursor: pointer;
             text-align: center;
@@ -415,9 +415,9 @@
 <div id="lobby-screen" class="screen">
     <div class="card">
         <h1>BLOCK BLAST</h1>
-        <div class="subtitle">Modo King • Auto-Colocar • Poderes Lendários</div>
+        <div class="subtitle">Modo King Full Auto • Girar & Quebrar Automático</div>
 
-        <button class="btn btn-solo" id="btn-start-solo">🏆 JOGAR MODO SOLO (5 VIDAS)</button>
+        <button class="btn btn-solo" id="btn-start-solo">🏆 JOGAR MODO SOLO (FULL AUTO)</button>
 
         <div class="divider">— OU DISPUTAR MULTIPLAYER P2P —</div>
 
@@ -445,7 +445,7 @@
         </div>
         <button class="btn-success btn" id="btn-join-room">CONECTAR P2P</button>
 
-        <button class="btn btn-secondary" id="btn-open-settings-lobby" style="margin-top:8px;">⚙️ CONFIGURAÇÕES & MODO KING</button>
+        <button class="btn btn-secondary" id="btn-open-settings-lobby" style="margin-top:8px;">⚙️ CONFIGURAÇÕES & FULL AUTO</button>
         <div class="status-text" id="conn-status"></div>
     </div>
 </div>
@@ -477,11 +477,12 @@
         <button class="icon-btn" id="btn-back-menu" title="Menu Inicial">🏠</button>
     </div>
 
-    <!-- BARRA DE PODERES E AUTO-COLOCAR RÁPIDO -->
+    <!-- BARRA DE PODERES FULL AUTO -->
     <div class="power-bar">
-        <button class="power-btn" id="btn-toggle-autoplay">🤖 Auto-Colocar: OFF</button>
-        <button class="power-btn" id="btn-power-rotate">🔄 Girar Peça</button>
-        <button class="power-btn" id="btn-power-bomb" style="border-color:#ef4444; color:#ef4444;">💣 Limpar Bloqueio</button>
+        <button class="power-btn" id="btn-toggle-autoplay">🤖 Auto-Jogar: OFF</button>
+        <button class="power-btn" id="btn-toggle-autobreak">💣 Quebra Auto: OFF</button>
+        <button class="power-btn" id="btn-power-rotate">🔄 Girar Manual</button>
+        <button class="power-btn" id="btn-power-bomb" style="border-color:#ef4444; color:#ef4444;">💥 Bomba</button>
     </div>
 
     <div id="solo-mission-bar" class="hidden">
@@ -526,25 +527,33 @@
     </div>
 </div>
 
-<!-- MODAL CONFIGURAÇÕES & MODO KING -->
+<!-- MODAL CONFIGURAÇÕES & FULL AUTO -->
 <div id="settings-modal" class="modal-backdrop hidden">
     <div class="card">
-        <h1 style="font-size:19px;">CONFIGURAÇÕES & MODO KING</h1>
-        <div class="subtitle">Ative a IA Suprema e o Auto-Colocar Automático</div>
+        <h1 style="font-size:18px;">CONFIGURAÇÕES & FULL AUTO</h1>
+        <div class="subtitle">IA com Rotação Automática e Quebra de Obstáculos</div>
 
         <div class="input-group">
-            <label style="color:#fbbf24; font-size:11px;">👑 MODO KING (IA de Encaixe)</label>
+            <label style="color:#fbbf24; font-size:11px;">👑 MODO KING (IA com Giro Automático)</label>
             <select id="king-mode-toggle">
                 <option value="OFF">Desligado</option>
-                <option value="ON">Ligado (Moldura Inteligente)</option>
+                <option value="ON">Ligado (Gira e Encaixa Sozinho)</option>
             </select>
         </div>
 
         <div class="input-group">
-            <label style="color:#22c55e; font-size:11px;">🤖 AUTO-COLOCAR AUTOMÁTICO</label>
+            <label style="color:#38bdf8; font-size:11px;">🤖 AUTO-COLOCAR AUTOMÁTICO</label>
             <select id="auto-place-toggle">
-                <option value="OFF">Desligado (Colocar Manual)</option>
-                <option value="ON">Ligado (Colocar Sozinho na Moldura)</option>
+                <option value="OFF">Desligado</option>
+                <option value="ON">Ligado (Joga Sozinho na Moldura)</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label style="color:#ef4444; font-size:11px;">💣 QUEBRA AUTOMÁTICA DE BLOQUEIOS</label>
+            <select id="auto-break-toggle">
+                <option value="OFF">Desligado</option>
+                <option value="ON">Ligado (Destrói Trancas Sozinho)</option>
             </select>
         </div>
 
@@ -552,7 +561,7 @@
             <label>Cor da Moldura do Modo King</label>
             <div class="color-row">
                 <input type="color" id="king-frame-color" value="#fbbf24">
-                <span style="font-size:11px; color:#94a3b8;">Cor da moldura de destaque</span>
+                <span style="font-size:11px; color:#94a3b8;">Cor da moldura</span>
             </div>
         </div>
 
@@ -588,7 +597,7 @@
 
 <script>
 /**
- * CONFIGURAÇÕES VISUAIS & MODO KING COM AUTO-PLAY
+ * CONFIGURAÇÕES VISUAIS & MODO KING FULL AUTO
  */
 const PALETTE = [
     '#ef4444', '#f97316', '#f59e0b', '#22c55e',
@@ -610,6 +619,7 @@ let userPrefs = {
     bgUrl: localStorage.getItem('bb_bgUrl') || '',
     kingMode: localStorage.getItem('bb_kingMode') || 'ON',
     autoPlace: localStorage.getItem('bb_autoPlace') || 'OFF',
+    autoBreak: localStorage.getItem('bb_autoBreak') || 'OFF',
     kingColor: localStorage.getItem('bb_kingColor') || '#fbbf24'
 };
 
@@ -619,9 +629,10 @@ function applyVisualPrefs() {
     document.getElementById('bg-image-url').value = userPrefs.bgUrl;
     document.getElementById('king-mode-toggle').value = userPrefs.kingMode;
     document.getElementById('auto-place-toggle').value = userPrefs.autoPlace;
+    document.getElementById('auto-break-toggle').value = userPrefs.autoBreak;
     document.getElementById('king-frame-color').value = userPrefs.kingColor;
 
-    updateAutoPlayButtonUI();
+    updateButtonsUI();
 
     if (userPrefs.bgUrl && userPrefs.bgUrl.trim() !== '') {
         document.body.style.backgroundImage = `url("${userPrefs.bgUrl.trim()}")`;
@@ -633,24 +644,40 @@ function applyVisualPrefs() {
 }
 applyVisualPrefs();
 
-function updateAutoPlayButtonUI() {
-    const btn = document.getElementById('btn-toggle-autoplay');
+function updateButtonsUI() {
+    const btnAuto = document.getElementById('btn-toggle-autoplay');
     if (userPrefs.autoPlace === 'ON') {
-        btn.textContent = '🤖 Auto-Colocar: ON';
-        btn.classList.add('active');
+        btnAuto.textContent = '🤖 Auto-Jogar: ON';
+        btnAuto.classList.add('active');
     } else {
-        btn.textContent = '🤖 Auto-Colocar: OFF';
-        btn.classList.remove('active');
+        btnAuto.textContent = '🤖 Auto-Jogar: OFF';
+        btnAuto.classList.remove('active');
+    }
+
+    const btnBreak = document.getElementById('btn-toggle-autobreak');
+    if (userPrefs.autoBreak === 'ON') {
+        btnBreak.textContent = '💣 Quebra Auto: ON';
+        btnBreak.classList.add('active');
+    } else {
+        btnBreak.textContent = '💣 Quebra Auto: OFF';
+        btnBreak.classList.remove('active');
     }
 }
 
 document.getElementById('btn-toggle-autoplay').addEventListener('click', () => {
     userPrefs.autoPlace = userPrefs.autoPlace === 'ON' ? 'OFF' : 'ON';
-    userPrefs.kingMode = 'ON'; // Auto-colocar precisa do Modo King ligado
+    userPrefs.kingMode = 'ON';
     localStorage.setItem('bb_autoPlace', userPrefs.autoPlace);
     localStorage.setItem('bb_kingMode', userPrefs.kingMode);
     applyVisualPrefs();
     showToast(userPrefs.autoPlace === 'ON' ? 'Auto-Colocar ATIVADO!' : 'Auto-Colocar DESATIVADO!');
+});
+
+document.getElementById('btn-toggle-autobreak').addEventListener('click', () => {
+    userPrefs.autoBreak = userPrefs.autoBreak === 'ON' ? 'OFF' : 'ON';
+    localStorage.setItem('bb_autoBreak', userPrefs.autoBreak);
+    applyVisualPrefs();
+    showToast(userPrefs.autoBreak === 'ON' ? 'Quebra Automática ATIVADA!' : 'Quebra Automática DESATIVADA!');
 });
 
 function showToast(msg) {
@@ -873,7 +900,7 @@ document.getElementById('btn-join-room').addEventListener('click', () => {
 });
 
 /**
- * MOTOR DO TABULEIRO & INTELIGÊNCIA MODO KING + AUTO-PLAY
+ * MOTOR DO TABULEIRO & INTELIGÊNCIA MODO KING (COM ROTAÇÃO AUTOMÁTICA)
  */
 const GRID_SIZE = 8;
 let board = [];
@@ -1009,6 +1036,25 @@ function createRandomPiece() {
     return { shape, cellColors, rows: shape.length, cols: shape[0].length };
 }
 
+function rotatePiece(p) {
+    const newRows = p.cols;
+    const newCols = p.rows;
+    const newShape = Array.from({ length: newRows }, () => Array(newCols).fill(0));
+    const newColors = Array.from({ length: newRows }, () => Array(newCols).fill(null));
+
+    for (let r = 0; r < p.rows; r++) {
+        for (let c = 0; c < p.cols; c++) {
+            if (p.shape[r][c]) {
+                const nr = c;
+                const nc = p.rows - 1 - r;
+                newShape[nr][nc] = 1;
+                newColors[nr][nc] = p.cellColors[r][c];
+            }
+        }
+    }
+    return { shape: newShape, cellColors: newColors, rows: newRows, cols: newCols };
+}
+
 function refillTrayIfEmpty() {
     if (trayPieces.every(p => p === null)) {
         trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
@@ -1139,7 +1185,7 @@ function startSoloStage(index, preserveScore = false) {
 }
 
 /**
- * CÁLCULO DA IA DO MODO KING
+ * INTELIGÊNCIA MODO KING: TESTA TODAS AS ROTAÇÕES E POSIÇÕES POSSÍVEIS
  */
 function calculateKingBestMove() {
     if (userPrefs.kingMode !== 'ON') {
@@ -1151,43 +1197,49 @@ function calculateKingBestMove() {
     let bestMove = null;
 
     for (let i = 0; i < trayPieces.length; i++) {
-        const p = trayPieces[i];
+        let p = trayPieces[i];
         if (!p) continue;
 
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
-                if (canPlacePiece(p, r, c)) {
-                    let simBoard = board.map(row => row.map(cell => cell ? { ...cell } : null));
-                    let placedCount = 0;
-                    for (let pr = 0; pr < p.rows; pr++) {
-                        for (let pc = 0; pc < p.cols; pc++) {
-                            if (p.shape[pr][pc]) {
-                                simBoard[r + pr][c + pc] = { kind: 'NORMAL' };
-                                placedCount++;
+        // Testa o formato original e todas as 3 rotações possíveis (90°, 180°, 270°)
+        let currentP = p;
+        for (let rot = 0; rot < 4; rot++) {
+            if (rot > 0) currentP = rotatePiece(currentP);
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (canPlacePiece(currentP, r, c)) {
+                        let simBoard = board.map(row => row.map(cell => cell ? { ...cell } : null));
+                        let placedCount = 0;
+                        for (let pr = 0; pr < currentP.rows; pr++) {
+                            for (let pc = 0; pc < currentP.cols; pc++) {
+                                if (currentP.shape[pr][pc]) {
+                                    simBoard[r + pr][c + pc] = { kind: 'NORMAL' };
+                                    placedCount++;
+                                }
                             }
                         }
-                    }
 
-                    let rowsCleared = 0;
-                    let colsCleared = 0;
-                    for (let tr = 0; tr < GRID_SIZE; tr++) {
-                        if (simBoard[tr].every(cell => cell !== null && cell.kind === 'NORMAL')) rowsCleared++;
-                    }
-                    for (let tc = 0; tc < GRID_SIZE; tc++) {
-                        let full = true;
+                        let rowsCleared = 0;
+                        let colsCleared = 0;
                         for (let tr = 0; tr < GRID_SIZE; tr++) {
-                            if (simBoard[tr][tc] === null || simBoard[tr][tc].kind !== 'NORMAL') { full = false; break; }
+                            if (simBoard[tr].every(cell => cell !== null && cell.kind === 'NORMAL')) rowsCleared++;
                         }
-                        if (full) colsCleared++;
-                    }
+                        for (let tc = 0; tc < GRID_SIZE; tc++) {
+                            let full = true;
+                            for (let tr = 0; tr < GRID_SIZE; tr++) {
+                                if (simBoard[tr][tc] === null || simBoard[tr][tc].kind !== 'NORMAL') { full = false; break; }
+                            }
+                            if (full) colsCleared++;
+                        }
 
-                    const totalCleared = rowsCleared + colsCleared;
-                    let score = placedCount * 12 + totalCleared * 600;
-                    if (totalCleared > 0) score += 1500;
+                        const totalCleared = rowsCleared + colsCleared;
+                        let score = placedCount * 12 + totalCleared * 700;
+                        if (totalCleared > 0) score += 2000;
 
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = { pieceIndex: i, row: r, col: c, piece: p };
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMove = { pieceIndex: i, row: r, col: c, piece: currentP, rotationsNeeded: rot };
+                        }
                     }
                 }
             }
@@ -1198,48 +1250,61 @@ function calculateKingBestMove() {
 }
 
 /**
- * LÓGICA DO AUTO-COLOCAR (AUTO-PLAY AUTOMÁTICO)
+ * AUTO-JOGAR E QUEBRA AUTOMÁTICA DE BLOQUEIOS
  */
-function checkAutoPlay() {
-    if (userPrefs.autoPlace === 'ON' && matchActive && kingBestMove && draggingIndex === -1) {
+function checkAutoPlayAndBreak() {
+    if (!matchActive) return;
+
+    // Quebra automática de bloqueios se ativada e o jogador ficar sem jogadas ou houver obstáculos
+    if (userPrefs.autoBreak === 'ON' && !kingBestMove) {
+        let cleared = false;
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] && board[r][c].kind !== 'NORMAL') {
+                    board[r][c] = null;
+                    spawnParticles(layout.boardX + c * layout.cellSize, layout.boardY + r * layout.cellSize, '#ef4444', 20);
+                    cleared = true;
+                    break;
+                }
+            }
+            if (cleared) break;
+        }
+        if (cleared) {
+            AudioFX.rockBreak();
+            showToast('💥 Quebra Automática destruiu um obstáculo!');
+            calculateKingBestMove();
+        }
+    }
+
+    // Auto-colocar automático
+    if (userPrefs.autoPlace === 'ON' && kingBestMove && draggingIndex === -1) {
         if (!autoPlayTimer) {
             autoPlayTimer = setTimeout(() => {
                 autoPlayTimer = null;
                 if (userPrefs.autoPlace === 'ON' && kingBestMove && matchActive && draggingIndex === -1) {
+                    // Aplica rotações necessárias na peça antes de colocar
+                    let pTarget = trayPieces[kingBestMove.pieceIndex];
+                    for (let rot = 0; rot < kingBestMove.rotationsNeeded; rot++) {
+                        pTarget = rotatePiece(pTarget);
+                    }
+                    trayPieces[kingBestMove.pieceIndex] = pTarget;
                     placePieceOnBoard(kingBestMove.pieceIndex, kingBestMove.row, kingBestMove.col);
                 }
-            }, 380); // Velocidade ideal para acompanhar visualmente o encaixe automático
+            }, 350);
         }
     }
 }
 
 /**
- * PODERES ESPECIAIS LENDÁRIOS: GIRAR PEÇA & BOMBA DE BLOQUEIO
+ * BOTÕES DE PODER (GIRAR MANUAL & BOMBA)
  */
 document.getElementById('btn-power-rotate').addEventListener('click', () => {
     if (!matchActive) return;
-    // Roda a primeira peça disponível na bandeja em 90 graus
     for (let i = 0; i < 3; i++) {
         if (trayPieces[i]) {
-            const p = trayPieces[i];
-            const newRows = p.cols;
-            const newCols = p.rows;
-            const newShape = Array.from({ length: newRows }, () => Array(newCols).fill(0));
-            const newColors = Array.from({ length: newRows }, () => Array(newCols).fill(null));
-
-            for (let r = 0; r < p.rows; r++) {
-                for (let c = 0; c < p.cols; c++) {
-                    if (p.shape[r][c]) {
-                        const nr = c;
-                        const nc = p.rows - 1 - r;
-                        newShape[nr][nc] = 1;
-                        newColors[nr][nc] = p.cellColors[r][c];
-                    }
-                }
-            }
-            trayPieces[i] = { shape: newShape, cellColors: newColors, rows: newRows, cols: newCols };
+            trayPieces[i] = rotatePiece(trayPieces[i]);
             calculateKingBestMove();
-            showToast('🔄 Peça rotacionada com sucesso!');
+            showToast('🔄 Peça rotacionada manualmente!');
             AudioFX.place();
             break;
         }
@@ -1248,7 +1313,6 @@ document.getElementById('btn-power-rotate').addEventListener('click', () => {
 
 document.getElementById('btn-power-bomb').addEventListener('click', () => {
     if (!matchActive) return;
-    // Destrói um obstáculo ou célula travada no tabuleiro instantaneamente
     let cleared = false;
     for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
@@ -1262,21 +1326,18 @@ document.getElementById('btn-power-bomb').addEventListener('click', () => {
         if (cleared) break;
     }
     if (!cleared) {
-        // Se não houver bloqueio, limpa uma célula aleatória para abrir espaço
-        let opened = false;
         for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
                 if (board[r][c] !== null) {
                     board[r][c] = null;
-                    opened = true;
                     break;
                 }
             }
-            if (opened) break;
+            break;
         }
     }
     AudioFX.rockBreak();
-    showToast('💣 Bomba divina acionada! Obstáculo destruído!');
+    showToast('💥 Bomba acionada!');
     calculateKingBestMove();
 });
 
@@ -1557,11 +1618,15 @@ function canPlacePiece(piece, startRow, startCol) {
 
 function hasAnyValidMove() {
     for (let i = 0; i < trayPieces.length; i++) {
-        const p = trayPieces[i];
+        let p = trayPieces[i];
         if (!p) continue;
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
-                if (canPlacePiece(p, r, c)) return true;
+        let testP = p;
+        for (let rot = 0; rot < 4; rot++) {
+            if (rot > 0) testP = rotatePiece(testP);
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (canPlacePiece(testP, r, c)) return true;
+                }
             }
         }
     }
@@ -1740,7 +1805,7 @@ function sendScoreUpdate() {
 }
 
 /**
- * RENDERIZAÇÃO E CANVAS + AUTO-PLAY CHECK
+ * RENDERIZAÇÃO E CANVAS + FULL AUTO CHECK
  */
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -1954,8 +2019,8 @@ function renderLoop() {
         }
     }
 
-    // Executa a verificação do Auto-Colocar Automático
-    checkAutoPlay();
+    // Executa as verificações do Full Auto (Auto-Jogar & Auto-Quebrar)
+    checkAutoPlayAndBreak();
 
     // Moldura do Modo King
     if (userPrefs.kingMode === 'ON' && kingBestMove && matchActive) {
@@ -2108,7 +2173,7 @@ function updateHoverCell() {
 
 function onPointerDown(e) {
     if (!matchActive) return;
-    if (userPrefs.autoPlace === 'ON') return; // Bloqueia toque manual se o auto-play estiver ligado
+    if (userPrefs.autoPlace === 'ON') return;
     if (e.cancelable) e.preventDefault();
     AudioFX.ensure();
     const pos = getCanvasCoords(e);
@@ -2172,6 +2237,7 @@ document.getElementById('btn-save-settings').addEventListener('click', () => {
     userPrefs.bgUrl = document.getElementById('bg-image-url').value.trim();
     userPrefs.kingMode = document.getElementById('king-mode-toggle').value;
     userPrefs.autoPlace = document.getElementById('auto-place-toggle').value;
+    userPrefs.autoBreak = document.getElementById('auto-break-toggle'].value;
     userPrefs.kingColor = document.getElementById('king-frame-color').value;
 
     localStorage.setItem('bb_colorMode', userPrefs.colorMode);
@@ -2179,6 +2245,7 @@ document.getElementById('btn-save-settings').addEventListener('click', () => {
     localStorage.setItem('bb_bgUrl', userPrefs.bgUrl);
     localStorage.setItem('bb_kingMode', userPrefs.kingMode);
     localStorage.setItem('bb_autoPlace', userPrefs.autoPlace);
+    localStorage.setItem('bb_autoBreak', userPrefs.autoBreak);
     localStorage.setItem('bb_kingColor', userPrefs.kingColor);
 
     applyVisualPrefs();
@@ -2187,7 +2254,7 @@ document.getElementById('btn-save-settings').addEventListener('click', () => {
         calculateKingBestMove();
     }
     document.getElementById('settings-modal').classList.add('hidden');
-    showToast('Configurações e Auto-Colocar salvos!');
+    showToast('Configurações Full Auto salvas!');
 });
 
 document.getElementById('btn-clear-bg').addEventListener('click', () => {
