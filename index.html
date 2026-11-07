@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Block Blast P2P, Solo & Modo King</title>
+    <title>Block Blast - Modo King & Auto-Play Definitivo</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * {
@@ -43,7 +43,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 14px;
+            padding: 12px;
             z-index: 10;
         }
 
@@ -52,20 +52,20 @@
         }
 
         .card {
-            background: rgba(30, 41, 59, 0.94);
+            background: rgba(30, 41, 59, 0.95);
             border: 2px solid #334155;
             border-radius: 16px;
             padding: 18px;
             width: 100%;
             max-width: 400px;
             text-align: center;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
             max-height: 92vh;
             overflow-y: auto;
         }
 
         h1 {
-            font-size: 23px;
+            font-size: 22px;
             font-weight: 900;
             color: #38bdf8;
             letter-spacing: 0.04em;
@@ -73,9 +73,9 @@
         }
 
         .subtitle {
-            font-size: 12px;
+            font-size: 11px;
             color: #94a3b8;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
 
         .input-group {
@@ -85,21 +85,21 @@
 
         label {
             display: block;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 800;
             color: #cbd5e1;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
             text-transform: uppercase;
         }
 
         input[type="text"], input[type="number"], input[type="url"], select {
             width: 100%;
-            padding: 9px 12px;
+            padding: 8px 10px;
             border-radius: 8px;
             border: 1.5px solid #475569;
             background: #0f172a;
             color: #f8fafc;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             outline: none;
         }
@@ -128,8 +128,8 @@
         .btn-solo {
             background: linear-gradient(180deg, #f59e0b, #d97706);
             color: #0f172a;
-            font-size: 15px;
-            padding: 13px;
+            font-size: 14px;
+            padding: 12px;
         }
 
         .btn-primary {
@@ -153,7 +153,7 @@
             border-radius: 10px;
             padding: 10px;
             margin: 10px 0;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 900;
             letter-spacing: 0.15em;
             color: #fbbf24;
@@ -161,7 +161,7 @@
         }
 
         .divider {
-            margin: 12px 0;
+            margin: 10px 0;
             font-size: 11px;
             color: #64748b;
             font-weight: 800;
@@ -170,7 +170,7 @@
         /* ÁREA DO JOGO */
         #game-screen {
             justify-content: space-between;
-            padding: 8px 10px 12px;
+            padding: 6px 8px 10px;
         }
 
         .top-hud {
@@ -179,15 +179,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
 
         .score-card {
             flex: 1;
             background: rgba(15, 23, 42, 0.9);
             border: 1.5px solid #334155;
-            border-radius: 10px;
-            padding: 5px 8px;
+            border-radius: 9px;
+            padding: 4px 6px;
             text-align: center;
         }
 
@@ -196,7 +196,7 @@
         }
 
         .player-tag {
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 800;
             color: #94a3b8;
             white-space: nowrap;
@@ -205,7 +205,7 @@
         }
 
         .score-val {
-            font-size: 17px;
+            font-size: 15px;
             font-weight: 900;
             color: #f8fafc;
         }
@@ -213,20 +213,20 @@
         .target-box {
             background: rgba(15, 23, 42, 0.94);
             border: 1.5px solid #fbbf24;
-            border-radius: 10px;
-            padding: 5px 8px;
+            border-radius: 9px;
+            padding: 4px 6px;
             text-align: center;
-            min-width: 86px;
+            min-width: 76px;
         }
 
         .target-label {
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 800;
             color: #fbbf24;
         }
 
         .target-val {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 900;
             color: #fef3c7;
         }
@@ -234,20 +234,20 @@
         .lives-box {
             background: rgba(15, 23, 42, 0.94);
             border: 1.5px solid #ef4444;
-            border-radius: 10px;
-            padding: 5px 8px;
+            border-radius: 9px;
+            padding: 4px 6px;
             text-align: center;
-            min-width: 68px;
+            min-width: 58px;
         }
 
         .lives-label {
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 800;
             color: #ef4444;
         }
 
         .lives-val {
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 900;
             color: #fca5a5;
         }
@@ -256,10 +256,10 @@
             background: rgba(30, 41, 59, 0.92);
             border: 1.5px solid #475569;
             color: #f8fafc;
-            width: 34px;
-            height: 34px;
-            border-radius: 10px;
-            font-size: 15px;
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            font-size: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -267,24 +267,51 @@
             flex-shrink: 0;
         }
 
+        /* BARRA DE PODERES EXTRAS NO JOGO (Girar, Bomba, Auto-Play) */
+        .power-bar {
+            width: 100%;
+            max-width: 460px;
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .power-btn {
+            flex: 1;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1.5px solid #38bdf8;
+            color: #38bdf8;
+            padding: 6px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .power-btn.active {
+            background: #0284c7;
+            color: #fff;
+        }
+
         #solo-mission-bar {
             width: 100%;
             max-width: 460px;
             background: rgba(15, 23, 42, 0.9);
             border: 1.5px solid #475569;
-            border-radius: 10px;
-            padding: 5px 10px;
-            margin-top: 5px;
+            border-radius: 9px;
+            padding: 4px 8px;
+            margin-top: 4px;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
         }
 
         .mission-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 800;
         }
 
@@ -298,9 +325,9 @@
 
         .progress-track {
             width: 100%;
-            height: 7px;
+            height: 6px;
             background: #1e293b;
-            border-radius: 4px;
+            border-radius: 3px;
             overflow: hidden;
         }
 
@@ -342,8 +369,8 @@
         }
 
         input[type="color"] {
-            width: 48px;
-            height: 40px;
+            width: 44px;
+            height: 38px;
             border: none;
             border-radius: 8px;
             background: none;
@@ -351,24 +378,24 @@
         }
 
         .status-text {
-            font-size: 12px;
+            font-size: 11px;
             color: #fbbf24;
-            margin-top: 6px;
-            min-height: 16px;
+            margin-top: 5px;
+            min-height: 14px;
             font-weight: 700;
         }
 
         .toast {
             position: fixed;
-            top: 86px;
+            top: 74px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(15, 23, 42, 0.96);
             border: 1.5px solid #38bdf8;
             color: #bae6fd;
-            padding: 7px 14px;
+            padding: 6px 12px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 800;
             z-index: 40;
             opacity: 0;
@@ -388,7 +415,7 @@
 <div id="lobby-screen" class="screen">
     <div class="card">
         <h1>BLOCK BLAST</h1>
-        <div class="subtitle">Campanha Solo • Multiplayer • Modo King</div>
+        <div class="subtitle">Modo King • Auto-Colocar • Poderes Lendários</div>
 
         <button class="btn btn-solo" id="btn-start-solo">🏆 JOGAR MODO SOLO (5 VIDAS)</button>
 
@@ -408,17 +435,17 @@
 
             <div id="host-wait-box" class="hidden">
                 <div class="code-box" id="room-code-display" title="Toque para copiar">------</div>
-                <div style="font-size:11px; color:#94a3b8;">Toque no código para copiar e enviar!</div>
+                <div style="font-size:10px; color:#94a3b8;">Toque no código para copiar e enviar!</div>
             </div>
         </div>
 
-        <div class="input-group" style="margin-top:10px;">
+        <div class="input-group" style="margin-top:8px;">
             <label>Entrar com Código P2P</label>
             <input type="text" id="join-code-input" placeholder="Ex: AB12CD" maxlength="8" style="text-transform:uppercase;">
         </div>
-        <button class="btn btn-success" id="btn-join-room">CONECTAR P2P</button>
+        <button class="btn-success btn" id="btn-join-room">CONECTAR P2P</button>
 
-        <button class="btn btn-secondary" id="btn-open-settings-lobby" style="margin-top:10px;">⚙️ CONFIGURAÇÕES & MODO KING</button>
+        <button class="btn btn-secondary" id="btn-open-settings-lobby" style="margin-top:8px;">⚙️ CONFIGURAÇÕES & MODO KING</button>
         <div class="status-text" id="conn-status"></div>
     </div>
 </div>
@@ -450,6 +477,13 @@
         <button class="icon-btn" id="btn-back-menu" title="Menu Inicial">🏠</button>
     </div>
 
+    <!-- BARRA DE PODERES E AUTO-COLOCAR RÁPIDO -->
+    <div class="power-bar">
+        <button class="power-btn" id="btn-toggle-autoplay">🤖 Auto-Colocar: OFF</button>
+        <button class="power-btn" id="btn-power-rotate">🔄 Girar Peça</button>
+        <button class="power-btn" id="btn-power-bomb" style="border-color:#ef4444; color:#ef4444;">💣 Limpar Bloqueio</button>
+    </div>
+
     <div id="solo-mission-bar" class="hidden">
         <div class="mission-header">
             <span id="mission-title">FASE 1: Alcance 2.000 pontos</span>
@@ -471,14 +505,14 @@
         <h1 id="winner-title" style="color:#fbbf24;">FIM DE JOGO!</h1>
         <div class="subtitle" id="winner-desc">Resultado da partida</div>
 
-        <div style="display:flex; justify-content:space-around; margin: 14px 0; background:#0f172a; padding:10px; border-radius:10px;">
+        <div style="display:flex; justify-content:space-around; margin: 12px 0; background:#0f172a; padding:10px; border-radius:10px;">
             <div>
                 <div style="font-size:10px; color:#94a3b8;" id="end-my-label">PONTUAÇÃO</div>
-                <div style="font-size:20px; font-weight:900; color:#38bdf8;" id="end-my-score">0</div>
+                <div style="font-size:18px; font-weight:900; color:#38bdf8;" id="end-my-score">0</div>
             </div>
             <div id="end-rival-box">
                 <div style="font-size:10px; color:#94a3b8;" id="end-rival-name">FASE ALCANÇADA</div>
-                <div style="font-size:20px; font-weight:900; color:#f43f5e;" id="end-rival-score">Fase 1</div>
+                <div style="font-size:18px; font-weight:900; color:#f43f5e;" id="end-rival-score">Fase 1</div>
             </div>
         </div>
 
@@ -495,14 +529,22 @@
 <!-- MODAL CONFIGURAÇÕES & MODO KING -->
 <div id="settings-modal" class="modal-backdrop hidden">
     <div class="card">
-        <h1 style="font-size:20px;">CONFIGURAÇÕES & MODO KING</h1>
-        <div class="subtitle">Personalize visuais e ative a super moldura inteligente</div>
+        <h1 style="font-size:19px;">CONFIGURAÇÕES & MODO KING</h1>
+        <div class="subtitle">Ative a IA Suprema e o Auto-Colocar Automático</div>
 
         <div class="input-group">
-            <label style="color:#fbbf24; font-size:12px;">👑 MODO KING (Melhor Jogada Automática)</label>
+            <label style="color:#fbbf24; font-size:11px;">👑 MODO KING (IA de Encaixe)</label>
             <select id="king-mode-toggle">
-                <option value="OFF">Desligado (Jogar Normal)</option>
-                <option value="ON">Ligado (Mostrar Moldura da Melhor Jogada)</option>
+                <option value="OFF">Desligado</option>
+                <option value="ON">Ligado (Moldura Inteligente)</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label style="color:#22c55e; font-size:11px;">🤖 AUTO-COLOCAR AUTOMÁTICO</label>
+            <select id="auto-place-toggle">
+                <option value="OFF">Desligado (Colocar Manual)</option>
+                <option value="ON">Ligado (Colocar Sozinho na Moldura)</option>
             </select>
         </div>
 
@@ -510,7 +552,7 @@
             <label>Cor da Moldura do Modo King</label>
             <div class="color-row">
                 <input type="color" id="king-frame-color" value="#fbbf24">
-                <span style="font-size:12px; color:#94a3b8;">Toque para escolher a cor da moldura</span>
+                <span style="font-size:11px; color:#94a3b8;">Cor da moldura de destaque</span>
             </div>
         </div>
 
@@ -529,7 +571,7 @@
             <label>Escolher Cor Única dos Blocos</label>
             <div class="color-row">
                 <input type="color" id="block-fixed-color" value="#38bdf8">
-                <span style="font-size:12px; color:#94a3b8;">Cor fixa</span>
+                <span style="font-size:11px; color:#94a3b8;">Cor fixa</span>
             </div>
         </div>
 
@@ -546,7 +588,7 @@
 
 <script>
 /**
- * CONFIGURAÇÕES VISUAIS & MODO KING
+ * CONFIGURAÇÕES VISUAIS & MODO KING COM AUTO-PLAY
  */
 const PALETTE = [
     '#ef4444', '#f97316', '#f59e0b', '#22c55e',
@@ -566,7 +608,8 @@ let userPrefs = {
     colorMode: localStorage.getItem('bb_colorMode') || 'RANDOM_CELL',
     fixedColor: localStorage.getItem('bb_fixedColor') || '#38bdf8',
     bgUrl: localStorage.getItem('bb_bgUrl') || '',
-    kingMode: localStorage.getItem('bb_kingMode') || 'OFF',
+    kingMode: localStorage.getItem('bb_kingMode') || 'ON',
+    autoPlace: localStorage.getItem('bb_autoPlace') || 'OFF',
     kingColor: localStorage.getItem('bb_kingColor') || '#fbbf24'
 };
 
@@ -575,7 +618,10 @@ function applyVisualPrefs() {
     document.getElementById('block-fixed-color').value = userPrefs.fixedColor;
     document.getElementById('bg-image-url').value = userPrefs.bgUrl;
     document.getElementById('king-mode-toggle').value = userPrefs.kingMode;
+    document.getElementById('auto-place-toggle').value = userPrefs.autoPlace;
     document.getElementById('king-frame-color').value = userPrefs.kingColor;
+
+    updateAutoPlayButtonUI();
 
     if (userPrefs.bgUrl && userPrefs.bgUrl.trim() !== '') {
         document.body.style.backgroundImage = `url("${userPrefs.bgUrl.trim()}")`;
@@ -586,6 +632,26 @@ function applyVisualPrefs() {
     }
 }
 applyVisualPrefs();
+
+function updateAutoPlayButtonUI() {
+    const btn = document.getElementById('btn-toggle-autoplay');
+    if (userPrefs.autoPlace === 'ON') {
+        btn.textContent = '🤖 Auto-Colocar: ON';
+        btn.classList.add('active');
+    } else {
+        btn.textContent = '🤖 Auto-Colocar: OFF';
+        btn.classList.remove('active');
+    }
+}
+
+document.getElementById('btn-toggle-autoplay').addEventListener('click', () => {
+    userPrefs.autoPlace = userPrefs.autoPlace === 'ON' ? 'OFF' : 'ON';
+    userPrefs.kingMode = 'ON'; // Auto-colocar precisa do Modo King ligado
+    localStorage.setItem('bb_autoPlace', userPrefs.autoPlace);
+    localStorage.setItem('bb_kingMode', userPrefs.kingMode);
+    applyVisualPrefs();
+    showToast(userPrefs.autoPlace === 'ON' ? 'Auto-Colocar ATIVADO!' : 'Auto-Colocar DESATIVADO!');
+});
 
 function showToast(msg) {
     const t = document.getElementById('toast');
@@ -807,7 +873,7 @@ document.getElementById('btn-join-room').addEventListener('click', () => {
 });
 
 /**
- * MOTOR DO TABULEIRO & MODO KING (INTELIGÊNCIA ARTIFICIAL DE JOGADA)
+ * MOTOR DO TABULEIRO & INTELIGÊNCIA MODO KING + AUTO-PLAY
  */
 const GRID_SIZE = 8;
 let board = [];
@@ -818,9 +884,8 @@ let hoverCell = null;
 let floatingTexts = [];
 let particles = [];
 let screenShake = 0;
-
-// Cache do Modo King para calcular a melhor jogada atual sem travar a tela
 let kingBestMove = null;
+let autoPlayTimer = null;
 
 const SOLO_MILESTONES = [
     { target: 2000,  type: 'SCORE',  label: 'Fase 1 • Aquecimento' },
@@ -1074,8 +1139,7 @@ function startSoloStage(index, preserveScore = false) {
 }
 
 /**
- * ALGORITMO DO MODO KING: Calcula a jogada ideal que limpa mais linhas, 
- * pontua mais e garante que o jogador nunca fique preso ou erre!
+ * CÁLCULO DA IA DO MODO KING
  */
 function calculateKingBestMove() {
     if (userPrefs.kingMode !== 'ON') {
@@ -1093,7 +1157,6 @@ function calculateKingBestMove() {
         for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
                 if (canPlacePiece(p, r, c)) {
-                    // Simula a colocação da peça no tabuleiro temporário
                     let simBoard = board.map(row => row.map(cell => cell ? { ...cell } : null));
                     let placedCount = 0;
                     for (let pr = 0; pr < p.rows; pr++) {
@@ -1105,7 +1168,6 @@ function calculateKingBestMove() {
                         }
                     }
 
-                    // Conta linhas e colunas completas simuladas
                     let rowsCleared = 0;
                     let colsCleared = 0;
                     for (let tr = 0; tr < GRID_SIZE; tr++) {
@@ -1120,9 +1182,8 @@ function calculateKingBestMove() {
                     }
 
                     const totalCleared = rowsCleared + colsCleared;
-                    // Pontuação heurística do Modo King: Prioriza limpeza de linhas, combos e peças colocadas
-                    let score = placedCount * 10 + totalCleared * 500;
-                    if (totalCleared > 0) score += 1000;
+                    let score = placedCount * 12 + totalCleared * 600;
+                    if (totalCleared > 0) score += 1500;
 
                     if (score > bestScore) {
                         bestScore = score;
@@ -1135,6 +1196,89 @@ function calculateKingBestMove() {
 
     kingBestMove = bestMove;
 }
+
+/**
+ * LÓGICA DO AUTO-COLOCAR (AUTO-PLAY AUTOMÁTICO)
+ */
+function checkAutoPlay() {
+    if (userPrefs.autoPlace === 'ON' && matchActive && kingBestMove && draggingIndex === -1) {
+        if (!autoPlayTimer) {
+            autoPlayTimer = setTimeout(() => {
+                autoPlayTimer = null;
+                if (userPrefs.autoPlace === 'ON' && kingBestMove && matchActive && draggingIndex === -1) {
+                    placePieceOnBoard(kingBestMove.pieceIndex, kingBestMove.row, kingBestMove.col);
+                }
+            }, 380); // Velocidade ideal para acompanhar visualmente o encaixe automático
+        }
+    }
+}
+
+/**
+ * PODERES ESPECIAIS LENDÁRIOS: GIRAR PEÇA & BOMBA DE BLOQUEIO
+ */
+document.getElementById('btn-power-rotate').addEventListener('click', () => {
+    if (!matchActive) return;
+    // Roda a primeira peça disponível na bandeja em 90 graus
+    for (let i = 0; i < 3; i++) {
+        if (trayPieces[i]) {
+            const p = trayPieces[i];
+            const newRows = p.cols;
+            const newCols = p.rows;
+            const newShape = Array.from({ length: newRows }, () => Array(newCols).fill(0));
+            const newColors = Array.from({ length: newRows }, () => Array(newCols).fill(null));
+
+            for (let r = 0; r < p.rows; r++) {
+                for (let c = 0; c < p.cols; c++) {
+                    if (p.shape[r][c]) {
+                        const nr = c;
+                        const nc = p.rows - 1 - r;
+                        newShape[nr][nc] = 1;
+                        newColors[nr][nc] = p.cellColors[r][c];
+                    }
+                }
+            }
+            trayPieces[i] = { shape: newShape, cellColors: newColors, rows: newRows, cols: newCols };
+            calculateKingBestMove();
+            showToast('🔄 Peça rotacionada com sucesso!');
+            AudioFX.place();
+            break;
+        }
+    }
+});
+
+document.getElementById('btn-power-bomb').addEventListener('click', () => {
+    if (!matchActive) return;
+    // Destrói um obstáculo ou célula travada no tabuleiro instantaneamente
+    let cleared = false;
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            if (board[r][c] && board[r][c].kind !== 'NORMAL') {
+                board[r][c] = null;
+                spawnParticles(layout.boardX + c * layout.cellSize, layout.boardY + r * layout.cellSize, '#ef4444', 20);
+                cleared = true;
+                break;
+            }
+        }
+        if (cleared) break;
+    }
+    if (!cleared) {
+        // Se não houver bloqueio, limpa uma célula aleatória para abrir espaço
+        let opened = false;
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] !== null) {
+                    board[r][c] = null;
+                    opened = true;
+                    break;
+                }
+            }
+            if (opened) break;
+        }
+    }
+    AudioFX.rockBreak();
+    showToast('💣 Bomba divina acionada! Obstáculo destruído!');
+    calculateKingBestMove();
+});
 
 function handleSoloDeath(reasonTitle) {
     stopRescueTimer();
@@ -1348,6 +1492,7 @@ function checkP2PVictory() {
 function finishGameScreen(title, desc) {
     matchActive = false;
     stopRescueTimer();
+    if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
     draggingIndex = -1;
 
     document.getElementById('winner-title').textContent = title;
@@ -1382,6 +1527,7 @@ document.getElementById('btn-restart-match').addEventListener('click', () => {
 function returnToLobby() {
     matchActive = false;
     stopRescueTimer();
+    if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
     AudioFX.stopBackgroundMusic();
     document.getElementById('gameover-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.add('hidden');
@@ -1585,7 +1731,6 @@ function placePieceOnBoard(pieceIndex, startRow, startCol) {
         }
     }
 
-    // Recalcula a melhor jogada do Modo King para o próximo turno
     calculateKingBestMove();
     return true;
 }
@@ -1595,7 +1740,7 @@ function sendScoreUpdate() {
 }
 
 /**
- * RENDERIZAÇÃO E CANVAS + MODO KING (MOLDURA PISCANTE)
+ * RENDERIZAÇÃO E CANVAS + AUTO-PLAY CHECK
  */
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -1809,15 +1954,14 @@ function renderLoop() {
         }
     }
 
-    /**
-     * RENDERIZAÇÃO DA MOLDURA PISCANTE DO MODO KING
-     */
+    // Executa a verificação do Auto-Colocar Automático
+    checkAutoPlay();
+
+    // Moldura do Modo King
     if (userPrefs.kingMode === 'ON' && kingBestMove && matchActive) {
         const p = kingBestMove.piece;
         const bRow = kingBestMove.row;
         const bCol = kingBestMove.col;
-
-        // Efeito de piscar com senoide suave
         const pulseAlpha = 0.5 + Math.sin(animFrame * 0.18) * 0.45;
 
         for (let pr = 0; pr < p.rows; pr++) {
@@ -1834,7 +1978,6 @@ function renderLoop() {
                     ctx.roundRect(kx + 2, ky + 2, cellSize - 4, cellSize - 4, 6);
                     ctx.stroke();
 
-                    // Brilho translúcido no interior da melhor jogada
                     ctx.fillStyle = userPrefs.kingColor;
                     ctx.globalAlpha = pulseAlpha * 0.22;
                     ctx.fill();
@@ -1965,6 +2108,7 @@ function updateHoverCell() {
 
 function onPointerDown(e) {
     if (!matchActive) return;
+    if (userPrefs.autoPlace === 'ON') return; // Bloqueia toque manual se o auto-play estiver ligado
     if (e.cancelable) e.preventDefault();
     AudioFX.ensure();
     const pos = getCanvasCoords(e);
@@ -2009,7 +2153,7 @@ window.addEventListener('mousemove', onPointerMove);
 window.addEventListener('mouseup', onPointerUp);
 
 /**
- * MODAL DE CONFIGURAÇÕES & MODO KING
+ * MODAL DE CONFIGURAÇÕES
  */
 function openSettings() {
     applyVisualPrefs();
@@ -2027,12 +2171,14 @@ document.getElementById('btn-save-settings').addEventListener('click', () => {
     userPrefs.fixedColor = document.getElementById('block-fixed-color').value;
     userPrefs.bgUrl = document.getElementById('bg-image-url').value.trim();
     userPrefs.kingMode = document.getElementById('king-mode-toggle').value;
+    userPrefs.autoPlace = document.getElementById('auto-place-toggle').value;
     userPrefs.kingColor = document.getElementById('king-frame-color').value;
 
     localStorage.setItem('bb_colorMode', userPrefs.colorMode);
     localStorage.setItem('bb_fixedColor', userPrefs.fixedColor);
     localStorage.setItem('bb_bgUrl', userPrefs.bgUrl);
     localStorage.setItem('bb_kingMode', userPrefs.kingMode);
+    localStorage.setItem('bb_autoPlace', userPrefs.autoPlace);
     localStorage.setItem('bb_kingColor', userPrefs.kingColor);
 
     applyVisualPrefs();
@@ -2041,7 +2187,7 @@ document.getElementById('btn-save-settings').addEventListener('click', () => {
         calculateKingBestMove();
     }
     document.getElementById('settings-modal').classList.add('hidden');
-    showToast('Configurações e Modo King salvos!');
+    showToast('Configurações e Auto-Colocar salvos!');
 });
 
 document.getElementById('btn-clear-bg').addEventListener('click', () => {
