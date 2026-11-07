@@ -476,7 +476,8 @@
         <button class="icon-btn" id="btn-back-menu" title="Menu Inicial">🏠</button>
     </div>
 
-    <div class="power-bar">
+    <!-- BARRA DE TRAPAÇAS (OCULTA ATÉ DIGITAR A SENHA) -->
+    <div class="power-bar hidden" id="cheats-power-bar">
         <button class="power-btn" id="btn-toggle-autoplay">🤖 Auto-Jogar: OFF</button>
         <button class="power-btn" id="btn-toggle-autobreak">💣 Quebra Auto: OFF</button>
         <button class="power-btn" id="btn-power-rotate">🔄 Girar Manual</button>
@@ -650,11 +651,16 @@ function applyVisualPrefs() {
     document.getElementById('infinite-lives-toggle').value = userPrefs.infiniteLives;
     document.getElementById('king-frame-color').value = userPrefs.kingColor;
 
+    const powerBarEl = document.getElementById('cheats-power-bar');
+    const cheatsContainerEl = document.getElementById('cheats-container');
+
     if (userPrefs.cheatsUnlocked) {
-        document.getElementById('cheats-container').classList.remove('hidden');
+        cheatsContainerEl.classList.remove('hidden');
+        powerBarEl.classList.remove('hidden');
         document.getElementById('cheat-password-input').value = '********';
     } else {
-        document.getElementById('cheats-container').classList.add('hidden');
+        cheatsContainerEl.classList.add('hidden');
+        powerBarEl.classList.add('hidden');
         document.getElementById('cheat-password-input').value = '';
     }
 
@@ -1246,7 +1252,7 @@ function checkAutoPlayAndBreak() {
 }
 
 document.getElementById('btn-power-rotate').addEventListener('click', () => {
-    if (!matchActive) return;
+    if (!matchActive || !userPrefs.cheatsUnlocked) return;
     for (let i = 0; i < 3; i++) {
         if (trayPieces[i]) {
             trayPieces[i] = rotatePiece(trayPieces[i]);
@@ -1259,7 +1265,7 @@ document.getElementById('btn-power-rotate').addEventListener('click', () => {
 });
 
 document.getElementById('btn-power-bomb').addEventListener('click', () => {
-    if (!matchActive) return;
+    if (!matchActive || !userPrefs.cheatsUnlocked) return;
     let cleared = false;
     for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
@@ -2259,6 +2265,7 @@ bindClick('btn-verify-password', () => {
         userPrefs.cheatsUnlocked = true;
         localStorage.setItem('bb_cheatsUnlocked', 'true');
         document.getElementById('cheats-container').classList.remove('hidden');
+        document.getElementById('cheats-power-bar').classList.remove('hidden');
         showToast('🔓 Painel de Trapaças Desbloqueado com Sucesso!');
     } else {
         showToast('❌ Senha incorreta! Painel continua oculto.');
@@ -2325,7 +2332,7 @@ bindClick('btn-toggle-autobreak', () => {
 });
 
 bindClick('btn-power-rotate', () => {
-    if (!matchActive) return;
+    if (!matchActive || !userPrefs.cheatsUnlocked) return;
     for (let i = 0; i < 3; i++) {
         if (trayPieces[i]) {
             trayPieces[i] = rotatePiece(trayPieces[i]);
@@ -2338,7 +2345,7 @@ bindClick('btn-power-rotate', () => {
 });
 
 bindClick('btn-power-bomb', () => {
-    if (!matchActive) return;
+    if (!matchActive || !userPrefs.cheatsUnlocked) return;
     let cleared = false;
     for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
