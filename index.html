@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Block Blast P2P & Campanha Solo</title>
+    <title>Block Blast P2P & Campanha Solo (Com Vidas & Música)</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * {
@@ -195,10 +195,6 @@
             border-color: #38bdf8;
         }
 
-        .score-card.rival {
-            border-color: #f43f5e;
-        }
-
         .player-tag {
             font-size: 9px;
             font-weight: 800;
@@ -220,7 +216,7 @@
             border-radius: 10px;
             padding: 5px 8px;
             text-align: center;
-            min-width: 90px;
+            min-width: 86px;
         }
 
         .target-label {
@@ -233,6 +229,28 @@
             font-size: 13px;
             font-weight: 900;
             color: #fef3c7;
+        }
+
+        /* HUD DE VIDAS (CORAÇÕES) NO MODO SOLO */
+        .lives-box {
+            background: rgba(15, 23, 42, 0.94);
+            border: 1.5px solid #ef4444;
+            border-radius: 10px;
+            padding: 5px 8px;
+            text-align: center;
+            min-width: 68px;
+        }
+
+        .lives-label {
+            font-size: 9px;
+            font-weight: 800;
+            color: #ef4444;
+        }
+
+        .lives-val {
+            font-size: 15px;
+            font-weight: 900;
+            color: #fca5a5;
         }
 
         .icon-btn {
@@ -250,7 +268,7 @@
             flex-shrink: 0;
         }
 
-        /* BARRA DE MISSÃO SOLO (RESGATE / BOSS / FASE) */
+        /* BARRA DE MISSÃO SOLO */
         #solo-mission-bar {
             width: 100%;
             max-width: 460px;
@@ -369,13 +387,13 @@
 <div id="bg-overlay"></div>
 <div id="toast" class="toast"></div>
 
-<!-- TELA INICIAL (SOLO + MULTIPLAYER P2P) -->
+<!-- TELA INICIAL -->
 <div id="lobby-screen" class="screen">
     <div class="card">
         <h1>BLOCK BLAST</h1>
-        <div class="subtitle">Campanha Solo Infinita • Multiplayer P2P</div>
+        <div class="subtitle">Campanha Solo (5 Vidas & Música) • P2P</div>
 
-        <button class="btn btn-solo" id="btn-start-solo">🏆 JOGAR MODO SOLO (FASES & BOSS)</button>
+        <button class="btn btn-solo" id="btn-start-solo">🏆 JOGAR MODO SOLO (5 VIDAS)</button>
 
         <div class="divider">— OU DISPUTAR MULTIPLAYER P2P —</div>
 
@@ -393,7 +411,7 @@
 
             <div id="host-wait-box" class="hidden">
                 <div class="code-box" id="room-code-display" title="Toque para copiar">------</div>
-                <div style="font-size:11px; color:#94a3b8;">Toque no código para copiar e envie para ela!</div>
+                <div style="font-size:11px; color:#94a3b8;">Toque no código para copiar e enviar!</div>
             </div>
         </div>
 
@@ -417,13 +435,19 @@
         </div>
 
         <div class="target-box">
-            <div class="target-label" id="hud-target-label">META FASE 1</div>
+            <div class="target-label" id="hud-target-label">FASE</div>
             <div class="target-val" id="hud-target">2.000</div>
         </div>
 
-        <div class="score-card rival" id="hud-rival-card">
-            <div class="player-tag" id="hud-rival-name">FASE</div>
-            <div class="score-val" id="hud-rival-score">1</div>
+        <!-- Box de Vidas no Solo / Rival no P2P -->
+        <div class="lives-box" id="hud-lives-box">
+            <div class="lives-label">VIDAS</div>
+            <div class="lives-val" id="hud-lives-val">❤️ 5</div>
+        </div>
+
+        <div class="score-card rival hidden" id="hud-rival-card">
+            <div class="player-tag" id="hud-rival-name">RIVAL</div>
+            <div class="score-val" id="hud-rival-score">0</div>
         </div>
 
         <button class="icon-btn" id="btn-open-settings-game" title="Configurações">⚙️</button>
@@ -445,25 +469,25 @@
     </div>
 </div>
 
-<!-- TELA DE FIM DE PARTIDA -->
-<div id="gameover-screen" class="screen hidden" style="background: rgba(2,6,23,0.9); z-index: 25;">
+<!-- TELA DE FIM DE PARTIDA (GAME OVER / VITÓRIA) -->
+<div id="gameover-screen" class="screen hidden" style="background: rgba(2,6,23,0.92); z-index: 25;">
     <div class="card">
         <h1 id="winner-title" style="color:#fbbf24;">FIM DE JOGO!</h1>
         <div class="subtitle" id="winner-desc">Resultado da partida</div>
 
         <div style="display:flex; justify-content:space-around; margin: 14px 0; background:#0f172a; padding:10px; border-radius:10px;">
             <div>
-                <div style="font-size:10px; color:#94a3b8;" id="end-my-name">PONTUAÇÃO</div>
+                <div style="font-size:10px; color:#94a3b8;" id="end-my-label">PONTUAÇÃO</div>
                 <div style="font-size:20px; font-weight:900; color:#38bdf8;" id="end-my-score">0</div>
             </div>
             <div id="end-rival-box">
-                <div style="font-size:10px; color:#94a3b8;" id="end-rival-name">RIVAL</div>
-                <div style="font-size:20px; font-weight:900; color:#f43f5e;" id="end-rival-score">0</div>
+                <div style="font-size:10px; color:#94a3b8;" id="end-rival-name">FASE ALCANÇADA</div>
+                <div style="font-size:20px; font-weight:900; color:#f43f5e;" id="end-rival-score">Fase 1</div>
             </div>
         </div>
 
         <div class="input-group" id="p2p-next-target-group">
-            <label>Nova Meta de Pontos (Próxima Partida)</label>
+            <label>Nova Meta de Pontos P2P</label>
             <input type="number" id="new-target-input" value="15000" min="500" step="500">
         </div>
 
@@ -472,7 +496,7 @@
     </div>
 </div>
 
-<!-- MODAL DE PERSONALIZAÇÃO -->
+<!-- MODAL CONFIGURAÇÕES -->
 <div id="settings-modal" class="modal-backdrop hidden">
     <div class="card">
         <h1 style="font-size:20px;">PERSONALIZAR VISUAL</h1>
@@ -491,7 +515,7 @@
             <label>Escolher Cor dos Blocos</label>
             <div class="color-row">
                 <input type="color" id="block-fixed-color" value="#38bdf8">
-                <span style="font-size:12px; color:#94a3b8;">Toque no quadrado para escolher</span>
+                <span style="font-size:12px; color:#94a3b8;">Toque para escolher</span>
             </div>
         </div>
 
@@ -508,14 +532,13 @@
 
 <script>
 /**
- * CONFIGURAÇÕES VISUAIS INDIVIDUAIS (LOCALSTORAGE)
+ * CONFIGURAÇÕES VISUAIS & TEMAS
  */
 const PALETTE = [
     '#ef4444', '#f97316', '#f59e0b', '#22c55e',
     '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'
 ];
 
-// Paletas dinâmicas que mudam nos ciclos infinitos após o primeiro Boss
 const CYCLE_THEMES = [
     { name: 'Clássico', palette: ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'], bgTint: 'rgba(15, 23, 42, 0.72)' },
     { name: 'Neon Cyber', palette: ['#00f5d4', '#00bbf9', '#fee440', '#f15bb5', '#9b5de5', '#ff006e', '#3a86ff', '#8338ec'], bgTint: 'rgba(18, 8, 38, 0.76)' },
@@ -555,10 +578,14 @@ function showToast(msg) {
 }
 
 /**
- * SISTEMA DE ÁUDIO COMPLETO (WEB AUDIO API)
+ * MÚSICA DE FUNDO PROCEDURAL & EFEITOS SONOROS (WEB AUDIO API)
  */
 const AudioFX = {
     ctx: null,
+    musicTimer: null,
+    musicNoteIndex: 0,
+    isMusicPlaying: false,
+
     ensure() {
         if (!this.ctx) {
             const AC = window.AudioContext || window.webkitAudioContext;
@@ -569,6 +596,7 @@ const AudioFX = {
         }
         return this.ctx;
     },
+
     tone(freq1, freq2, dur, type = 'sine', vol = 0.14, delay = 0) {
         try {
             const ctx = this.ensure();
@@ -587,21 +615,49 @@ const AudioFX = {
             osc.stop(t + dur + 0.02);
         } catch (e) {}
     },
-    // Som ao colocar bloco no tabuleiro
+
+    // Música de fundo relaxante em loop procedimental
+    startBackgroundMusic() {
+        if (this.isMusicPlaying) return;
+        this.isMusicPlaying = true;
+        this.ensure();
+
+        // Melodia suave em escala pentatônica alegre (Dó, Mi, Sol, Lá, Dó5)
+        const melody = [
+            261.63, 329.63, 392.00, 440.00, 523.25, 440.00, 392.00, 329.63,
+            293.66, 349.23, 440.00, 523.25, 587.33, 523.25, 440.00, 349.23
+        ];
+
+        this.musicTimer = setInterval(() => {
+            if (!this.isMusicPlaying) return;
+            const note = melody[this.musicNoteIndex % melody.length];
+            this.tone(note, note * 1.02, 0.42, 'sine', 0.045);
+            this.musicNoteIndex++;
+        }, 320);
+    },
+
+    stopBackgroundMusic() {
+        this.isMusicPlaying = false;
+        if (this.musicTimer) {
+            clearInterval(this.musicTimer);
+            this.musicTimer = null;
+        }
+    },
+
     place() {
         this.tone(240, 420, 0.08, 'triangle', 0.15, 0);
         this.tone(520, 640, 0.06, 'sine', 0.08, 0.03);
     },
-    // Som escalonado para pares/combos: 1 linha, 2, 3, 4+
+
     combo(linesCount) {
-        const baseNotes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // Dó, Mi, Sol, Dó5, Mi5
+        const baseNotes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
         const steps = Math.min(linesCount + 1, baseNotes.length);
         for (let i = 0; i < steps; i++) {
             const f = baseNotes[i] * (1 + (linesCount - 1) * 0.08);
             this.tone(f, f * 1.15, 0.16, i >= 2 ? 'triangle' : 'sine', 0.16, i * 0.065);
         }
     },
-    // Som personalizado "MUITO BOM!" quando todo o tabuleiro fica limpo
+
     boardAllClear() {
         const fanfare = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
         fanfare.forEach((f, idx) => {
@@ -609,25 +665,29 @@ const AudioFX = {
         });
         this.tone(1046.50, 2093.0, 0.45, 'sine', 0.15, 0.42);
     },
-    // Som grave dramático quando o tabuleiro fica trancado totalmente
+
     lockedGameOver() {
         const notes = [330, 293.66, 261.63, 196.00, 130.81];
         notes.forEach((f, i) => {
             this.tone(f, f * 0.85, 0.26, 'sawtooth', 0.15, i * 0.14);
         });
     },
+
     rockBreak() {
         this.tone(180, 75, 0.14, 'square', 0.16, 0);
     },
+
     rescueSuccess() {
         [587.33, 739.99, 880, 1174.66].forEach((f, i) => {
             this.tone(f, f * 1.08, 0.2, 'sine', 0.17, i * 0.08);
         });
     },
+
     bossHit() {
         this.tone(220, 65, 0.25, 'sawtooth', 0.22, 0);
         this.tone(440, 110, 0.2, 'square', 0.15, 0.05);
     },
+
     invalid() {
         this.tone(150, 95, 0.1, 'sawtooth', 0.1, 0);
     }
@@ -646,6 +706,9 @@ let myScore = 0;
 let rivalScore = 0;
 let targetScore = 15000;
 let matchActive = false;
+
+// Sistema de Vidas no Solo (5 Vidas)
+let soloLives = 5;
 
 function generateShortCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -744,14 +807,7 @@ document.getElementById('btn-join-room').addEventListener('click', () => {
 });
 
 /**
- * MOTOR DO TABULEIRO 8x8 + CÉLULAS ESPECIAIS (BLOQUEIOS, RESGATE, BOSS)
- * Cada célula de board[r][c] pode ser:
- * - null: vazia
- * - { kind: 'NORMAL', color: '#...' }
- * - { kind: 'LOCKER', hp: 1, maxHp: 1 } (bloco que fecha quadradinhos; quebra fazendo linha/coluna adjacente)
- * - { kind: 'RESCUE_TARGET' } (carinha fofinha assustada mexendo os olhos)
- * - { kind: 'RESCUE_CAGE', hp: 2, maxHp: 2 } (blocos resistentes ao redor da carinha)
- * - { kind: 'BOSS_CORE', hp: 5, maxHp: 5, name: '...' } (núcleo do Boss no tabuleiro; sofre dano ao fazer linhas/colunas que cruzam ele ou encostam nele)
+ * MOTOR DO TABULEIRO 8x8 & FASES SOLO
  */
 const GRID_SIZE = 8;
 let board = [];
@@ -763,7 +819,6 @@ let floatingTexts = [];
 let particles = [];
 let screenShake = 0;
 
-// Estado da Campanha Solo
 const SOLO_MILESTONES = [
     { target: 2000,  type: 'SCORE',  label: 'Fase 1 • Aquecimento' },
     { target: 3000,  type: 'SCORE',  label: 'Fase 2 • Ritmo Crescente' },
@@ -780,10 +835,10 @@ const SOLO_MILESTONES = [
 ];
 
 let soloStageIndex = 0;
-let soloCycle = 1; // Aumenta a cada Boss derrotado para gerar infinitas fases mais difíceis
+let soloCycle = 1;
 let soloStageStartScore = 0;
 let soloStageTargetScore = 2000;
-let soloStageType = 'SCORE'; // 'SCORE', 'LOCKER', 'RESCUE', 'BOSS'
+let soloStageType = 'SCORE';
 let soloStageLabel = '';
 let rescueTimer = 0;
 let rescueMaxTimer = 45;
@@ -794,20 +849,11 @@ function getSoloStageConfig(index) {
     if (index < SOLO_MILESTONES.length) {
         const m = SOLO_MILESTONES[index];
         const prevTarget = index === 0 ? 0 : SOLO_MILESTONES[index - 1].target;
-        return {
-            stageNum: index + 1,
-            cycle: 1,
-            type: m.type,
-            target: m.target,
-            stepPoints: m.target - prevTarget,
-            label: m.label
-        };
+        return { stageNum: index + 1, cycle: 1, type: m.type, target: m.target, stepPoints: m.target - prevTarget, label: m.label };
     }
-
-    // Fases infinitas geradas automaticamente após 16.000 seguindo a mesma lógica + dificuldade/temas
     const extraIdx = index - SOLO_MILESTONES.length;
     const cycle = Math.floor(extraIdx / 4) + 2;
-    const patternPos = extraIdx % 4; // 0: SCORE, 1: LOCKER, 2: RESCUE, 3: BOSS
+    const patternPos = extraIdx % 4;
     const types = ['SCORE', 'LOCKER', 'RESCUE', 'BOSS'];
     const type = types[patternPos];
     const stepPoints = 2000 + cycle * 600;
@@ -819,14 +865,7 @@ function getSoloStageConfig(index) {
     if (type === 'RESCUE') label = `Ciclo ${cycle} • Resgate Urgente`;
     if (type === 'BOSS') label = `BOSS: ${bossNames[(cycle - 2) % bossNames.length]}`;
 
-    return {
-        stageNum: index + 1,
-        cycle,
-        type,
-        target,
-        stepPoints,
-        label
-    };
+    return { stageNum: index + 1, cycle, type, target, stepPoints, label };
 }
 
 function applyCycleTheme(cycle) {
@@ -854,9 +893,6 @@ function spawnParticles(x, y, color, count = 12) {
     }
 }
 
-/**
- * GERADOR DE PEÇAS ALEATÓRIAS
- */
 const SHAPES = [
     [[1]],
     [[1, 1]],
@@ -939,9 +975,6 @@ function clearBoardGrid() {
     board = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
 }
 
-/**
- * MECÂNICAS ESPECIAIS DO MODO SOLO (BLOQUEIOS, RESGATE, BOSS)
- */
 function spawnRandomLockers(count = 2) {
     const emptyCells = [];
     for (let r = 0; r < GRID_SIZE; r++) {
@@ -953,25 +986,18 @@ function spawnRandomLockers(count = 2) {
         const idx = Math.floor(Math.random() * emptyCells.length);
         const pos = emptyCells.splice(idx, 1)[0];
         board[pos.r][pos.c] = { kind: 'LOCKER', hp: 1, maxHp: 1 };
-        const px = layout.boardX + pos.c * layout.cellSize + layout.cellSize / 2;
-        const py = layout.boardY + pos.r * layout.cellSize + layout.cellSize / 2;
-        spawnParticles(px, py, '#94a3b8', 8);
     }
 }
 
 function setupRescueMission(cycle) {
-    // Limpa alguns blocos para abrir espaço e posiciona a carinha fofinha cercada por blocos resistentes
     clearBoardGrid();
     const tr = 2 + Math.floor(Math.random() * 4);
     const tc = 2 + Math.floor(Math.random() * 4);
-    const cageHp = Math.min(3, 1 + Math.floor(cycle / 2) + (soloStageIndex >= 9 ? 1 : 0));
+    const cageHp = Math.min(3, 1 + Math.floor(cycle / 2));
 
     board[tr][tc] = { kind: 'RESCUE_TARGET' };
 
-    const neighbors = [
-        [-1, 0], [1, 0], [0, -1], [0, 1],
-        [-1, -1], [-1, 1], [1, -1], [1, 1]
-    ];
+    const neighbors = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
     neighbors.forEach(([dr, dc]) => {
         const nr = tr + dr;
         const nc = tc + dc;
@@ -987,22 +1013,14 @@ function setupRescueMission(cycle) {
 function setupBossEncounter(cycle) {
     clearBoardGrid();
     const bossHp = 4 + cycle * 2;
-    // Posiciona o Boss em um bloco 2x2 no centro-topo do tabuleiro
     const startR = 2;
     const startC = 3;
     for (let r = startR; r < startR + 2; r++) {
         for (let c = startC; c < startC + 2; c++) {
-            board[r][c] = {
-                kind: 'BOSS_CORE',
-                hp: bossHp,
-                maxHp: bossHp,
-                isMain: (r === startR && c === startC)
-            };
+            board[r][c] = { kind: 'BOSS_CORE', hp: bossHp, maxHp: bossHp, isMain: (r === startR && c === startC) };
         }
     }
-    // Adiciona alguns bloqueios ao redor dependendo do ciclo
     spawnRandomLockers(Math.min(4, cycle + 1));
-    showToast('BOSS APARECEU! Faça linhas/colunas encostando nele para causar dano!');
 }
 
 function stopRescueTimer() {
@@ -1012,14 +1030,17 @@ function stopRescueTimer() {
     }
 }
 
-function startSoloStage(index) {
+function startSoloStage(index, preserveScore = false) {
     stopRescueTimer();
     soloStageIndex = index;
     const cfg = getSoloStageConfig(index);
     soloCycle = cfg.cycle;
     soloStageType = cfg.type;
-    soloStageStartScore = myScore;
-    soloStageTargetScore = Math.max(cfg.target, myScore + cfg.stepPoints);
+    
+    if (!preserveScore) {
+        soloStageStartScore = myScore;
+    }
+    soloStageTargetScore = Math.max(cfg.target, soloStageStartScore + cfg.stepPoints);
     soloStageLabel = cfg.label;
     movesInStage = 0;
 
@@ -1027,18 +1048,15 @@ function startSoloStage(index) {
 
     if (soloStageType === 'LOCKER') {
         spawnRandomLockers(Math.min(4, 1 + soloCycle));
-        showToast('Atenção! Blocos trancados surgem no tabuleiro. Limpe linhas perto deles!');
     } else if (soloStageType === 'RESCUE') {
         setupRescueMission(soloCycle);
-        showToast('MISSÃO RESGATE! Quebre os blocos ao redor da carinha antes do tempo acabar!');
         rescueTimerInterval = setInterval(() => {
             if (!matchActive || gameMode !== 'SOLO' || soloStageType !== 'RESCUE') return;
             rescueTimer--;
             updateSoloMissionHUD();
             if (rescueTimer <= 0) {
                 stopRescueTimer();
-                AudioFX.lockedGameOver();
-                finishGameScreen('TEMPO ESGOTADO!', 'Você não conseguiu resgatar o amiguinho a tempo!');
+                handleSoloDeath("Tempo esgotado no resgate!");
             }
         }, 1000);
     } else if (soloStageType === 'BOSS') {
@@ -1048,6 +1066,49 @@ function startSoloStage(index) {
     trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
     updateHUD();
     updateSoloMissionHUD();
+}
+
+/**
+ * SISTEMA DE PERDA DE VIDA E CONTINUAÇÃO NA MESMA FASE
+ */
+function handleSoloDeath(reasonTitle) {
+    stopRescueTimer();
+    soloLives--;
+    updateHUD();
+    screenShake = 16;
+    AudioFX.lockedGameOver();
+
+    if (soloLives > 0) {
+        // Perdeu 1 vida, mas continua na mesma fase! Limpa o tabuleiro e dá nova chance
+        showToast(`⚠️ ${reasonTitle} Você perdeu 1 vida! Restam ${soloLives} ❤️`);
+        setTimeout(() => {
+            if (!matchActive) return;
+            clearBoardGrid();
+            trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+            // Reinicia o timer de resgate se estivesse nessa fase
+            if (soloStageType === 'RESCUE') {
+                setupRescueMission(soloCycle);
+                rescueTimer = rescueMaxTimer;
+                rescueTimerInterval = setInterval(() => {
+                    if (!matchActive || gameMode !== 'SOLO' || soloStageType !== 'RESCUE') return;
+                    rescueTimer--;
+                    updateSoloMissionHUD();
+                    if (rescueTimer <= 0) {
+                        stopRescueTimer();
+                        handleSoloDeath("Tempo esgotado no resgate!");
+                    }
+                }, 1000);
+            } else if (soloStageType === 'BOSS') {
+                setupBossEncounter(soloCycle);
+            } else if (soloStageType === 'LOCKER') {
+                spawnRandomLockers(2);
+            }
+            updateSoloMissionHUD();
+        }, 1100);
+    } else {
+        // Acabaram todas as 5 vidas! Game Over total e volta do início da campanha
+        finishGameScreen('GAME OVER!', 'Suas 5 vidas acabaram! Recomeçando da Fase 1.');
+    }
 }
 
 function updateSoloMissionHUD() {
@@ -1103,7 +1164,7 @@ function checkSoloStageCompletion() {
             }
         }
         if (!hasCages) {
-            // Libera o amiguinho resgatado!
+            stopRescueTimer();
             for (let r = 0; r < GRID_SIZE; r++) {
                 for (let c = 0; c < GRID_SIZE; c++) {
                     if (board[r][c] && board[r][c].kind === 'RESCUE_TARGET') {
@@ -1116,7 +1177,7 @@ function checkSoloStageCompletion() {
             }
             AudioFX.rescueSuccess();
             myScore += 500 + rescueTimer * 15;
-            showToast('RESGATE CONCLUÍDO! +Bônus de Tempo!');
+            showToast('RESGATE CONCLUÍDO! +Bônus!');
             startSoloStage(soloStageIndex + 1);
         }
         return;
@@ -1130,6 +1191,7 @@ function checkSoloStageCompletion() {
             }
         }
         if (!bossAlive) {
+            stopRescueTimer();
             AudioFX.boardAllClear();
             myScore += 1500 * soloCycle;
             screenShake = 14;
@@ -1139,7 +1201,6 @@ function checkSoloStageCompletion() {
         return;
     }
 
-    // Fases de pontuação normal ou com bloqueios
     if (myScore >= soloStageTargetScore) {
         AudioFX.rescueSuccess();
         showToast(`FASE ${soloStageIndex + 1} CONCLUÍDA!`);
@@ -1148,13 +1209,15 @@ function checkSoloStageCompletion() {
 }
 
 /**
- * INICIALIZAÇÃO DE PARTIDAS (SOLO E P2P)
+ * INICIALIZAÇÃO DE PARTIDAS
  */
 document.getElementById('btn-start-solo').addEventListener('click', () => {
     AudioFX.ensure();
+    AudioFX.startBackgroundMusic();
     gameMode = 'SOLO';
     myName = document.getElementById('player-name').value.trim() || 'Paulo';
     myScore = 0;
+    soloLives = 5; // Inicia com 5 vidas
     matchActive = true;
     clearBoardGrid();
 
@@ -1162,6 +1225,8 @@ document.getElementById('btn-start-solo').addEventListener('click', () => {
     document.getElementById('gameover-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     document.getElementById('solo-mission-bar').classList.remove('hidden');
+    document.getElementById('hud-rival-card').classList.add('hidden');
+    document.getElementById('hud-lives-box').classList.remove('hidden');
 
     resizeCanvas();
     startSoloStage(0);
@@ -1169,6 +1234,7 @@ document.getElementById('btn-start-solo').addEventListener('click', () => {
 
 function startP2PMatch(newTarget) {
     stopRescueTimer();
+    AudioFX.startBackgroundMusic();
     gameMode = 'P2P';
     targetScore = newTarget;
     myScore = 0;
@@ -1182,6 +1248,8 @@ function startP2PMatch(newTarget) {
     document.getElementById('gameover-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     document.getElementById('solo-mission-bar').classList.add('hidden');
+    document.getElementById('hud-lives-box').classList.add('hidden');
+    document.getElementById('hud-rival-card').classList.remove('hidden');
 
     resizeCanvas();
     updateHUD();
@@ -1194,8 +1262,7 @@ function updateHUD() {
     if (gameMode === 'SOLO') {
         document.getElementById('hud-target-label').textContent = soloStageType === 'BOSS' ? 'CHEFE' : (soloStageType === 'RESCUE' ? 'RESGATE' : 'META FASE');
         document.getElementById('hud-target').textContent = soloStageType === 'BOSS' ? 'BOSS' : (soloStageType === 'RESCUE' ? `${rescueTimer}s` : soloStageTargetScore.toLocaleString('pt-BR'));
-        document.getElementById('hud-rival-name').textContent = 'FASE';
-        document.getElementById('hud-rival-score').textContent = `${soloStageIndex + 1}`;
+        document.getElementById('hud-lives-val').textContent = `❤️ ${soloLives}`;
     } else {
         document.getElementById('hud-target-label').textContent = 'META P2P';
         document.getElementById('hud-target').textContent = targetScore.toLocaleString('pt-BR');
@@ -1221,7 +1288,7 @@ function finishGameScreen(title, desc) {
 
     document.getElementById('winner-title').textContent = title;
     document.getElementById('winner-desc').textContent = desc;
-    document.getElementById('end-my-name').textContent = myName.toUpperCase();
+    document.getElementById('end-my-label').textContent = gameMode === 'SOLO' ? 'PONTUAÇÃO FINAL' : 'PONTUAÇÃO';
     document.getElementById('end-my-score').textContent = myScore.toLocaleString('pt-BR');
 
     if (gameMode === 'SOLO') {
@@ -1251,6 +1318,7 @@ document.getElementById('btn-restart-match').addEventListener('click', () => {
 function returnToLobby() {
     matchActive = false;
     stopRescueTimer();
+    AudioFX.stopBackgroundMusic();
     document.getElementById('gameover-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.add('hidden');
     document.getElementById('lobby-screen').classList.remove('hidden');
@@ -1260,7 +1328,7 @@ document.getElementById('btn-back-menu').addEventListener('click', returnToLobby
 document.getElementById('btn-menu-from-end').addEventListener('click', returnToLobby);
 
 /**
- * VALIDAÇÃO DE ENCAIXE, COMBOS E INTERAÇÕES ESPECIAIS
+ * VALIDAÇÃO E MECÂNICA DE ENCAIXE
  */
 function canPlacePiece(piece, startRow, startCol) {
     if (!piece) return false;
@@ -1293,7 +1361,6 @@ function hasAnyValidMove() {
 function damageSpecialNeighbors(clearedCellsSet) {
     let brokeAny = false;
     let damagedBoss = false;
-    const processedBoss = new Set();
 
     clearedCellsSet.forEach(key => {
         const [r, c] = key.split(',').map(Number);
@@ -1319,14 +1386,11 @@ function damageSpecialNeighbors(clearedCellsSet) {
                 }
             } else if (target.kind === 'BOSS_CORE' && !damagedBoss) {
                 damagedBoss = true;
-                // Reduz HP em todas as células do Boss
                 for (let br = 0; br < GRID_SIZE; br++) {
                     for (let bc = 0; bc < GRID_SIZE; bc++) {
                         if (board[br][bc] && board[br][bc].kind === 'BOSS_CORE') {
                             board[br][bc].hp--;
-                            if (board[br][bc].hp <= 0) {
-                                board[br][bc] = null;
-                            }
+                            if (board[br][bc].hp <= 0) board[br][bc] = null;
                         }
                     }
                 }
@@ -1360,10 +1424,7 @@ function placePieceOnBoard(pieceIndex, startRow, startCol) {
     for (let r = 0; r < piece.rows; r++) {
         for (let c = 0; c < piece.cols; c++) {
             if (piece.shape[r][c]) {
-                board[startRow + r][startCol + c] = {
-                    kind: 'NORMAL',
-                    color: piece.cellColors[r][c]
-                };
+                board[startRow + r][startCol + c] = { kind: 'NORMAL', color: piece.cellColors[r][c] };
                 placedCells++;
             }
         }
@@ -1373,7 +1434,6 @@ function placePieceOnBoard(pieceIndex, startRow, startCol) {
     AudioFX.place();
     movesInStage++;
 
-    // Verifica linhas e colunas completas (células especiais como Boss/Resgate impedem limpeza direta daquela linha, exigindo limpeza ao lado!)
     const fullRows = [];
     const fullCols = [];
 
@@ -1411,15 +1471,13 @@ function placePieceOnBoard(pieceIndex, startRow, startCol) {
             }
         });
 
-        // Aplica dano em bloqueios adjacentes, jaulas de resgate ou Boss
         damageSpecialNeighbors(clearedCoords);
 
-        // Verifica se eliminou TODOS os blocos do tabuleiro
         if (isBoardCompletelyEmpty()) {
             AudioFX.boardAllClear();
             myScore += 1000;
             spawnFloatingText(canvas.width / 2, layout.boardY + 120, 'MUITO BOM! +1.000', '#22c55e');
-            showToast('MUITO BOM! Tabuleiro 100% limpo (+1.000 pts)!');
+            showToast('MUITO BOM! Tabuleiro limpo (+1.000 pts)!');
         } else {
             AudioFX.combo(totalCleared);
             if (totalCleared >= 2) {
@@ -1428,11 +1486,9 @@ function placePieceOnBoard(pieceIndex, startRow, startCol) {
         }
     }
 
-    // Cálculo de pontos
     const lineBonus = totalCleared > 0 ? (totalCleared * totalCleared * 180) : 0;
     myScore += (placedCells * 15) + lineBonus;
 
-    // Na fase de bloqueios ou Boss, novos cadeados surgem periodicamente a cada 3 jogadas
     if (gameMode === 'SOLO' && (soloStageType === 'LOCKER' || soloStageType === 'BOSS')) {
         if (movesInStage % 3 === 0) {
             spawnRandomLockers(soloStageType === 'BOSS' ? 1 : Math.min(2, soloCycle));
@@ -1450,15 +1506,9 @@ function placePieceOnBoard(pieceIndex, startRow, startCol) {
         checkSoloStageCompletion();
     }
 
-    // Verifica se o jogador ficou totalmente trancado sem jogadas possíveis
     if (matchActive && !hasAnyValidMove()) {
-        AudioFX.lockedGameOver();
         if (gameMode === 'SOLO') {
-            setTimeout(() => {
-                if (matchActive) {
-                    finishGameScreen('SEM MOVIMENTOS!', 'O tabuleiro ficou totalmente trancado!');
-                }
-            }, 650);
+            handleSoloDeath("Tabuleiro totalmente trancado!");
         } else {
             showToast('Sem espaço! Tabuleiro renovado no P2P!');
             setTimeout(() => {
@@ -1478,7 +1528,7 @@ function sendScoreUpdate() {
 }
 
 /**
- * RENDERIZAÇÃO NO CANVAS + ANIMAÇÕES (OLHOS DO RESGATE, BOSS, PARTÍCULAS)
+ * RENDERIZAÇÃO E CANVAS
  */
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -1556,7 +1606,6 @@ function drawSpecialCell(cx, cy, size, cell) {
         ctx.strokeStyle = '#94a3b8';
         ctx.lineWidth = 2;
         ctx.strokeRect(cx + 5, cy + 5, size - 10, size - 10);
-        // Ícone de cadeado/X metálico
         ctx.beginPath();
         ctx.moveTo(cx + 8, cy + 8);
         ctx.lineTo(cx + size - 8, cy + size - 8);
@@ -1575,53 +1624,44 @@ function drawSpecialCell(cx, cy, size, cell) {
         ctx.lineTo(cx + size * 0.65, cy + size - 3);
         ctx.stroke();
     } else if (cell.kind === 'RESCUE_TARGET') {
-        // Carinha fofinha assustada mexendo os olhos!
         const trembleX = Math.sin(animFrame * 0.35) * 1.5;
         const eyeLookX = Math.sin(animFrame * 0.08) * 2.5;
         const eyeLookY = Math.cos(animFrame * 0.06) * 1.5;
 
         ctx.save();
         ctx.translate(centerX + trembleX, centerY);
-
-        // Rostinho amarelo fofo
         ctx.fillStyle = '#fde047';
         ctx.beginPath();
         ctx.arc(0, 0, s * 0.44, 0, Math.PI * 2);
         ctx.fill();
 
-        // Bochechas rosadas
         ctx.fillStyle = '#fb7185';
         ctx.beginPath();
         ctx.arc(-s * 0.24, s * 0.08, s * 0.08, 0, Math.PI * 2);
         ctx.arc(s * 0.24, s * 0.08, s * 0.08, 0, Math.PI * 2);
         ctx.fill();
 
-        // Olhos brancos arregalados de medo
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(-s * 0.15, -s * 0.06, s * 0.13, 0, Math.PI * 2);
         ctx.arc(s * 0.15, -s * 0.06, s * 0.13, 0, Math.PI * 2);
         ctx.fill();
 
-        // Pupilas se mexendo para os lados
         ctx.fillStyle = '#0f172a';
         ctx.beginPath();
         ctx.arc(-s * 0.15 + eyeLookX, -s * 0.06 + eyeLookY, s * 0.06, 0, Math.PI * 2);
         ctx.arc(s * 0.15 + eyeLookX, -s * 0.06 + eyeLookY, s * 0.06, 0, Math.PI * 2);
         ctx.fill();
 
-        // Boquinha ondulada de susto
         ctx.strokeStyle = '#78350f';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(0, s * 0.18, s * 0.1, 0, Math.PI * 2);
         ctx.stroke();
-
         ctx.restore();
     } else if (cell.kind === 'BOSS_CORE') {
         drawRoundedCell(cx, cy, size, '#7f1d1d', 1);
         if (cell.isMain) {
-            // Desenha o rosto do Boss ocupando a área 2x2
             const bw = size * 2;
             const pulse = Math.sin(animFrame * 0.12) * 2;
             ctx.save();
@@ -1635,19 +1675,16 @@ function drawSpecialCell(cx, cy, size, cell) {
             ctx.lineWidth = 2.5;
             ctx.stroke();
 
-            // Olhos brilhantes do Boss
             ctx.fillStyle = '#fef08a';
             ctx.beginPath();
             ctx.arc(-bw * 0.18, -bw * 0.08, bw * 0.08, 0, Math.PI * 2);
             ctx.arc(bw * 0.18, -bw * 0.08, bw * 0.08, 0, Math.PI * 2);
             ctx.fill();
 
-            // Texto HP no Boss
             ctx.fillStyle = '#ffffff';
             ctx.font = '900 12px sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText(`HP ${cell.hp}`, 0, bw * 0.26);
-
             ctx.restore();
         }
     }
@@ -1667,7 +1704,6 @@ function renderLoop() {
     const { cellSize, boardX, boardY, trayY, slotCenters } = layout;
     const boardPx = cellSize * GRID_SIZE;
 
-    // Fundo do tabuleiro 8x8
     ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
     ctx.beginPath();
     ctx.roundRect(boardX - 6, boardY - 6, boardPx + 12, boardPx + 12, 12);
@@ -1676,7 +1712,6 @@ function renderLoop() {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Grade e células
     for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
             const cx = boardX + c * cellSize;
@@ -1698,7 +1733,6 @@ function renderLoop() {
         }
     }
 
-    // Desenha o Boss por cima das 4 células dele para não cortar o rosto
     for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
             const cell = board[r] && board[r][c];
@@ -1708,7 +1742,6 @@ function renderLoop() {
         }
     }
 
-    // Pré-visualização de encaixe
     if (draggingIndex !== -1 && hoverCell && trayPieces[draggingIndex]) {
         const piece = trayPieces[draggingIndex];
         if (canPlacePiece(piece, hoverCell.row, hoverCell.col)) {
@@ -1724,7 +1757,6 @@ function renderLoop() {
         }
     }
 
-    // Bandeja com as 3 peças
     const miniSize = Math.floor(cellSize * 0.56);
     for (let i = 0; i < 3; i++) {
         const p = trayPieces[i];
@@ -1744,7 +1776,6 @@ function renderLoop() {
         }
     }
 
-    // Peça arrastada
     if (draggingIndex !== -1 && trayPieces[draggingIndex]) {
         const p = trayPieces[draggingIndex];
         const pw = p.cols * cellSize;
@@ -1762,7 +1793,6 @@ function renderLoop() {
         }
     }
 
-    // Partículas
     for (let i = particles.length - 1; i >= 0; i--) {
         const pt = particles[i];
         pt.x += pt.vx;
@@ -1773,7 +1803,6 @@ function renderLoop() {
         if (pt.life <= 0) particles.splice(i, 1);
     }
 
-    // Textos flutuantes (Combos, Muito Bom, Dano no Boss)
     for (let i = floatingTexts.length - 1; i >= 0; i--) {
         const ft = floatingTexts[i];
         ft.y -= 0.9;
@@ -1796,7 +1825,7 @@ function renderLoop() {
 requestAnimationFrame(renderLoop);
 
 /**
- * EVENTOS DE TOQUE / MOUSE
+ * CONTROLES DE TOQUE / MOUSE
  */
 function getCanvasCoords(e) {
     const rect = canvas.getBoundingClientRect();
@@ -1878,7 +1907,7 @@ window.addEventListener('mousemove', onPointerMove);
 window.addEventListener('mouseup', onPointerUp);
 
 /**
- * MODAL DE PERSONALIZAÇÃO VISUAL
+ * MODAL DE CONFIGURAÇÕES
  */
 function openSettings() {
     applyVisualPrefs();
