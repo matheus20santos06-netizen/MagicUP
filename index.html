@@ -1,1905 +1,1947 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0d0b0a">
-<title>Resident Evil 4 2D — Capítulo 1: El Pueblo</title>
-<style>
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    touch-action: none;
-  }
-  html, body {
-    width: 100%;
-    height: 100%;
-    background: #0a0908;
-    color: #e6dfd5;
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    overflow: hidden;
-    position: fixed;
-    inset: 0;
-  }
-  canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Block Blast P2P & Campanha Solo (Com Vidas & Música)</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
 
-  /* HUD SUPERIOR ESTILO RE4 */
-  #hud {
-    position: fixed;
-    top: 8px;
-    left: 10px;
-    right: 10px;
-    display: none;
-    justify-content: space-between;
-    align-items: flex-start;
-    pointer-events: none;
-    z-index: 10;
-  }
-  .hud-left {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .obj-box {
-    background: rgba(12, 11, 10, 0.82);
-    border-left: 3px solid #b71c1c;
-    padding: 5px 10px;
-    border-radius: 3px;
-    max-width: 270px;
-  }
-  #zone-title {
-    font-size: 10px;
-    font-weight: 900;
-    color: #cf9f48;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-  #obj-text {
-    font-size: 11px;
-    color: #f0ebe1;
-    font-weight: 600;
-    margin-top: 1px;
-  }
-  .ptas-badge {
-    background: rgba(15, 13, 11, 0.85);
-    border: 1px solid #6e5832;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 800;
-    color: #ffd54f;
-    width: fit-content;
-  }
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: #0f172a;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            color: #f8fafc;
+            overflow: hidden;
+            touch-action: none;
+        }
 
-  .hud-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    pointer-events: auto;
-  }
-  .top-btns {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .hud-btn {
-    background: rgba(20, 18, 16, 0.9);
-    border: 1px solid #8a734b;
-    color: #e8dec8;
-    font-size: 10px;
-    font-weight: 800;
-    padding: 5px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-  }
-  .hud-btn:active {
-    background: #4e3b1e;
-  }
+        #bg-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.72);
+            z-index: 0;
+            pointer-events: none;
+            transition: background 0.4s;
+        }
 
-  /* ANEL DE VIDA & MUNIÇÃO RE4 */
-  .re4-ring {
-    width: 66px;
-    height: 66px;
-    border-radius: 50%;
-    background: rgba(10, 10, 10, 0.88);
-    border: 2.5px solid #4caf50;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 12px rgba(76, 175, 80, 0.45);
-    pointer-events: none;
-  }
-  #weapon-short {
-    font-size: 9px;
-    font-weight: 900;
-    color: #b0bec5;
-    letter-spacing: 0.5px;
-  }
-  #ammo-display {
-    font-size: 14px;
-    font-weight: 900;
-    color: #ffffff;
-    line-height: 1.1;
-  }
-  #reserve-display {
-    font-size: 9px;
-    color: #90a4ae;
-    font-weight: 700;
-  }
+        .screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+            z-index: 10;
+        }
 
-  /* CONTROLES TOUCH DUAL-STICK */
-  #touch-ui {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 15;
-    display: none;
-  }
-  .stick-zone {
-    position: fixed;
-    bottom: 14px;
-    width: 118px;
-    height: 118px;
-    border-radius: 50%;
-    background: rgba(25, 23, 20, 0.45);
-    border: 2px solid rgba(190, 165, 120, 0.4);
-    pointer-events: auto;
-  }
-  #left-stick { left: 16px; }
-  #right-stick {
-    right: 16px;
-    border-color: rgba(229, 57, 53, 0.55);
-    background: rgba(45, 14, 14, 0.45);
-  }
-  .stick-knob {
-    position: absolute;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    left: 35px;
-    top: 35px;
-    background: rgba(215, 200, 175, 0.72);
-    border: 2px solid #fff;
-    pointer-events: none;
-  }
-  #right-knob {
-    background: rgba(229, 57, 53, 0.78);
-    border-color: #ff8a80;
-  }
-  .stick-label {
-    position: absolute;
-    bottom: -14px;
-    width: 100%;
-    text-align: center;
-    font-size: 9px;
-    font-weight: 800;
-    color: rgba(230, 220, 200, 0.75);
-    letter-spacing: 1px;
-  }
+        .hidden {
+            display: none !important;
+        }
 
-  .action-bar {
-    position: fixed;
-    bottom: 142px;
-    right: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    pointer-events: auto;
-  }
-  .act-pill {
-    padding: 8px 11px;
-    border-radius: 8px;
-    background: rgba(20, 18, 16, 0.85);
-    border: 1.5px solid #9e8253;
-    color: #f5efe6;
-    font-size: 10px;
-    font-weight: 900;
-    text-align: center;
-  }
-  .act-pill:active {
-    background: #7f1d1d;
-    border-color: #ffd54f;
-  }
+        .card {
+            background: rgba(30, 41, 59, 0.94);
+            border: 2px solid #334155;
+            border-radius: 16px;
+            padding: 18px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+            max-height: 92vh;
+            overflow-y: auto;
+        }
 
-  #context-btn {
-    position: fixed;
-    bottom: 146px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 10px 18px;
-    border-radius: 8px;
-    background: linear-gradient(180deg, #991b1b, #450a0a);
-    border: 2px solid #ffd54f;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing: 0.8px;
-    display: none;
-    pointer-events: auto;
-    z-index: 20;
-    box-shadow: 0 0 15px rgba(255, 213, 79, 0.55);
-  }
+        h1 {
+            font-size: 23px;
+            font-weight: 900;
+            color: #38bdf8;
+            letter-spacing: 0.04em;
+            margin-bottom: 4px;
+        }
 
-  /* MODAIS: MENU, CUTSCENE, MALETA, MAPA, MERCADOR */
-  .modal-screen {
-    position: fixed;
-    inset: 0;
-    background: rgba(8, 7, 6, 0.94);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    z-index: 30;
-    text-align: center;
-  }
-  .re4-title {
-    font-size: 30px;
-    font-weight: 900;
-    letter-spacing: 3px;
-    color: #c62828;
-    text-shadow: 0 2px 10px rgba(198, 40, 40, 0.6);
-  }
-  .re4-sub {
-    font-size: 12px;
-    color: #cbbba0;
-    letter-spacing: 2px;
-    margin-bottom: 14px;
-    text-transform: uppercase;
-  }
-  .panel-box {
-    background: #141210;
-    border: 1.5px solid #755e38;
-    border-radius: 8px;
-    padding: 14px;
-    width: 100%;
-    max-width: 500px;
-    max-height: 86vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .primary-btn {
-    padding: 12px 18px;
-    background: linear-gradient(180deg, #991b1b, #5c0f0f);
-    border: 1.5px solid #d4af37;
-    border-radius: 6px;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 900;
-    letter-spacing: 1px;
-    cursor: pointer;
-  }
-  .grid-items {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    text-align: left;
-  }
-  .item-card {
-    background: #1d1a16;
-    border: 1px solid #59482b;
-    border-radius: 6px;
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 6px;
-  }
-  .item-card.equipped {
-    border-color: #4caf50;
-    background: #162217;
-  }
-  .item-name {
-    font-size: 12px;
-    font-weight: 800;
-    color: #f3e5ab;
-  }
-  .item-desc {
-    font-size: 10px;
-    color: #b0a594;
-  }
-  .small-btn {
-    padding: 6px 8px;
-    background: #2c2419;
-    border: 1px solid #9c7a3c;
-    color: #ffd54f;
-    font-size: 10px;
-    font-weight: 800;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  #cutscene-box {
-    position: fixed;
-    bottom: 18px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 580px;
-    background: rgba(10, 9, 8, 0.92);
-    border: 1.5px solid #8c6d3f;
-    border-radius: 8px;
-    padding: 12px 16px;
-    display: none;
-    z-index: 25;
-  }
-  #cs-speaker {
-    font-size: 11px;
-    font-weight: 900;
-    color: #ffd54f;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-  #cs-line {
-    font-size: 13px;
-    color: #f5efe6;
-    margin-top: 4px;
-    line-height: 1.35;
-  }
-</style>
+        .subtitle {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 800;
+            color: #cbd5e1;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        input[type="text"], input[type="number"], input[type="url"], select {
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 8px;
+            border: 1.5px solid #475569;
+            background: #0f172a;
+            color: #f8fafc;
+            font-size: 14px;
+            font-weight: 700;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #38bdf8;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 11px;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            transition: transform 0.1s;
+            margin-top: 6px;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-solo {
+            background: linear-gradient(180deg, #f59e0b, #d97706);
+            color: #0f172a;
+            font-size: 15px;
+            padding: 13px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(180deg, #0284c7, #0369a1);
+            color: #ffffff;
+        }
+
+        .btn-success {
+            background: linear-gradient(180deg, #16a34a, #15803d);
+            color: #ffffff;
+        }
+
+        .btn-secondary {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .code-box {
+            background: #0f172a;
+            border: 2px dashed #38bdf8;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 0.15em;
+            color: #fbbf24;
+            cursor: pointer;
+        }
+
+        .divider {
+            margin: 12px 0;
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 800;
+        }
+
+        /* ÁREA DO JOGO */
+        #game-screen {
+            justify-content: space-between;
+            padding: 8px 10px 12px;
+        }
+
+        .top-hud {
+            width: 100%;
+            max-width: 460px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .score-card {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1.5px solid #334155;
+            border-radius: 10px;
+            padding: 5px 8px;
+            text-align: center;
+        }
+
+        .score-card.me {
+            border-color: #38bdf8;
+        }
+
+        .player-tag {
+            font-size: 9px;
+            font-weight: 800;
+            color: #94a3b8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .score-val {
+            font-size: 17px;
+            font-weight: 900;
+            color: #f8fafc;
+        }
+
+        .target-box {
+            background: rgba(15, 23, 42, 0.94);
+            border: 1.5px solid #fbbf24;
+            border-radius: 10px;
+            padding: 5px 8px;
+            text-align: center;
+            min-width: 86px;
+        }
+
+        .target-label {
+            font-size: 9px;
+            font-weight: 800;
+            color: #fbbf24;
+        }
+
+        .target-val {
+            font-size: 13px;
+            font-weight: 900;
+            color: #fef3c7;
+        }
+
+        /* HUD DE VIDAS (CORAÇÕES) NO MODO SOLO */
+        .lives-box {
+            background: rgba(15, 23, 42, 0.94);
+            border: 1.5px solid #ef4444;
+            border-radius: 10px;
+            padding: 5px 8px;
+            text-align: center;
+            min-width: 68px;
+        }
+
+        .lives-label {
+            font-size: 9px;
+            font-weight: 800;
+            color: #ef4444;
+        }
+
+        .lives-val {
+            font-size: 15px;
+            font-weight: 900;
+            color: #fca5a5;
+        }
+
+        .icon-btn {
+            background: rgba(30, 41, 59, 0.92);
+            border: 1.5px solid #475569;
+            color: #f8fafc;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        /* BARRA DE MISSÃO SOLO */
+        #solo-mission-bar {
+            width: 100%;
+            max-width: 460px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1.5px solid #475569;
+            border-radius: 10px;
+            padding: 5px 10px;
+            margin-top: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .mission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        #mission-title {
+            color: #fbbf24;
+        }
+
+        #mission-extra {
+            color: #38bdf8;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 7px;
+            background: #1e293b;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #mission-progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b, #22c55e);
+            transition: width 0.2s;
+        }
+
+        #canvas-wrap {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #game-canvas {
+            display: block;
+            border-radius: 12px;
+        }
+
+        /* MODAL CONFIGURAÇÕES */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 30;
+        }
+
+        .color-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        input[type="color"] {
+            width: 48px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            background: none;
+            cursor: pointer;
+        }
+
+        .status-text {
+            font-size: 12px;
+            color: #fbbf24;
+            margin-top: 6px;
+            min-height: 16px;
+            font-weight: 700;
+        }
+
+        .toast {
+            position: fixed;
+            top: 86px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.96);
+            border: 1.5px solid #38bdf8;
+            color: #bae6fd;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 800;
+            z-index: 40;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            text-align: center;
+            max-width: 90%;
+        }
+    </style>
 </head>
 <body>
 
-<canvas id="gameCanvas"></canvas>
-
-<!-- HUD -->
-<div id="hud">
-  <div class="hud-left">
-    <div class="obj-box">
-      <div id="zone-title">CAPÍTULO 1-1 — ENTRADA DA VILA</div>
-      <div id="obj-text">Investigue a vila e procure pistas sobre Ashley.</div>
-    </div>
-    <div class="ptas-badge" id="ptas-text">PTAS: 1.500 $</div>
-  </div>
-
-  <div class="hud-right">
-    <div class="top-btns">
-      <button class="hud-btn" id="btn-case">MALETA</button>
-      <button class="hud-btn" id="btn-map">MAPA</button>
-      <button class="hud-btn" id="btn-fs">TELA CHEIA</button>
-    </div>
-    <div class="re4-ring" id="health-ring">
-      <div id="weapon-short">SG-09 R</div>
-      <div id="ammo-display">10</div>
-      <div id="reserve-display">/ 30</div>
-    </div>
-  </div>
-</div>
-
-<!-- BOTÃO CONTEXTUAL (CHUTE / PEGAR ARMA / MERCADOR / PORTA) -->
-<button id="context-btn">INTERAGIR</button>
-
-<!-- CONTROLES TOUCH -->
-<div id="touch-ui">
-  <div class="stick-zone" id="left-stick">
-    <div class="stick-knob" id="left-knob"></div>
-    <div class="stick-label">MOVER</div>
-  </div>
-
-  <div class="action-bar">
-    <button class="act-pill" id="btn-swap">ARMA ↻</button>
-    <button class="act-pill" id="btn-reload">RECARREGAR</button>
-    <button class="act-pill" id="btn-knife">FACA</button>
-    <button class="act-pill" id="btn-grenade">GRANADA (<span id="grenade-count">1</span>)</button>
-  </div>
-
-  <div class="stick-zone" id="right-stick">
-    <div class="stick-knob" id="right-knob"></div>
-    <div class="stick-label">MIRAR & ATIRAR</div>
-  </div>
-</div>
-
-<!-- CAIXA DE DIÁLOGO / CUTSCENE -->
-<div id="cutscene-box">
-  <div id="cs-speaker">LEON S. KENNEDY</div>
-  <div id="cs-line">...</div>
-</div>
+<div id="bg-overlay"></div>
+<div id="toast" class="toast"></div>
 
 <!-- TELA INICIAL -->
-<div class="modal-screen" id="start-screen">
-  <div class="re4-title">RESIDENT EVIL 4</div>
-  <div class="re4-sub">Capítulo 1 Completo — El Pueblo & A Fazenda (2D)</div>
-  <div class="panel-box">
-    <p style="font-size:12px; color:#d7ccc8; line-height:1.45;">
-      Controle <b>Leon S. Kennedy</b> na vila espanhola. Use o analógico esquerdo para andar e o analógico direito para <b>mirar o laser vermelho e atirar</b>. Atordoe os Ganados para aplicar o <b>Chute Giratório</b>, pegue a <b>Escopeta W-870</b> na casa do <b>Dr. Salvador</b> e negocie com o <b>Mercador</b>.
-    </p>
-    <button class="primary-btn" id="btn-start">INICIAR CAPÍTULO 1</button>
-  </div>
-</div>
+<div id="lobby-screen" class="screen">
+    <div class="card">
+        <h1>BLOCK BLAST</h1>
+        <div class="subtitle">Campanha Solo (5 Vidas & Música) • P2P</div>
 
-<!-- MODAL MALETA (ATTACHÉ CASE) -->
-<div class="modal-screen" id="case-modal" style="display:none;">
-  <div class="re4-title" style="font-size:22px; color:#ffd54f;">MALETA DE EQUIPAMENTOS</div>
-  <div class="panel-box">
-    <div id="case-stats" style="font-size:11px; color:#a5d6a7; font-weight:700;">Vida: 100/100 | Pesetas: 1.500 $</div>
-    <div class="grid-items" id="case-grid"></div>
-    <button class="primary-btn" id="btn-close-case">FECHAR MALETA</button>
-  </div>
-</div>
+        <button class="btn btn-solo" id="btn-start-solo">🏆 JOGAR MODO SOLO (5 VIDAS)</button>
 
-<!-- MODAL MAPA -->
-<div class="modal-screen" id="map-modal" style="display:none;">
-  <div class="re4-title" style="font-size:22px; color:#81d4fa;">MAPA DE EL PUEBLO</div>
-  <div class="panel-box">
-    <canvas id="mapCanvas" width="440" height="240" style="width:100%; height:220px; border:1px solid #6e5832; background:#1a1712; border-radius:4px;"></canvas>
-    <div style="font-size:11px; color:#d7ccc8; text-align:left; line-height:1.4;">
-      <span style="color:#4fc3f7;">● Azul:</span> Leon S. Kennedy &nbsp;|&nbsp;
-      <span style="color:#ffd54f;">★ Amarelo:</span> Objetivo / Casa da Escopeta &nbsp;|&nbsp;
-      <span style="color:#29b6f6;">◆ Ciano:</span> Mercador &nbsp;|&nbsp;
-      <span style="color:#ef5350;">▲ Vermelho:</span> Ganados / Chefe
+        <div class="divider">— OU DISPUTAR MULTIPLAYER P2P —</div>
+
+        <div class="input-group">
+            <label>Seu Nome</label>
+            <input type="text" id="player-name" value="Paulo" maxlength="14">
+        </div>
+
+        <div id="create-section">
+            <div class="input-group">
+                <label>Meta de Pontos P2P</label>
+                <input type="number" id="target-score-input" value="15000" min="500" step="500">
+            </div>
+            <button class="btn btn-primary" id="btn-create-room">GERAR CÓDIGO P2P</button>
+
+            <div id="host-wait-box" class="hidden">
+                <div class="code-box" id="room-code-display" title="Toque para copiar">------</div>
+                <div style="font-size:11px; color:#94a3b8;">Toque no código para copiar e enviar!</div>
+            </div>
+        </div>
+
+        <div class="input-group" style="margin-top:10px;">
+            <label>Entrar com Código P2P</label>
+            <input type="text" id="join-code-input" placeholder="Ex: AB12CD" maxlength="8" style="text-transform:uppercase;">
+        </div>
+        <button class="btn btn-success" id="btn-join-room">CONECTAR P2P</button>
+
+        <button class="btn btn-secondary" id="btn-open-settings-lobby" style="margin-top:10px;">⚙️ COR DOS BLOCOS E FUNDO</button>
+        <div class="status-text" id="conn-status"></div>
     </div>
-    <button class="primary-btn" id="btn-close-map">FECHAR MAPA</button>
-  </div>
 </div>
 
-<!-- MODAL MERCADOR -->
-<div class="modal-screen" id="merchant-modal" style="display:none;">
-  <div class="re4-title" style="font-size:22px; color:#4fc3f7;">"WHAT ARE YA BUYIN'?"</div>
-  <div class="re4-sub" style="margin-bottom:8px;">O Mercador — Armas, Melhorias e Venda de Tesouros</div>
-  <div class="panel-box">
-    <div id="merchant-ptas" style="font-size:13px; font-weight:900; color:#ffd54f;">SUAS PESETAS: 1.500 $</div>
-    <div class="grid-items" id="merchant-grid"></div>
-    <button class="primary-btn" id="btn-close-merchant">SAIR DA LOJA</button>
-  </div>
+<!-- TELA DO JOGO -->
+<div id="game-screen" class="screen hidden">
+    <div class="top-hud">
+        <div class="score-card me">
+            <div class="player-tag" id="hud-my-name">PAULO</div>
+            <div class="score-val" id="hud-my-score">0</div>
+        </div>
+
+        <div class="target-box">
+            <div class="target-label" id="hud-target-label">FASE</div>
+            <div class="target-val" id="hud-target">2.000</div>
+        </div>
+
+        <!-- Box de Vidas no Solo / Rival no P2P -->
+        <div class="lives-box" id="hud-lives-box">
+            <div class="lives-label">VIDAS</div>
+            <div class="lives-val" id="hud-lives-val">❤️ 5</div>
+        </div>
+
+        <div class="score-card rival hidden" id="hud-rival-card">
+            <div class="player-tag" id="hud-rival-name">RIVAL</div>
+            <div class="score-val" id="hud-rival-score">0</div>
+        </div>
+
+        <button class="icon-btn" id="btn-open-settings-game" title="Configurações">⚙️</button>
+        <button class="icon-btn" id="btn-back-menu" title="Menu Inicial">🏠</button>
+    </div>
+
+    <div id="solo-mission-bar" class="hidden">
+        <div class="mission-header">
+            <span id="mission-title">FASE 1: Alcance 2.000 pontos</span>
+            <span id="mission-extra"></span>
+        </div>
+        <div class="progress-track">
+            <div id="mission-progress-fill"></div>
+        </div>
+    </div>
+
+    <div id="canvas-wrap">
+        <canvas id="game-canvas"></canvas>
+    </div>
 </div>
 
-<!-- TELA FINAL (GAME OVER / CAPÍTULO CONCLUÍDO) -->
-<div class="modal-screen" id="end-screen" style="display:none;">
-  <div class="re4-title" id="end-title">VOCÊ MORREU</div>
-  <div class="re4-sub" id="end-sub">Os Ganados dominaram a vila...</div>
-  <div class="panel-box">
-    <div id="end-summary" style="font-size:12px; color:#d7ccc8;"></div>
-    <button class="primary-btn" id="btn-restart">JOGAR NOVAMENTE</button>
-  </div>
+<!-- TELA DE FIM DE PARTIDA (GAME OVER / VITÓRIA) -->
+<div id="gameover-screen" class="screen hidden" style="background: rgba(2,6,23,0.92); z-index: 25;">
+    <div class="card">
+        <h1 id="winner-title" style="color:#fbbf24;">FIM DE JOGO!</h1>
+        <div class="subtitle" id="winner-desc">Resultado da partida</div>
+
+        <div style="display:flex; justify-content:space-around; margin: 14px 0; background:#0f172a; padding:10px; border-radius:10px;">
+            <div>
+                <div style="font-size:10px; color:#94a3b8;" id="end-my-label">PONTUAÇÃO</div>
+                <div style="font-size:20px; font-weight:900; color:#38bdf8;" id="end-my-score">0</div>
+            </div>
+            <div id="end-rival-box">
+                <div style="font-size:10px; color:#94a3b8;" id="end-rival-name">FASE ALCANÇADA</div>
+                <div style="font-size:20px; font-weight:900; color:#f43f5e;" id="end-rival-score">Fase 1</div>
+            </div>
+        </div>
+
+        <div class="input-group" id="p2p-next-target-group">
+            <label>Nova Meta de Pontos P2P</label>
+            <input type="number" id="new-target-input" value="15000" min="500" step="500">
+        </div>
+
+        <button class="btn btn-success" id="btn-restart-match">JOGAR NOVAMENTE</button>
+        <button class="btn btn-secondary" id="btn-menu-from-end">VOLTAR AO MENU</button>
+    </div>
+</div>
+
+<!-- MODAL CONFIGURAÇÕES -->
+<div id="settings-modal" class="modal-backdrop hidden">
+    <div class="card">
+        <h1 style="font-size:20px;">PERSONALIZAR VISUAL</h1>
+        <div class="subtitle">Suas cores e fundo ficam salvos no seu aparelho</div>
+
+        <div class="input-group">
+            <label>Estilo de Cor dos Blocos</label>
+            <select id="block-color-mode">
+                <option value="RANDOM_CELL">Aleatório em cada quadradinho</option>
+                <option value="RANDOM_PIECE">Uma cor aleatória por peça</option>
+                <option value="FIXED">Cor única escolhida abaixo</option>
+            </select>
+        </div>
+
+        <div class="input-group" id="fixed-color-group">
+            <label>Escolher Cor dos Blocos</label>
+            <div class="color-row">
+                <input type="color" id="block-fixed-color" value="#38bdf8">
+                <span style="font-size:12px; color:#94a3b8;">Toque para escolher</span>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Link da Imagem de Fundo (URL)</label>
+            <input type="url" id="bg-image-url" placeholder="https://exemplo.com/imagem.jpg">
+        </div>
+
+        <button class="btn btn-primary" id="btn-save-settings">SALVAR E APLICAR</button>
+        <button class="btn btn-secondary" id="btn-clear-bg">REMOVER IMAGEM DE FUNDO</button>
+        <button class="btn btn-secondary" id="btn-close-settings">FECHAR</button>
+    </div>
 </div>
 
 <script>
-(function() {
-  'use strict';
+/**
+ * CONFIGURAÇÕES VISUAIS & TEMAS
+ */
+const PALETTE = [
+    '#ef4444', '#f97316', '#f59e0b', '#22c55e',
+    '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'
+];
 
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d', { alpha: false });
-  let W = 800, H = 450;
+const CYCLE_THEMES = [
+    { name: 'Clássico', palette: ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'], bgTint: 'rgba(15, 23, 42, 0.72)' },
+    { name: 'Neon Cyber', palette: ['#00f5d4', '#00bbf9', '#fee440', '#f15bb5', '#9b5de5', '#ff006e', '#3a86ff', '#8338ec'], bgTint: 'rgba(18, 8, 38, 0.76)' },
+    { name: 'Forja Vulcânica', palette: ['#ff4d00', '#ff7b00', '#ffb700', '#dc2626', '#facc15', '#fb7185', '#ea580c', '#fde047'], bgTint: 'rgba(35, 10, 8, 0.76)' },
+    { name: 'Abismo Esmeralda', palette: ['#10b981', '#34d399', '#059669', '#06b6d4', '#22d3ee', '#a3e635', '#2dd4bf', '#38bdf8'], bgTint: 'rgba(6, 28, 24, 0.76)' }
+];
 
-  function resize() {
-    W = window.innerWidth || 800;
-    H = window.innerHeight || 450;
-    canvas.width = W;
-    canvas.height = H;
-  }
-  resize();
-  window.addEventListener('resize', resize);
+let activePalette = PALETTE;
 
-  // Áudio procedural realista (tiros, motosserra, sino da igreja, passos)
-  let audioCtx = null;
-  function initAudio() {
-    try {
-      if (!audioCtx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (AC) audioCtx = new AC();
-      }
-      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    } catch (e) {}
-  }
+let userPrefs = {
+    colorMode: localStorage.getItem('bb_colorMode') || 'RANDOM_CELL',
+    fixedColor: localStorage.getItem('bb_fixedColor') || '#38bdf8',
+    bgUrl: localStorage.getItem('bb_bgUrl') || ''
+};
 
-  function playSound(type) {
-    try {
-      if (!audioCtx || audioCtx.state !== 'running') return;
-      const now = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
+function applyVisualPrefs() {
+    document.getElementById('block-color-mode').value = userPrefs.colorMode;
+    document.getElementById('block-fixed-color').value = userPrefs.fixedColor;
+    document.getElementById('bg-image-url').value = userPrefs.bgUrl;
 
-      if (type === 'pistol') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(520, now);
-        osc.frequency.exponentialRampToValueAtTime(75, now + 0.11);
-        gain.gain.setValueAtTime(0.14, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.11);
-      } else if (type === 'shotgun') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(220, now);
-        osc.frequency.exponentialRampToValueAtTime(38, now + 0.26);
-        gain.gain.setValueAtTime(0.22, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.26);
-      } else if (type === 'rifle') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(780, now);
-        osc.frequency.exponentialRampToValueAtTime(60, now + 0.22);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.22);
-      } else if (type === 'chainsaw') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(95, now);
-        osc.frequency.linearRampToValueAtTime(145, now + 0.18);
-        gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.2);
-      } else if (type === 'bell') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(330, now);
-        osc.frequency.exponentialRampToValueAtTime(326, now + 1.4);
-        gain.gain.setValueAtTime(0.22, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 1.4);
-      } else if (type === 'pickup') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(520, now);
-        osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.12);
-      } else if (type === 'explosion') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(130, now);
-        osc.frequency.exponentialRampToValueAtTime(24, now + 0.5);
-        gain.gain.setValueAtTime(0.28, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.5);
-      }
-    } catch (e) {}
-  }
-
-  // =========================================================
-  // ESTADO DO JOGO & INVENTÁRIO (MALETA RE4)
-  // =========================================================
-  let state = 'menu'; // menu, cutscene, playing, modal, ended
-  let worldTime = 0;
-  let camera = { x: 0, y: 0, shake: 0 };
-
-  const WEAPONS = {
-    pistol:  { id: 'pistol',  name: 'Pistola SG-09 R', short: 'SG-09 R', owned: true,  mag: 10, maxMag: 10, reserve: 35, dmg: 26, fireRate: 0.26, reloadTime: 1.0, pellets: 1, spread: 0,    pierce: false, level: 1 },
-    shotgun: { id: 'shotgun', name: 'Escopeta W-870',  short: 'W-870',   owned: false, mag: 6,  maxMag: 6,  reserve: 14, dmg: 22, fireRate: 0.75, reloadTime: 1.4, pellets: 5, spread: 0.26, pierce: false, level: 1 },
-    rifle:   { id: 'rifle',   name: 'Rifle SR M1903',  short: 'M1903',   owned: false, mag: 5,  maxMag: 5,  reserve: 12, dmg: 95, fireRate: 0.95, reloadTime: 1.5, pellets: 1, spread: 0,    pierce: true,  level: 1 }
-  };
-
-  const leon = {
-    x: 160, y: 520, r: 15,
-    vx: 0, vy: 0,
-    angle: 0,
-    hp: 100, maxHp: 100,
-    ptas: 1500,
-    weapon: 'pistol',
-    fireCd: 0,
-    reloadTimer: 0,
-    knifeTimer: 0,
-    invuln: 0,
-    grenades: 1,
-    herbs: 1,
-    sprays: 0,
-    treasures: [] // Ex: { name: 'Rubi do Dr. Salvador', val: 10000 }
-  };
-
-  // Mundo (2800 x 1400): Floresta -> Praça da Vila (Casa da Escopeta) -> Fazenda & Mercador -> Portão do Chefe
-  const WORLD_W = 2800;
-  const WORLD_H = 1400;
-
-  let buildings = [];
-  let trees = [];
-  let enemies = [];
-  let bullets = [];
-  let thrownGrenades = [];
-  let lootDrops = [];
-  let particles = [];
-  let floatingTexts = [];
-  let laserHitPoint = null;
-  let activeContextAction = null;
-
-  // Eventos de História
-  let storyFlags = {
-    introPlayed: false,
-    villageAlarmTriggered: false,
-    shotgunPicked: false,
-    salvadorSpawned: false,
-    bellRang: false,
-    farmGateOpen: false,
-    finalGateOpen: false,
-    villageTimer: 0
-  };
-
-  let cutsceneQueue = [];
-  let currentCutsceneLine = null;
-  let cutsceneTimer = 0;
-
-  function startCutscene(lines, onFinish) {
-    cutsceneQueue = lines.slice();
-    state = 'cutscene';
-    document.getElementById('cutscene-box').style.display = 'block';
-    advanceCutscene(onFinish);
-  }
-
-  function advanceCutscene(onFinish) {
-    if (cutsceneQueue.length === 0) {
-      document.getElementById('cutscene-box').style.display = 'none';
-      state = 'playing';
-      if (onFinish) onFinish();
-      return;
+    if (userPrefs.bgUrl && userPrefs.bgUrl.trim() !== '') {
+        document.body.style.backgroundImage = `url("${userPrefs.bgUrl.trim()}")`;
+        document.getElementById('bg-overlay').style.background = 'rgba(15, 23, 42, 0.55)';
+    } else {
+        document.body.style.backgroundImage = 'none';
+        document.getElementById('bg-overlay').style.background = 'rgba(15, 23, 42, 0.72)';
     }
-    currentCutsceneLine = cutsceneQueue.shift();
-    cutsceneTimer = currentCutsceneLine.dur || 2.8;
-    document.getElementById('cs-speaker').textContent = currentCutsceneLine.speaker;
-    document.getElementById('cs-line').textContent = currentCutsceneLine.text;
-    if (currentCutsceneLine.sound) playSound(currentCutsceneLine.sound);
-  }
+}
+applyVisualPrefs();
 
-  function addFloatText(x, y, txt, color) {
-    floatingTexts.push({ x, y, txt, color: color || '#ffd54f', life: 1.1 });
-  }
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2600);
+}
 
-  function spawnParticles(x, y, color, count, spd) {
-    for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const s = (0.3 + Math.random() * 0.7) * (spd || 140);
-      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, color, size: 2 + Math.random() * 3, life: 0.35 + Math.random() * 0.25 });
+/**
+ * MÚSICA DE FUNDO PROCEDURAL & EFEITOS SONOROS (WEB AUDIO API)
+ */
+const AudioFX = {
+    ctx: null,
+    musicTimer: null,
+    musicNoteIndex: 0,
+    isMusicPlaying: false,
+
+    ensure() {
+        if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+        }
+        return this.ctx;
+    },
+
+    tone(freq1, freq2, dur, type = 'sine', vol = 0.14, delay = 0) {
+        try {
+            const ctx = this.ensure();
+            if (!ctx) return;
+            const t = ctx.currentTime + delay;
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq1, t);
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq2), t + dur);
+            g.gain.setValueAtTime(vol, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            osc.connect(g);
+            g.connect(ctx.destination);
+            osc.start(t);
+            osc.stop(t + dur + 0.02);
+        } catch (e) {}
+    },
+
+    // Música de fundo relaxante em loop procedimental
+    startBackgroundMusic() {
+        if (this.isMusicPlaying) return;
+        this.isMusicPlaying = true;
+        this.ensure();
+
+        // Melodia suave em escala pentatônica alegre (Dó, Mi, Sol, Lá, Dó5)
+        const melody = [
+            261.63, 329.63, 392.00, 440.00, 523.25, 440.00, 392.00, 329.63,
+            293.66, 349.23, 440.00, 523.25, 587.33, 523.25, 440.00, 349.23
+        ];
+
+        this.musicTimer = setInterval(() => {
+            if (!this.isMusicPlaying) return;
+            const note = melody[this.musicNoteIndex % melody.length];
+            this.tone(note, note * 1.02, 0.42, 'sine', 0.045);
+            this.musicNoteIndex++;
+        }, 320);
+    },
+
+    stopBackgroundMusic() {
+        this.isMusicPlaying = false;
+        if (this.musicTimer) {
+            clearInterval(this.musicTimer);
+            this.musicTimer = null;
+        }
+    },
+
+    place() {
+        this.tone(240, 420, 0.08, 'triangle', 0.15, 0);
+        this.tone(520, 640, 0.06, 'sine', 0.08, 0.03);
+    },
+
+    combo(linesCount) {
+        const baseNotes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+        const steps = Math.min(linesCount + 1, baseNotes.length);
+        for (let i = 0; i < steps; i++) {
+            const f = baseNotes[i] * (1 + (linesCount - 1) * 0.08);
+            this.tone(f, f * 1.15, 0.16, i >= 2 ? 'triangle' : 'sine', 0.16, i * 0.065);
+        }
+    },
+
+    boardAllClear() {
+        const fanfare = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+        fanfare.forEach((f, idx) => {
+            this.tone(f, f * 1.05, 0.22, 'triangle', 0.18, idx * 0.075);
+        });
+        this.tone(1046.50, 2093.0, 0.45, 'sine', 0.15, 0.42);
+    },
+
+    lockedGameOver() {
+        const notes = [330, 293.66, 261.63, 196.00, 130.81];
+        notes.forEach((f, i) => {
+            this.tone(f, f * 0.85, 0.26, 'sawtooth', 0.15, i * 0.14);
+        });
+    },
+
+    rockBreak() {
+        this.tone(180, 75, 0.14, 'square', 0.16, 0);
+    },
+
+    rescueSuccess() {
+        [587.33, 739.99, 880, 1174.66].forEach((f, i) => {
+            this.tone(f, f * 1.08, 0.2, 'sine', 0.17, i * 0.08);
+        });
+    },
+
+    bossHit() {
+        this.tone(220, 65, 0.25, 'sawtooth', 0.22, 0);
+        this.tone(440, 110, 0.2, 'square', 0.15, 0.05);
+    },
+
+    invalid() {
+        this.tone(150, 95, 0.1, 'sawtooth', 0.1, 0);
     }
-  }
+};
 
-  // =========================================================
-  // CONSTRUÇÃO DO MAPA DE EL PUEBLO (CAPÍTULO 1)
-  // =========================================================
-  function buildWorld() {
-    buildings = [
-      // Cabana inicial da floresta
-      { x: 340, y: 360, w: 150, h: 110, label: 'CABANA', color: '#3e2e23' },
+/**
+ * CONEXÃO P2P (PEERJS)
+ */
+let gameMode = 'SOLO'; // 'SOLO' ou 'P2P'
+let peer = null;
+let conn = null;
+let isHost = false;
+let myName = 'Paulo';
+let rivalName = 'Irmã';
+let myScore = 0;
+let rivalScore = 0;
+let targetScore = 15000;
+let matchActive = false;
 
-      // PRAÇA DA VILA (EL PUEBLO)
-      // Casa Principal (2 Andares) onde fica a Escopeta W-870 na parede!
-      { x: 860, y: 260, w: 230, h: 170, label: 'CASA DA ESCOPETA', color: '#4a3525', isShotgunHouse: true },
-      // Cabanas laterais da praça
-      { x: 1180, y: 290, w: 160, h: 130, label: 'CASA', color: '#3b2b20' },
-      { x: 880, y: 740, w: 180, h: 130, label: 'CELEIRO', color: '#3b2b20' },
-      // Igreja ao norte da praça
-      { x: 1160, y: 720, w: 190, h: 150, label: 'IGREJA (SINO)', color: '#453e38' },
+// Sistema de Vidas no Solo (5 Vidas)
+let soloLives = 5;
 
-      // Portão da Vila -> Fazenda (abre após o sino tocar ou derrotar a horda)
-      { x: 1470, y: 420, w: 28, h: 240, label: 'PORTÃO DA FAZENDA', color: '#5d4037', isFarmGate: true },
-      // Muros divisórios Vila/Fazenda
-      { x: 1470, y: 120, w: 28, h: 300, color: '#2e2925' },
-      { x: 1470, y: 660, w: 28, h: 520, color: '#2e2925' },
+function generateShortCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    return code;
+}
 
-      // ÁREA DA FAZENDA & MERCADOR
-      { x: 1740, y: 260, w: 210, h: 150, label: 'MOINHO', color: '#423226' },
-      { x: 1820, y: 740, w: 220, h: 150, label: 'ESTÁBULO', color: '#3d2c20' },
+function setStatus(text) {
+    document.getElementById('conn-status').textContent = text;
+}
 
-      // Portão Final do Capítulo 1 (Guardião Mendez / Saída da Fazenda)
-      { x: 2480, y: 440, w: 32, h: 220, label: 'SAÍDA DO CAPÍTULO 1', color: '#6d4c41', isFinalGate: true },
-      { x: 2480, y: 120, w: 32, h: 320, color: '#2e2925' },
-      { x: 2480, y: 660, w: 32, h: 520, color: '#2e2925' }
-    ];
-
-    trees = [];
-    for (let i = 0; i < 45; i++) {
-      const tx = 100 + ((i * 293) % (WORLD_W - 200));
-      const ty = 110 + ((i * 197) % (WORLD_H - 220));
-      // Não coloca árvore em cima de prédios ou caminhos principais
-      if (Math.abs(ty - 540) < 95) continue;
-      let blocked = false;
-      for (const b of buildings) {
-        if (tx > b.x - 45 && tx < b.x + b.w + 45 && ty > b.y - 45 && ty < b.y + b.h + 45) blocked = true;
-      }
-      if (!blocked) trees.push({ x: tx, y: ty, r: 22 + (i % 3) * 5 });
-    }
-
-    // Itens visíveis no cenário
-    lootDrops = [
-      // Escopeta W-870 na parede da Casa Principal da Vila!
-      { x: 975, y: 455, type: 'weapon_shotgun', label: 'ESCOPETA W-870' },
-      // Munição e erva na cabana inicial
-      { x: 410, y: 500, type: 'ammo_pistol', val: 15, label: 'Munição Pistola (15)' },
-      { x: 930, y: 455, type: 'ammo_shotgun', val: 6, label: 'Cartuchos 12 (6)' },
-      { x: 1240, y: 450, type: 'herb', val: 1, label: 'Erva Verde' },
-      { x: 1840, y: 440, type: 'grenade', val: 1, label: 'Granada de Mão' },
-      { x: 1920, y: 710, type: 'ammo_rifle', val: 8, label: 'Munição Rifle (8)' }
-    ];
-
-    enemies = [
-      // Primeiro Ganado na cabana da floresta
-      createGanado('normal', 440, 520),
-      // Ganados na Praça da Vila
-      createGanado('normal', 940, 530),
-      createGanado('pitchfork', 1060, 580),
-      createGanado('torch', 1150, 490),
-      createGanado('normal', 1020, 660),
-      // Ganados na Fazenda
-      createGanado('pitchfork', 1780, 520),
-      createGanado('torch', 1960, 490),
-      createGanado('normal', 2080, 620),
-      createGanado('brute', 2260, 540) // Guardião forte antes do portão final
-    ];
-  }
-
-  function createGanado(kind, x, y) {
-    const stats = {
-      normal:    { hp: 85,  spd: 72,  dmg: 14, r: 15, shirt: '#5c4d3c', pants: '#2d2a26', name: 'Ganado' },
-      pitchfork: { hp: 100, spd: 80,  dmg: 18, r: 15, shirt: '#4a5548', pants: '#262925', name: 'Ganado (Forcado)' },
-      torch:     { hp: 90,  spd: 86,  dmg: 17, r: 15, shirt: '#634739', pants: '#2b2420', name: 'Ganado (Tocha)' },
-      brute:     { hp: 240, spd: 64,  dmg: 26, r: 19, shirt: '#3e2723', pants: '#1c1816', name: 'Ganado Gigante' },
-      salvador:  { hp: 460, spd: 94,  dmg: 48, r: 20, shirt: '#4e342e', pants: '#1f1c1a', name: 'DR. SALVADOR (MOTOSSERRA)', isBoss: true }
-    };
-    const s = stats[kind];
-    return {
-      kind,
-      x, y,
-      r: s.r,
-      hp: s.hp,
-      maxHp: s.hp,
-      spd: s.spd,
-      dmg: s.dmg,
-      shirt: s.shirt,
-      pants: s.pants,
-      name: s.name,
-      isBoss: !!s.isBoss,
-      angle: Math.PI,
-      stunTimer: 0,
-      atkCd: 0,
-      hitFlash: 0,
-      sawTimer: 0
-    };
-  }
-
-  // =========================================================
-  // SISTEMA DE TIRO COM MIRA A LASER REAL E PRECISA
-  // =========================================================
-  function getAimSegment() {
-    const wep = WEAPONS[leon.weapon];
-    const range = leon.weapon === 'rifle' ? 680 : (leon.weapon === 'shotgun' ? 320 : 480);
-    const startX = leon.x + Math.cos(leon.angle) * 18;
-    const startY = leon.y + Math.sin(leon.angle) * 18;
-    let endX = startX + Math.cos(leon.angle) * range;
-    let endY = startY + Math.sin(leon.angle) * range;
-
-    // Interseção com paredes
-    let bestT = 1.0;
-    for (const b of buildings) {
-      const t = lineRectT(startX, startY, endX, endY, b.x, b.y, b.w, b.h);
-      if (t !== null && t < bestT) bestT = t;
-    }
-
-    // Interseção com inimigos vivos (para o ponto vermelho do laser grudar no alvo!)
-    let targetEnemy = null;
-    for (const e of enemies) {
-      if (e.hp <= 0) continue;
-      const t = lineCircleT(startX, startY, endX, endY, e.x, e.y, e.r + 4);
-      if (t !== null && t < bestT) {
-        bestT = t;
-        targetEnemy = e;
-      }
-    }
-
-    return {
-      x1: startX,
-      y1: startY,
-      x2: startX + (endX - startX) * bestT,
-      y2: startY + (endY - startY) * bestT,
-      targetEnemy,
-      wep
-    };
-  }
-
-  function lineCircleT(x1, y1, x2, y2, cx, cy, r) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const fx = x1 - cx;
-    const fy = y1 - cy;
-    const a = dx * dx + dy * dy;
-    if (a < 0.0001) return null;
-    const b = 2 * (fx * dx + fy * dy);
-    const c = (fx * fx + fy * fy) - r * r;
-    let disc = b * b - 4 * a * c;
-    if (disc < 0) return null;
-    disc = Math.sqrt(disc);
-    const t = (-b - disc) / (2 * a);
-    return (t >= 0 && t <= 1) ? t : null;
-  }
-
-  function lineRectT(x1, y1, x2, y2, rx, ry, rw, rh) {
-    let t0 = 0, t1 = 1;
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const checks = [
-      [-dx, x1 - rx],
-      [dx, rx + rw - x1],
-      [-dy, y1 - ry],
-      [dy, ry + rh - y1]
-    ];
-    for (const [p, q] of checks) {
-      if (Math.abs(p) < 1e-6) {
-        if (q < 0) return null;
-      } else {
-        const r = q / p;
-        if (p < 0) {
-          if (r > t1) return null;
-          if (r > t0) t0 = r;
+function setupConnectionHandlers(connection) {
+    conn = connection;
+    conn.on('open', () => {
+        myName = document.getElementById('player-name').value.trim() || 'Jogador';
+        if (isHost) {
+            targetScore = Math.max(500, parseInt(document.getElementById('target-score-input').value, 10) || 15000);
+            conn.send({ type: 'WELCOME', hostName: myName, targetScore: targetScore });
+            startP2PMatch(targetScore);
         } else {
-          if (r < t0) return null;
-          if (r < t1) t1 = r;
+            conn.send({ type: 'HELLO', guestName: myName });
         }
-      }
-    }
-    return t0 <= t1 ? t0 : null;
-  }
-
-  function fireWeapon() {
-    if (state !== 'playing' || leon.reloadTimer > 0 || leon.fireCd > 0) return;
-    const wep = WEAPONS[leon.weapon];
-    if (wep.mag <= 0) {
-      reloadWeapon();
-      return;
-    }
-
-    initAudio();
-    wep.mag--;
-    leon.fireCd = wep.fireRate;
-    camera.shake = Math.max(camera.shake, wep.id === 'shotgun' ? 8 : (wep.id === 'rifle' ? 6 : 3));
-    playSound(wep.id);
-
-    const muzzleX = leon.x + Math.cos(leon.angle) * 20;
-    const muzzleY = leon.y + Math.sin(leon.angle) * 20;
-    spawnParticles(muzzleX, muzzleY, '#ffca28', 5, 110);
-
-    const dmgBoost = 1 + (wep.level - 1) * 0.35;
-    const totalDmg = Math.round(wep.dmg * dmgBoost);
-
-    for (let i = 0; i < wep.pellets; i++) {
-      const offset = wep.pellets > 1 ? ((i / (wep.pellets - 1)) - 0.5) * wep.spread : 0;
-      const ang = leon.angle + offset;
-      bullets.push({
-        x: muzzleX,
-        y: muzzleY,
-        vx: Math.cos(ang) * 980,
-        vy: Math.sin(ang) * 980,
-        dmg: totalDmg,
-        life: wep.id === 'shotgun' ? 0.34 : 0.72,
-        pierce: wep.pierce,
-        hitIds: new Set()
-      });
-    }
-  }
-
-  function reloadWeapon() {
-    const wep = WEAPONS[leon.weapon];
-    if (leon.reloadTimer > 0 || wep.mag >= wep.maxMag || wep.reserve <= 0) return;
-    leon.reloadTimer = wep.reloadTime;
-    playSound('pickup');
-    addFloatText(leon.x, leon.y - 26, 'RECARREGANDO...', '#90caf9');
-  }
-
-  function swapWeapon() {
-    const order = ['pistol', 'shotgun', 'rifle'].filter(k => WEAPONS[k].owned);
-    if (order.length <= 1) return;
-    const idx = order.indexOf(leon.weapon);
-    leon.weapon = order[(idx + 1) % order.length];
-    leon.reloadTimer = 0;
-    playSound('pickup');
-    addFloatText(leon.x, leon.y - 26, WEAPONS[leon.weapon].name, '#ffd54f');
-  }
-
-  function useKnife() {
-    if (state !== 'playing' || leon.knifeTimer > 0) return;
-    initAudio();
-    leon.knifeTimer = 0.25;
-    playSound('pickup');
-    for (const e of enemies) {
-      if (e.hp <= 0) continue;
-      const d = Math.hypot(e.x - leon.x, e.y - leon.y);
-      const angDiff = Math.abs(normalizeAngle(Math.atan2(e.y - leon.y, e.x - leon.x) - leon.angle));
-      if (d < 56 && angDiff < 1.1) {
-        damageGanado(e, 34, leon.angle, false);
-      }
-    }
-  }
-
-  function throwGrenade() {
-    if (state !== 'playing' || leon.grenades <= 0) return;
-    initAudio();
-    leon.grenades--;
-    thrownGrenades.push({
-      x: leon.x,
-      y: leon.y,
-      vx: Math.cos(leon.angle) * 320,
-      vy: Math.sin(leon.angle) * 320,
-      timer: 1.35
     });
-    addFloatText(leon.x, leon.y - 24, 'GRANADA!', '#ff8a80');
-  }
 
-  function normalizeAngle(a) {
-    while (a > Math.PI) a -= Math.PI * 2;
-    while (a < -Math.PI) a += Math.PI * 2;
-    return a;
-  }
-
-  function damageGanado(e, dmg, hitAngle, canStun) {
-    if (e.hp <= 0) return;
-    e.hp -= dmg;
-    e.hitFlash = 0.12;
-    e.x += Math.cos(hitAngle) * (e.isBoss ? 5 : 14);
-    e.y += Math.sin(hitAngle) * (e.isBoss ? 5 : 14);
-    spawnParticles(e.x, e.y, '#b71c1c', 7, 130);
-    addFloatText(e.x, e.y - 18, '-' + dmg, '#ff8a80');
-
-    // Chance de atordoar para liberar o Chute Giratório de Leon!
-    if (canStun && !e.isBoss && e.hp > 0 && Math.random() < 0.42) {
-      e.stunTimer = 2.6;
-      addFloatText(e.x, e.y - 34, 'ATORDOADO! CHUTE!', '#ffd54f');
-    }
-
-    if (e.hp <= 0) {
-      e.hp = 0;
-      spawnParticles(e.x, e.y, '#7f0000', 18, 170);
-      dropGanadoLoot(e);
-    }
-  }
-
-  function dropGanadoLoot(e) {
-    if (e.isBoss) {
-      // Dr. Salvador sempre dropa o Rubi Valioso (10.000 PTAS) + Cartuchos
-      lootDrops.push({ x: e.x, y: e.y, type: 'treasure', name: 'Rubi do Dr. Salvador', val: 10000, label: 'TESOURO: RUBI (10.000$)' });
-      lootDrops.push({ x: e.x + 22, y: e.y + 10, type: 'ammo_shotgun', val: 8, label: 'Cartuchos 12 (8)' });
-      addFloatText(e.x, e.y - 40, 'DR. SALVADOR DERROTADO!', '#ffd54f');
-      return;
-    }
-
-    const roll = Math.random();
-    if (roll < 0.45) {
-      const cash = 300 + Math.floor(Math.random() * 5) * 100;
-      lootDrops.push({ x: e.x, y: e.y, type: 'ptas', val: cash, label: cash + ' PTAS' });
-    } else if (roll < 0.72) {
-      lootDrops.push({ x: e.x, y: e.y, type: 'ammo_pistol', val: 10, label: 'Munição Pistola (10)' });
-    } else if (roll < 0.86 && WEAPONS.shotgun.owned) {
-      lootDrops.push({ x: e.x, y: e.y, type: 'ammo_shotgun', val: 5, label: 'Cartuchos 12 (5)' });
-    } else if (roll < 0.94) {
-      lootDrops.push({ x: e.x, y: e.y, type: 'grenade', val: 1, label: 'Granada de Mão' });
-    } else {
-      lootDrops.push({ x: e.x, y: e.y, type: 'herb', val: 1, label: 'Erva Verde' });
-    }
-  }
-
-  // =========================================================
-  // LOOP DE ATUALIZAÇÃO (FÍSICA, IA, EVENTOS DO CAPÍTULO 1)
-  // =========================================================
-  const moveStick = { active: false, dx: 0, dy: 0 };
-  const aimStick = { active: false, dx: 0, dy: 0 };
-  const keyState = {};
-
-  function update(dt) {
-    worldTime += dt;
-
-    if (state === 'cutscene') {
-      cutsceneTimer -= dt;
-      if (cutsceneTimer <= 0) advanceCutscene();
-      return;
-    }
-    if (state !== 'playing') return;
-
-    if (camera.shake > 0) camera.shake = Math.max(0, camera.shake - dt * 26);
-    if (leon.fireCd > 0) leon.fireCd = Math.max(0, leon.fireCd - dt);
-    if (leon.knifeTimer > 0) leon.knifeTimer = Math.max(0, leon.knifeTimer - dt);
-    if (leon.invuln > 0) leon.invuln = Math.max(0, leon.invuln - dt);
-
-    if (leon.reloadTimer > 0) {
-      leon.reloadTimer -= dt;
-      if (leon.reloadTimer <= 0) {
-        const wep = WEAPONS[leon.weapon];
-        const needed = wep.maxMag - wep.mag;
-        const take = Math.min(needed, wep.reserve);
-        wep.mag += take;
-        wep.reserve -= take;
-      }
-    }
-
-    // Movimento de Leon
-    let mx = moveStick.dx;
-    let my = moveStick.dy;
-    if (keyState['w'] || keyState['arrowup']) my -= 1;
-    if (keyState['s'] || keyState['arrowdown']) my += 1;
-    if (keyState['a'] || keyState['arrowleft']) mx -= 1;
-    if (keyState['d'] || keyState['arrowright']) mx += 1;
-
-    const mLen = Math.hypot(mx, my);
-    if (mLen > 0.05) {
-      const norm = Math.min(1, mLen);
-      const spd = aimStick.active ? 115 : 178; // Anda mais devagar enquanto mira, igual ao RE4!
-      leon.vx = (mx / mLen) * spd * norm;
-      leon.vy = (my / mLen) * spd * norm;
-      if (!aimStick.active) {
-        leon.angle = Math.atan2(leon.vy, leon.vx);
-      }
-    } else {
-      leon.vx *= 0.72;
-      leon.vy *= 0.72;
-    }
-
-    if (aimStick.active && Math.hypot(aimStick.dx, aimStick.dy) > 0.15) {
-      leon.angle = Math.atan2(aimStick.dy, aimStick.dx);
-      fireWeapon();
-    }
-
-    moveCircleWithCollisions(leon, leon.vx * dt, leon.vy * dt);
-
-    // Atualiza linha do laser vermelho
-    laserHitPoint = getAimSegment();
-
-    // Projéteis (Balas)
-    for (let i = bullets.length - 1; i >= 0; i--) {
-      const b = bullets[i];
-      b.x += b.vx * dt;
-      b.y += b.vy * dt;
-      b.life -= dt;
-
-      let removeBullet = b.life <= 0;
-      for (const wall of buildings) {
-        if (b.x > wall.x && b.x < wall.x + wall.w && b.y > wall.y && b.y < wall.y + wall.h) {
-          spawnParticles(b.x, b.y, '#cfd8dc', 4, 90);
-          removeBullet = true;
-          break;
+    conn.on('data', (data) => {
+        if (!data || !data.type) return;
+        if (data.type === 'HELLO') {
+            rivalName = data.guestName || 'Convidado';
+            updateHUD();
+        } else if (data.type === 'WELCOME') {
+            rivalName = data.hostName || 'Anfitrião';
+            targetScore = data.targetScore || 15000;
+            startP2PMatch(targetScore);
+        } else if (data.type === 'SCORE_UPDATE') {
+            rivalScore = data.score;
+            updateHUD();
+            checkP2PVictory();
+        } else if (data.type === 'NEW_MATCH') {
+            targetScore = data.targetScore || 15000;
+            startP2PMatch(targetScore);
+            showToast(`Nova partida P2P! Meta: ${targetScore.toLocaleString('pt-BR')}`);
+        } else if (data.type === 'MATCH_WON') {
+            rivalScore = data.winnerScore;
+            updateHUD();
+            finishGameScreen(`${data.winnerName.toUpperCase()} VENCEU!`, `Atingiu ${targetScore.toLocaleString('pt-BR')} pontos!`);
         }
-      }
+    });
 
-      if (!removeBullet) {
-        for (const e of enemies) {
-          if (e.hp <= 0 || b.hitIds.has(e)) continue;
-          if (Math.hypot(e.x - b.x, e.y - b.y) <= e.r + 6) {
-            b.hitIds.add(e);
-            damageGanado(e, b.dmg, Math.atan2(b.vy, b.vx), true);
-            if (!b.pierce) {
-              removeBullet = true;
-              break;
+    conn.on('close', () => {
+        setStatus('Conexão encerrada pelo outro jogador.');
+        showToast('O outro jogador desconectou.');
+    });
+}
+
+document.getElementById('btn-create-room').addEventListener('click', () => {
+    myName = document.getElementById('player-name').value.trim() || 'Paulo';
+    isHost = true;
+    const shortCode = generateShortCode();
+    setStatus('Gerando sala P2P...');
+    if (peer) peer.destroy();
+
+    peer = new Peer('BBP2P-' + shortCode);
+    peer.on('open', () => {
+        document.getElementById('host-wait-box').classList.remove('hidden');
+        document.getElementById('room-code-display').textContent = shortCode;
+        setStatus('Aguardando conectar com o código...');
+    });
+    peer.on('connection', setupConnectionHandlers);
+    peer.on('error', (err) => setStatus('Erro ao criar sala: ' + err.type));
+});
+
+document.getElementById('room-code-display').addEventListener('click', () => {
+    const code = document.getElementById('room-code-display').textContent;
+    if (navigator.clipboard && code !== '------') {
+        navigator.clipboard.writeText(code).then(() => showToast('Código ' + code + ' copiado!')).catch(() => {});
+    }
+});
+
+document.getElementById('btn-join-room').addEventListener('click', () => {
+    const rawCode = document.getElementById('join-code-input').value.trim().toUpperCase();
+    if (rawCode.length < 4) {
+        setStatus('Digite o código da sala primeiro.');
+        return;
+    }
+    myName = document.getElementById('player-name').value.trim() || 'Tássia';
+    isHost = false;
+    setStatus('Conectando a ' + rawCode + '...');
+    if (peer) peer.destroy();
+    peer = new Peer();
+    peer.on('open', () => {
+        const outgoingConn = peer.connect('BBP2P-' + rawCode, { reliable: true });
+        setupConnectionHandlers(outgoingConn);
+    });
+    peer.on('error', (err) => setStatus('Erro ao conectar (' + err.type + ').'));
+});
+
+/**
+ * MOTOR DO TABULEIRO 8x8 & FASES SOLO
+ */
+const GRID_SIZE = 8;
+let board = [];
+let trayPieces = [null, null, null];
+let draggingIndex = -1;
+let dragPos = { x: 0, y: 0 };
+let hoverCell = null;
+let floatingTexts = [];
+let particles = [];
+let screenShake = 0;
+
+const SOLO_MILESTONES = [
+    { target: 2000,  type: 'SCORE',  label: 'Fase 1 • Aquecimento' },
+    { target: 3000,  type: 'SCORE',  label: 'Fase 2 • Ritmo Crescente' },
+    { target: 4500,  type: 'SCORE',  label: 'Fase 3 • Domínio do Tabuleiro' },
+    { target: 5000,  type: 'LOCKER', label: 'Fase 4 • Blocos Trancados!' },
+    { target: 6000,  type: 'LOCKER', label: 'Fase 5 • Ruínas Seladas' },
+    { target: 7500,  type: 'LOCKER', label: 'Fase 6 • Pressão Constante' },
+    { target: 9000,  type: 'LOCKER', label: 'Fase 7 • Muralha de Pedra' },
+    { target: 10000, type: 'RESCUE', label: 'Fase 8 • Missão Resgate!' },
+    { target: 11500, type: 'RESCUE', label: 'Fase 9 • Resgate Duplo' },
+    { target: 13000, type: 'RESCUE', label: 'Fase 10 • Prisão Reforçada' },
+    { target: 15000, type: 'RESCUE', label: 'Fase 11 • Último Socorro' },
+    { target: 16000, type: 'BOSS',   label: 'Fase 12 • BOSS: GUARDIÃO DE OBSIDIANA' }
+];
+
+let soloStageIndex = 0;
+let soloCycle = 1;
+let soloStageStartScore = 0;
+let soloStageTargetScore = 2000;
+let soloStageType = 'SCORE';
+let soloStageLabel = '';
+let rescueTimer = 0;
+let rescueMaxTimer = 45;
+let rescueTimerInterval = null;
+let movesInStage = 0;
+
+function getSoloStageConfig(index) {
+    if (index < SOLO_MILESTONES.length) {
+        const m = SOLO_MILESTONES[index];
+        const prevTarget = index === 0 ? 0 : SOLO_MILESTONES[index - 1].target;
+        return { stageNum: index + 1, cycle: 1, type: m.type, target: m.target, stepPoints: m.target - prevTarget, label: m.label };
+    }
+    const extraIdx = index - SOLO_MILESTONES.length;
+    const cycle = Math.floor(extraIdx / 4) + 2;
+    const patternPos = extraIdx % 4;
+    const types = ['SCORE', 'LOCKER', 'RESCUE', 'BOSS'];
+    const type = types[patternPos];
+    const stepPoints = 2000 + cycle * 600;
+    const target = soloStageTargetScore + stepPoints;
+
+    const bossNames = ['TITÃ DE MAGMA', 'COLOSSO DE CRISTAL', 'ESPECTRO DO VAZIO', 'IMPERADOR DOS BLOCOS'];
+    let label = `Ciclo ${cycle} • Fase ${index + 1}`;
+    if (type === 'LOCKER') label = `Ciclo ${cycle} • Armadilhas Selvagens`;
+    if (type === 'RESCUE') label = `Ciclo ${cycle} • Resgate Urgente`;
+    if (type === 'BOSS') label = `BOSS: ${bossNames[(cycle - 2) % bossNames.length]}`;
+
+    return { stageNum: index + 1, cycle, type, target, stepPoints, label };
+}
+
+function applyCycleTheme(cycle) {
+    const theme = CYCLE_THEMES[(cycle - 1) % CYCLE_THEMES.length];
+    activePalette = theme.palette;
+    if (!userPrefs.bgUrl || userPrefs.bgUrl.trim() === '') {
+        document.getElementById('bg-overlay').style.background = theme.bgTint;
+    }
+}
+
+function spawnFloatingText(x, y, text, color = '#fbbf24') {
+    floatingTexts.push({ x, y, text, color, life: 48 });
+}
+
+function spawnParticles(x, y, color, count = 12) {
+    for (let i = 0; i < count; i++) {
+        if (particles.length > 90) particles.shift();
+        particles.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 7,
+            vy: (Math.random() - 0.6) * 7,
+            color,
+            life: 22 + Math.random() * 12
+        });
+    }
+}
+
+const SHAPES = [
+    [[1]],
+    [[1, 1]],
+    [[1], [1]],
+    [[1, 1, 1]],
+    [[1], [1], [1]],
+    [[1, 1, 1, 1]],
+    [[1], [1], [1], [1]],
+    [[1, 1, 1, 1, 1]],
+    [[1], [1], [1], [1], [1]],
+    [[1, 1], [1, 1]],
+    [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
+    [[1, 1, 1], [1, 1, 1]],
+    [[1, 1], [1, 1], [1, 1]],
+    [[1, 0], [1, 1]],
+    [[0, 1], [1, 1]],
+    [[1, 1], [1, 0]],
+    [[1, 1], [0, 1]],
+    [[1, 1, 1], [1, 0, 0]],
+    [[1, 1, 1], [0, 0, 1]],
+    [[1, 0, 0], [1, 1, 1]],
+    [[0, 0, 1], [1, 1, 1]],
+    [[1, 1, 1], [0, 1, 0]],
+    [[0, 1, 0], [1, 1, 1]],
+    [[1, 1, 0], [0, 1, 1]],
+    [[0, 1, 1], [1, 1, 0]],
+    [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+    [[0, 0, 1], [0, 1, 0], [1, 0, 0]]
+];
+
+function randomPaletteColor() {
+    return activePalette[Math.floor(Math.random() * activePalette.length)];
+}
+
+function createRandomPiece() {
+    const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+    const pieceBaseColor = randomPaletteColor();
+    const cellColors = shape.map(row =>
+        row.map(val => {
+            if (!val) return null;
+            if (userPrefs.colorMode === 'FIXED') return userPrefs.fixedColor;
+            if (userPrefs.colorMode === 'RANDOM_PIECE') return pieceBaseColor;
+            return randomPaletteColor();
+        })
+    );
+    return { shape, cellColors, rows: shape.length, cols: shape[0].length };
+}
+
+function refillTrayIfEmpty() {
+    if (trayPieces.every(p => p === null)) {
+        trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+    }
+}
+
+function recolorExistingBlocks() {
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            const cell = board[r][c];
+            if (cell && cell.kind === 'NORMAL') {
+                cell.color = userPrefs.colorMode === 'FIXED' ? userPrefs.fixedColor : randomPaletteColor();
             }
-          }
         }
-      }
-      if (removeBullet) bullets.splice(i, 1);
     }
-
-    // Granadas arremessadas
-    for (let i = thrownGrenades.length - 1; i >= 0; i--) {
-      const g = thrownGrenades[i];
-      g.x += g.vx * dt;
-      g.y += g.vy * dt;
-      g.vx *= 0.94;
-      g.vy *= 0.94;
-      g.timer -= dt;
-      if (g.timer <= 0) {
-        playSound('explosion');
-        camera.shake = 14;
-        spawnParticles(g.x, g.y, '#ff6d00', 28, 250);
-        for (const e of enemies) {
-          if (e.hp > 0 && Math.hypot(e.x - g.x, e.y - g.y) < 135) {
-            damageGanado(e, 185, Math.atan2(e.y - g.y, e.x - g.x), false);
-          }
-        }
-        thrownGrenades.splice(i, 1);
-      }
-    }
-
-    // IA dos Ganados e do Dr. Salvador
-    for (const e of enemies) {
-      if (e.hp <= 0) continue;
-      if (e.hitFlash > 0) e.hitFlash = Math.max(0, e.hitFlash - dt);
-      if (e.atkCd > 0) e.atkCd = Math.max(0, e.atkCd - dt);
-
-      if (e.stunTimer > 0) {
-        e.stunTimer -= dt;
-        continue;
-      }
-
-      const dx = leon.x - e.x;
-      const dy = leon.y - e.y;
-      const dist = Math.hypot(dx, dy);
-
-      if (dist < 560) {
-        e.angle = Math.atan2(dy, dx);
-        if (e.isBoss) {
-          e.sawTimer -= dt;
-          if (e.sawTimer <= 0) {
-            e.sawTimer = 0.65;
-            playSound('chainsaw');
-          }
-        }
-
-        if (dist > e.r + leon.r + 8) {
-          moveCircleWithCollisions(e, Math.cos(e.angle) * e.spd * dt, Math.sin(e.angle) * e.spd * dt);
-        } else if (e.atkCd <= 0) {
-          e.atkCd = e.isBoss ? 1.1 : 1.35;
-          if (leon.invuln <= 0) {
-            leon.hp = Math.max(0, leon.hp - e.dmg);
-            leon.invuln = 0.85;
-            camera.shake = 10;
-            spawnParticles(leon.x, leon.y, '#d50000', 10, 140);
-            addFloatText(leon.x, leon.y - 22, '-' + e.dmg, '#ff1744');
-            if (leon.hp <= 0) {
-              endGame(false);
-              return;
+    trayPieces.forEach(p => {
+        if (!p) return;
+        const base = randomPaletteColor();
+        for (let r = 0; r < p.rows; r++) {
+            for (let c = 0; c < p.cols; c++) {
+                if (p.shape[r][c]) {
+                    p.cellColors[r][c] = userPrefs.colorMode === 'FIXED'
+                        ? userPrefs.fixedColor
+                        : (userPrefs.colorMode === 'RANDOM_PIECE' ? base : randomPaletteColor());
+                }
             }
-          }
         }
-      }
-    }
+    });
+}
 
-    // Coleta de Loots & Escopeta W-870
-    for (let i = lootDrops.length - 1; i >= 0; i--) {
-      const it = lootDrops[i];
-      if (Math.hypot(it.x - leon.x, it.y - leon.y) < 34) {
-        playSound('pickup');
-        if (it.type === 'weapon_shotgun') {
-          WEAPONS.shotgun.owned = true;
-          leon.weapon = 'shotgun';
-          storyFlags.shotgunPicked = true;
-          addFloatText(leon.x, leon.y - 30, 'ESCOPETA W-870 OBTIDA!', '#ffd54f');
-          // Ao pegar a Escopeta na casa da vila, o Dr. Salvador aparece!
-          if (!storyFlags.salvadorSpawned) {
-            storyFlags.salvadorSpawned = true;
-            enemies.push(createGanado('salvador', 830, 520));
-            startCutscene([
-              { speaker: 'ALERTA NA VILA', text: 'Um rugido ensurdecedor de motosserra ecoa na praça! Dr. Salvador surgiu!', sound: 'chainsaw', dur: 3.0 }
-            ]);
-          }
-        } else if (it.type === 'ptas') {
-          leon.ptas += it.val;
-          addFloatText(leon.x, leon.y - 24, '+' + it.val + ' PTAS', '#ffd54f');
-        } else if (it.type === 'ammo_pistol') {
-          WEAPONS.pistol.reserve += it.val;
-          addFloatText(leon.x, leon.y - 24, '+' + it.val + ' Munição Pistola', '#90caf9');
-        } else if (it.type === 'ammo_shotgun') {
-          WEAPONS.shotgun.reserve += it.val;
-          addFloatText(leon.x, leon.y - 24, '+' + it.val + ' Cartuchos 12', '#ffcc80');
-        } else if (it.type === 'ammo_rifle') {
-          WEAPONS.rifle.reserve += it.val;
-          addFloatText(leon.x, leon.y - 24, '+' + it.val + ' Munição Rifle', '#ce93d8');
-        } else if (it.type === 'grenade') {
-          leon.grenades += it.val;
-          addFloatText(leon.x, leon.y - 24, '+1 Granada', '#ff8a80');
-        } else if (it.type === 'herb') {
-          leon.herbs += it.val;
-          addFloatText(leon.x, leon.y - 24, '+1 Erva Verde', '#69f0ae');
-        } else if (it.type === 'treasure') {
-          leon.treasures.push({ name: it.name, val: it.val });
-          addFloatText(leon.x, leon.y - 28, it.name + ' (Venda no Mercador!)', '#ffd54f');
+function clearBoardGrid() {
+    board = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
+}
+
+function spawnRandomLockers(count = 2) {
+    const emptyCells = [];
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            if (board[r][c] === null) emptyCells.push({ r, c });
         }
-        lootDrops.splice(i, 1);
-      }
+    }
+    for (let i = 0; i < count && emptyCells.length > 0; i++) {
+        const idx = Math.floor(Math.random() * emptyCells.length);
+        const pos = emptyCells.splice(idx, 1)[0];
+        board[pos.r][pos.c] = { kind: 'LOCKER', hp: 1, maxHp: 1 };
+    }
+}
+
+function setupRescueMission(cycle) {
+    clearBoardGrid();
+    const tr = 2 + Math.floor(Math.random() * 4);
+    const tc = 2 + Math.floor(Math.random() * 4);
+    const cageHp = Math.min(3, 1 + Math.floor(cycle / 2));
+
+    board[tr][tc] = { kind: 'RESCUE_TARGET' };
+
+    const neighbors = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
+    neighbors.forEach(([dr, dc]) => {
+        const nr = tr + dr;
+        const nc = tc + dc;
+        if (nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE) {
+            board[nr][nc] = { kind: 'RESCUE_CAGE', hp: cageHp, maxHp: cageHp };
+        }
+    });
+
+    rescueMaxTimer = Math.max(28, 48 - (cycle - 1) * 4);
+    rescueTimer = rescueMaxTimer;
+}
+
+function setupBossEncounter(cycle) {
+    clearBoardGrid();
+    const bossHp = 4 + cycle * 2;
+    const startR = 2;
+    const startC = 3;
+    for (let r = startR; r < startR + 2; r++) {
+        for (let c = startC; c < startC + 2; c++) {
+            board[r][c] = { kind: 'BOSS_CORE', hp: bossHp, maxHp: bossHp, isMain: (r === startR && c === startC) };
+        }
+    }
+    spawnRandomLockers(Math.min(4, cycle + 1));
+}
+
+function stopRescueTimer() {
+    if (rescueTimerInterval) {
+        clearInterval(rescueTimerInterval);
+        rescueTimerInterval = null;
+    }
+}
+
+function startSoloStage(index, preserveScore = false) {
+    stopRescueTimer();
+    soloStageIndex = index;
+    const cfg = getSoloStageConfig(index);
+    soloCycle = cfg.cycle;
+    soloStageType = cfg.type;
+    
+    if (!preserveScore) {
+        soloStageStartScore = myScore;
+    }
+    soloStageTargetScore = Math.max(cfg.target, soloStageStartScore + cfg.stepPoints);
+    soloStageLabel = cfg.label;
+    movesInStage = 0;
+
+    applyCycleTheme(soloCycle);
+
+    if (soloStageType === 'LOCKER') {
+        spawnRandomLockers(Math.min(4, 1 + soloCycle));
+    } else if (soloStageType === 'RESCUE') {
+        setupRescueMission(soloCycle);
+        rescueTimerInterval = setInterval(() => {
+            if (!matchActive || gameMode !== 'SOLO' || soloStageType !== 'RESCUE') return;
+            rescueTimer--;
+            updateSoloMissionHUD();
+            if (rescueTimer <= 0) {
+                stopRescueTimer();
+                handleSoloDeath("Tempo esgotado no resgate!");
+            }
+        }, 1000);
+    } else if (soloStageType === 'BOSS') {
+        setupBossEncounter(soloCycle);
     }
 
-    // Progressão da História do Capítulo 1
-    updateChapterStory(dt);
+    trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+    updateHUD();
+    updateSoloMissionHUD();
+}
 
-    // Verifica ações contextuais próximas (Chute Giratório / Mercador / Portão Final)
-    activeContextAction = null;
-    for (const e of enemies) {
-      if (e.hp > 0 && e.stunTimer > 0 && Math.hypot(e.x - leon.x, e.y - leon.y) < 62) {
-        activeContextAction = { type: 'kick', target: e, label: 'CHUTE GIRATÓRIO!' };
-        break;
-      }
-    }
-    // Mercador na Fazenda (x=1620, y=380)
-    if (!activeContextAction && Math.hypot(1620 - leon.x, 380 - leon.y) < 65) {
-      activeContextAction = { type: 'merchant', label: 'FALAR COM MERCADOR' };
-    }
-    // Portão Final do Capítulo 1 (x=2460, y=550)
-    if (!activeContextAction && Math.hypot(2460 - leon.x, 550 - leon.y) < 75) {
-      activeContextAction = { type: 'final_gate', label: 'ABRIR PORTÃO (FIM DO CAP. 1)' };
-    }
+/**
+ * SISTEMA DE PERDA DE VIDA E CONTINUAÇÃO NA MESMA FASE
+ */
+function handleSoloDeath(reasonTitle) {
+    stopRescueTimer();
+    soloLives--;
+    updateHUD();
+    screenShake = 16;
+    AudioFX.lockedGameOver();
 
-    const ctxBtn = document.getElementById('context-btn');
-    if (activeContextAction) {
-      ctxBtn.style.display = 'block';
-      ctxBtn.textContent = activeContextAction.label;
+    if (soloLives > 0) {
+        // Perdeu 1 vida, mas continua na mesma fase! Limpa o tabuleiro e dá nova chance
+        showToast(`⚠️ ${reasonTitle} Você perdeu 1 vida! Restam ${soloLives} ❤️`);
+        setTimeout(() => {
+            if (!matchActive) return;
+            clearBoardGrid();
+            trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+            // Reinicia o timer de resgate se estivesse nessa fase
+            if (soloStageType === 'RESCUE') {
+                setupRescueMission(soloCycle);
+                rescueTimer = rescueMaxTimer;
+                rescueTimerInterval = setInterval(() => {
+                    if (!matchActive || gameMode !== 'SOLO' || soloStageType !== 'RESCUE') return;
+                    rescueTimer--;
+                    updateSoloMissionHUD();
+                    if (rescueTimer <= 0) {
+                        stopRescueTimer();
+                        handleSoloDeath("Tempo esgotado no resgate!");
+                    }
+                }, 1000);
+            } else if (soloStageType === 'BOSS') {
+                setupBossEncounter(soloCycle);
+            } else if (soloStageType === 'LOCKER') {
+                spawnRandomLockers(2);
+            }
+            updateSoloMissionHUD();
+        }, 1100);
     } else {
-      ctxBtn.style.display = 'none';
+        // Acabaram todas as 5 vidas! Game Over total e volta do início da campanha
+        finishGameScreen('GAME OVER!', 'Suas 5 vidas acabaram! Recomeçando da Fase 1.');
     }
+}
 
-    // Partículas e textos flutuantes
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.life -= dt;
-      if (p.life <= 0) particles.splice(i, 1);
-    }
-    for (let i = floatingTexts.length - 1; i >= 0; i--) {
-      const f = floatingTexts[i];
-      f.y -= 26 * dt;
-      f.life -= dt;
-      if (f.life <= 0) floatingTexts.splice(i, 1);
-    }
+function updateSoloMissionHUD() {
+    if (gameMode !== 'SOLO') return;
+    const titleEl = document.getElementById('mission-title');
+    const extraEl = document.getElementById('mission-extra');
+    const fillEl = document.getElementById('mission-progress-fill');
 
-    updateHud();
+    titleEl.textContent = soloStageLabel;
 
-    // Câmera suave
-    camera.x += (leon.x - W / 2 - camera.x) * Math.min(1, dt * 8);
-    camera.y += (leon.y - H / 2 - camera.y) * Math.min(1, dt * 8);
-    camera.x = Math.max(0, Math.min(WORLD_W - W, camera.x));
-    camera.y = Math.max(0, Math.min(WORLD_H - H, camera.y));
-  }
-
-  function updateChapterStory(dt) {
-    // Entrada na Praça da Vila
-    if (!storyFlags.villageAlarmTriggered && leon.x > 760) {
-      storyFlags.villageAlarmTriggered = true;
-      storyFlags.villageTimer = 38; // Sobreviver ou derrotar os Ganados até o sino da igreja tocar!
-      document.getElementById('zone-title').textContent = 'CAPÍTULO 1-1 — PRAÇA DA VILA';
-      document.getElementById('obj-text').textContent = 'Sobreviva ao cerco da vila! Entre na casa maior para pegar a Escopeta.';
-    }
-
-    if (storyFlags.villageAlarmTriggered && !storyFlags.bellRang) {
-      storyFlags.villageTimer -= dt;
-      const villageEnemiesAlive = enemies.filter(e => e.hp > 0 && e.x < 1460).length;
-      if (storyFlags.villageTimer <= 0 || villageEnemiesAlive === 0) {
-        storyFlags.bellRang = true;
-        storyFlags.farmGateOpen = true;
-        buildings = buildings.filter(b => !b.isFarmGate);
-        // Ganados restantes da praça recuam ao ouvir o sino da igreja!
-        enemies.forEach(e => { if (e.x < 1460) e.hp = 0; });
-        document.getElementById('zone-title').textContent = 'CAPÍTULO 1-2 — A FAZENDA';
-        document.getElementById('obj-text').textContent = 'O sino tocou! Siga para a Fazenda, visite o Mercador e alcance a saída.';
-        startCutscene([
-          { speaker: 'SINO DA IGREJA', text: 'BONG... BONG... Os Ganados param de atacar e caminham hipnotizados para a igreja...', sound: 'bell', dur: 3.2 },
-          { speaker: 'LEON S. KENNEDY', text: '"Para onde todos estão indo...? Bingo." O portão para a Fazenda está aberto!', dur: 2.8 }
-        ]);
-      }
-    }
-  }
-
-  function triggerContextAction() {
-    if (!activeContextAction || state !== 'playing') return;
-    if (activeContextAction.type === 'kick') {
-      const target = activeContextAction.target;
-      playSound('shotgun');
-      camera.shake = 9;
-      addFloatText(leon.x, leon.y - 26, 'CHUTE GIRATÓRIO!', '#ffd54f');
-      // Acerta o alvo atordoado e empurra outros próximos
-      for (const e of enemies) {
-        if (e.hp > 0 && Math.hypot(e.x - target.x, e.y - target.y) < 75) {
-          damageGanado(e, 75, leon.angle, false);
-          e.stunTimer = 0;
+    if (soloStageType === 'RESCUE') {
+        let cagesLeft = 0;
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] && board[r][c].kind === 'RESCUE_CAGE') cagesLeft += board[r][c].hp;
+            }
         }
-      }
-    } else if (activeContextAction.type === 'merchant') {
-      openMerchant();
-    } else if (activeContextAction.type === 'final_gate') {
-      const farmBossAlive = enemies.some(e => e.hp > 0 && e.kind === 'brute');
-      if (farmBossAlive) {
-        addFloatText(leon.x, leon.y - 28, 'Derrote o Ganado Gigante antes de abrir o portão!', '#ff8a80');
-      } else {
-        endGame(true);
-      }
+        extraEl.textContent = `⏱️ ${rescueTimer}s • Trancas: ${cagesLeft}`;
+        const pct = Math.max(0, Math.min(100, (rescueTimer / rescueMaxTimer) * 100));
+        fillEl.style.width = pct + '%';
+        fillEl.style.background = rescueTimer <= 10 ? '#ef4444' : 'linear-gradient(90deg, #38bdf8, #22c55e)';
+    } else if (soloStageType === 'BOSS') {
+        let bossHp = 0, bossMax = 1;
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] && board[r][c].kind === 'BOSS_CORE' && board[r][c].isMain) {
+                    bossHp = board[r][c].hp;
+                    bossMax = board[r][c].maxHp;
+                }
+            }
+        }
+        extraEl.textContent = `👹 HP BOSS: ${bossHp}/${bossMax}`;
+        fillEl.style.width = Math.max(0, (bossHp / bossMax) * 100) + '%';
+        fillEl.style.background = 'linear-gradient(90deg, #dc2626, #f97316)';
+    } else {
+        const gained = myScore - soloStageStartScore;
+        const needed = soloStageTargetScore - soloStageStartScore;
+        const pct = Math.max(0, Math.min(100, (gained / needed) * 100));
+        extraEl.textContent = `${myScore.toLocaleString('pt-BR')} / ${soloStageTargetScore.toLocaleString('pt-BR')}`;
+        fillEl.style.width = pct + '%';
+        fillEl.style.background = 'linear-gradient(90deg, #f59e0b, #22c55e)';
     }
-  }
+}
 
-  function moveCircleWithCollisions(ent, dx, dy) {
-    ent.x = Math.max(40, Math.min(WORLD_W - 40, ent.x + dx));
-    for (const b of buildings) {
-      resolveCircleRect(ent, b);
+function checkSoloStageCompletion() {
+    if (gameMode !== 'SOLO' || !matchActive) return;
+
+    if (soloStageType === 'RESCUE') {
+        let hasCages = false;
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] && board[r][c].kind === 'RESCUE_CAGE') hasCages = true;
+            }
+        }
+        if (!hasCages) {
+            stopRescueTimer();
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (board[r][c] && board[r][c].kind === 'RESCUE_TARGET') {
+                        const px = layout.boardX + c * layout.cellSize + layout.cellSize / 2;
+                        const py = layout.boardY + r * layout.cellSize + layout.cellSize / 2;
+                        spawnParticles(px, py, '#fde047', 24);
+                        board[r][c] = null;
+                    }
+                }
+            }
+            AudioFX.rescueSuccess();
+            myScore += 500 + rescueTimer * 15;
+            showToast('RESGATE CONCLUÍDO! +Bônus!');
+            startSoloStage(soloStageIndex + 1);
+        }
+        return;
     }
-    for (const t of trees) {
-      resolveCircleCircle(ent, t);
+
+    if (soloStageType === 'BOSS') {
+        let bossAlive = false;
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] && board[r][c].kind === 'BOSS_CORE') bossAlive = true;
+            }
+        }
+        if (!bossAlive) {
+            stopRescueTimer();
+            AudioFX.boardAllClear();
+            myScore += 1500 * soloCycle;
+            screenShake = 14;
+            showToast(`BOSS DERROTADO! Iniciando Ciclo ${soloCycle + 1}!`);
+            startSoloStage(soloStageIndex + 1);
+        }
+        return;
     }
 
-    ent.y = Math.max(40, Math.min(WORLD_H - 40, ent.y + dy));
-    for (const b of buildings) {
-      resolveCircleRect(ent, b);
+    if (myScore >= soloStageTargetScore) {
+        AudioFX.rescueSuccess();
+        showToast(`FASE ${soloStageIndex + 1} CONCLUÍDA!`);
+        startSoloStage(soloStageIndex + 1);
     }
-    for (const t of trees) {
-      resolveCircleCircle(ent, t);
+}
+
+/**
+ * INICIALIZAÇÃO DE PARTIDAS
+ */
+document.getElementById('btn-start-solo').addEventListener('click', () => {
+    AudioFX.ensure();
+    AudioFX.startBackgroundMusic();
+    gameMode = 'SOLO';
+    myName = document.getElementById('player-name').value.trim() || 'Paulo';
+    myScore = 0;
+    soloLives = 5; // Inicia com 5 vidas
+    matchActive = true;
+    clearBoardGrid();
+
+    document.getElementById('lobby-screen').classList.add('hidden');
+    document.getElementById('gameover-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    document.getElementById('solo-mission-bar').classList.remove('hidden');
+    document.getElementById('hud-rival-card').classList.add('hidden');
+    document.getElementById('hud-lives-box').classList.remove('hidden');
+
+    resizeCanvas();
+    startSoloStage(0);
+});
+
+function startP2PMatch(newTarget) {
+    stopRescueTimer();
+    AudioFX.startBackgroundMusic();
+    gameMode = 'P2P';
+    targetScore = newTarget;
+    myScore = 0;
+    rivalScore = 0;
+    matchActive = true;
+    activePalette = PALETTE;
+    clearBoardGrid();
+    trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+
+    document.getElementById('lobby-screen').classList.add('hidden');
+    document.getElementById('gameover-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    document.getElementById('solo-mission-bar').classList.add('hidden');
+    document.getElementById('hud-lives-box').classList.add('hidden');
+    document.getElementById('hud-rival-card').classList.remove('hidden');
+
+    resizeCanvas();
+    updateHUD();
+}
+
+function updateHUD() {
+    document.getElementById('hud-my-name').textContent = myName.toUpperCase();
+    document.getElementById('hud-my-score').textContent = myScore.toLocaleString('pt-BR');
+
+    if (gameMode === 'SOLO') {
+        document.getElementById('hud-target-label').textContent = soloStageType === 'BOSS' ? 'CHEFE' : (soloStageType === 'RESCUE' ? 'RESGATE' : 'META FASE');
+        document.getElementById('hud-target').textContent = soloStageType === 'BOSS' ? 'BOSS' : (soloStageType === 'RESCUE' ? `${rescueTimer}s` : soloStageTargetScore.toLocaleString('pt-BR'));
+        document.getElementById('hud-lives-val').textContent = `❤️ ${soloLives}`;
+    } else {
+        document.getElementById('hud-target-label').textContent = 'META P2P';
+        document.getElementById('hud-target').textContent = targetScore.toLocaleString('pt-BR');
+        document.getElementById('hud-rival-name').textContent = rivalName.toUpperCase();
+        document.getElementById('hud-rival-score').textContent = rivalScore.toLocaleString('pt-BR');
     }
-  }
+}
 
-  function resolveCircleRect(c, r) {
-    const cx = Math.max(r.x, Math.min(r.x + r.w, c.x));
-    const cy = Math.max(r.y, Math.min(r.y + r.h, c.y));
-    const dx = c.x - cx;
-    const dy = c.y - cy;
-    const d2 = dx * dx + dy * dy;
-    if (d2 < c.r * c.r) {
-      const d = Math.sqrt(d2) || 0.001;
-      const push = c.r - d;
-      c.x += (dx / d) * push;
-      c.y += (dy / d) * push;
+function checkP2PVictory() {
+    if (gameMode !== 'P2P' || !matchActive) return;
+    if (myScore >= targetScore) {
+        if (conn && conn.open) conn.send({ type: 'MATCH_WON', winnerName: myName, winnerScore: myScore });
+        finishGameScreen(`${myName.toUpperCase()} VENCEU!`, `Atingiu ${targetScore.toLocaleString('pt-BR')} pontos!`);
+    } else if (rivalScore >= targetScore) {
+        finishGameScreen(`${rivalName.toUpperCase()} VENCEU!`, `Atingiu ${targetScore.toLocaleString('pt-BR')} pontos!`);
     }
-  }
+}
 
-  function resolveCircleCircle(c, o) {
-    const dx = c.x - o.x;
-    const dy = c.y - o.y;
-    const minD = c.r + o.r;
-    const d2 = dx * dx + dy * dy;
-    if (d2 < minD * minD) {
-      const d = Math.sqrt(d2) || 0.001;
-      const push = minD - d;
-      c.x += (dx / d) * push;
-      c.y += (dy / d) * push;
+function finishGameScreen(title, desc) {
+    matchActive = false;
+    stopRescueTimer();
+    draggingIndex = -1;
+
+    document.getElementById('winner-title').textContent = title;
+    document.getElementById('winner-desc').textContent = desc;
+    document.getElementById('end-my-label').textContent = gameMode === 'SOLO' ? 'PONTUAÇÃO FINAL' : 'PONTUAÇÃO';
+    document.getElementById('end-my-score').textContent = myScore.toLocaleString('pt-BR');
+
+    if (gameMode === 'SOLO') {
+        document.getElementById('end-rival-name').textContent = 'FASE ALCANÇADA';
+        document.getElementById('end-rival-score').textContent = `Fase ${soloStageIndex + 1}`;
+        document.getElementById('p2p-next-target-group').classList.add('hidden');
+    } else {
+        document.getElementById('end-rival-name').textContent = rivalName.toUpperCase();
+        document.getElementById('end-rival-score').textContent = rivalScore.toLocaleString('pt-BR');
+        document.getElementById('p2p-next-target-group').classList.remove('hidden');
+        document.getElementById('new-target-input').value = targetScore;
     }
-  }
 
-  function updateHud() {
-    const wep = WEAPONS[leon.weapon];
-    document.getElementById('weapon-short').textContent = wep.short;
-    document.getElementById('ammo-display').textContent = leon.reloadTimer > 0 ? '...' : wep.mag;
-    document.getElementById('reserve-display').textContent = '/ ' + wep.reserve;
-    document.getElementById('ptas-text').textContent = 'PTAS: ' + leon.ptas.toLocaleString('pt-BR') + ' $';
-    document.getElementById('grenade-count').textContent = leon.grenades;
+    document.getElementById('gameover-screen').classList.remove('hidden');
+}
 
-    const ring = document.getElementById('health-ring');
-    const hpRatio = leon.hp / leon.maxHp;
-    const color = hpRatio > 0.55 ? '#4caf50' : (hpRatio > 0.25 ? '#ffb300' : '#e53935');
-    ring.style.borderColor = color;
-    ring.style.boxShadow = '0 0 12px ' + color;
-  }
+document.getElementById('btn-restart-match').addEventListener('click', () => {
+    if (gameMode === 'SOLO') {
+        document.getElementById('btn-start-solo').click();
+    } else {
+        const nextTarget = Math.max(500, parseInt(document.getElementById('new-target-input').value, 10) || 15000);
+        if (conn && conn.open) conn.send({ type: 'NEW_MATCH', targetScore: nextTarget });
+        startP2PMatch(nextTarget);
+    }
+});
 
-  // =========================================================
-  // RENDERIZAÇÃO REALISTA TOP-DOWN (EL PUEBLO)
-  // =========================================================
-  function render() {
-    // Chão terroso sombrio da vila espanhola
-    ctx.fillStyle = '#26211a';
-    ctx.fillRect(0, 0, W, H);
+function returnToLobby() {
+    matchActive = false;
+    stopRescueTimer();
+    AudioFX.stopBackgroundMusic();
+    document.getElementById('gameover-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.add('hidden');
+    document.getElementById('lobby-screen').classList.remove('hidden');
+}
+
+document.getElementById('btn-back-menu').addEventListener('click', returnToLobby);
+document.getElementById('btn-menu-from-end').addEventListener('click', returnToLobby);
+
+/**
+ * VALIDAÇÃO E MECÂNICA DE ENCAIXE
+ */
+function canPlacePiece(piece, startRow, startCol) {
+    if (!piece) return false;
+    for (let r = 0; r < piece.rows; r++) {
+        for (let c = 0; c < piece.cols; c++) {
+            if (piece.shape[r][c]) {
+                const br = startRow + r;
+                const bc = startCol + c;
+                if (br < 0 || br >= GRID_SIZE || bc < 0 || bc >= GRID_SIZE) return false;
+                if (board[br][bc] !== null) return false;
+            }
+        }
+    }
+    return true;
+}
+
+function hasAnyValidMove() {
+    for (let i = 0; i < trayPieces.length; i++) {
+        const p = trayPieces[i];
+        if (!p) continue;
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (canPlacePiece(p, r, c)) return true;
+            }
+        }
+    }
+    return false;
+}
+
+function damageSpecialNeighbors(clearedCellsSet) {
+    let brokeAny = false;
+    let damagedBoss = false;
+
+    clearedCellsSet.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+        dirs.forEach(([dr, dc]) => {
+            const nr = r + dr;
+            const nc = c + dc;
+            if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE) return;
+            const target = board[nr][nc];
+            if (!target) return;
+
+            if (target.kind === 'LOCKER' || target.kind === 'RESCUE_CAGE') {
+                target.hp--;
+                brokeAny = true;
+                const px = layout.boardX + nc * layout.cellSize + layout.cellSize / 2;
+                const py = layout.boardY + nr * layout.cellSize + layout.cellSize / 2;
+                if (target.hp <= 0) {
+                    board[nr][nc] = null;
+                    spawnParticles(px, py, '#38bdf8', 12);
+                } else {
+                    spawnParticles(px, py, '#fbbf24', 6);
+                }
+            } else if (target.kind === 'BOSS_CORE' && !damagedBoss) {
+                damagedBoss = true;
+                for (let br = 0; br < GRID_SIZE; br++) {
+                    for (let bc = 0; bc < GRID_SIZE; bc++) {
+                        if (board[br][bc] && board[br][bc].kind === 'BOSS_CORE') {
+                            board[br][bc].hp--;
+                            if (board[br][bc].hp <= 0) board[br][bc] = null;
+                        }
+                    }
+                }
+                const bx = layout.boardX + nc * layout.cellSize;
+                const by = layout.boardY + nr * layout.cellSize;
+                spawnParticles(bx, by, '#ef4444', 18);
+                spawnFloatingText(bx, by - 10, '-1 HP BOSS!', '#ef4444');
+                screenShake = 9;
+                AudioFX.bossHit();
+            }
+        });
+    });
+
+    if (brokeAny) AudioFX.rockBreak();
+}
+
+function isBoardCompletelyEmpty() {
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            if (board[r][c] !== null) return false;
+        }
+    }
+    return true;
+}
+
+function placePieceOnBoard(pieceIndex, startRow, startCol) {
+    const piece = trayPieces[pieceIndex];
+    if (!canPlacePiece(piece, startRow, startCol)) return false;
+
+    let placedCells = 0;
+    for (let r = 0; r < piece.rows; r++) {
+        for (let c = 0; c < piece.cols; c++) {
+            if (piece.shape[r][c]) {
+                board[startRow + r][startCol + c] = { kind: 'NORMAL', color: piece.cellColors[r][c] };
+                placedCells++;
+            }
+        }
+    }
+
+    trayPieces[pieceIndex] = null;
+    AudioFX.place();
+    movesInStage++;
+
+    const fullRows = [];
+    const fullCols = [];
+
+    for (let r = 0; r < GRID_SIZE; r++) {
+        if (board[r].every(cell => cell !== null && cell.kind === 'NORMAL')) fullRows.push(r);
+    }
+    for (let c = 0; c < GRID_SIZE; c++) {
+        let full = true;
+        for (let r = 0; r < GRID_SIZE; r++) {
+            if (board[r][c] === null || board[r][c].kind !== 'NORMAL') { full = false; break; }
+        }
+        if (full) fullCols.push(c);
+    }
+
+    const totalCleared = fullRows.length + fullCols.length;
+    const clearedCoords = new Set();
+
+    if (totalCleared > 0) {
+        fullRows.forEach(r => {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                clearedCoords.add(`${r},${c}`);
+                const px = layout.boardX + c * layout.cellSize + layout.cellSize / 2;
+                const py = layout.boardY + r * layout.cellSize + layout.cellSize / 2;
+                if (board[r][c]) spawnParticles(px, py, board[r][c].color || '#38bdf8', 5);
+                board[r][c] = null;
+            }
+        });
+        fullCols.forEach(c => {
+            for (let r = 0; r < GRID_SIZE; r++) {
+                clearedCoords.add(`${r},${c}`);
+                const px = layout.boardX + c * layout.cellSize + layout.cellSize / 2;
+                const py = layout.boardY + r * layout.cellSize + layout.cellSize / 2;
+                if (board[r][c]) spawnParticles(px, py, board[r][c].color || '#38bdf8', 5);
+                board[r][c] = null;
+            }
+        });
+
+        damageSpecialNeighbors(clearedCoords);
+
+        if (isBoardCompletelyEmpty()) {
+            AudioFX.boardAllClear();
+            myScore += 1000;
+            spawnFloatingText(canvas.width / 2, layout.boardY + 120, 'MUITO BOM! +1.000', '#22c55e');
+            showToast('MUITO BOM! Tabuleiro limpo (+1.000 pts)!');
+        } else {
+            AudioFX.combo(totalCleared);
+            if (totalCleared >= 2) {
+                spawnFloatingText(canvas.width / 2, layout.boardY + 120, `COMBO ${totalCleared}x!`, '#38bdf8');
+            }
+        }
+    }
+
+    const lineBonus = totalCleared > 0 ? (totalCleared * totalCleared * 180) : 0;
+    myScore += (placedCells * 15) + lineBonus;
+
+    if (gameMode === 'SOLO' && (soloStageType === 'LOCKER' || soloStageType === 'BOSS')) {
+        if (movesInStage % 3 === 0) {
+            spawnRandomLockers(soloStageType === 'BOSS' ? 1 : Math.min(2, soloCycle));
+        }
+    }
+
+    refillTrayIfEmpty();
+    updateHUD();
+
+    if (gameMode === 'P2P') {
+        sendScoreUpdate();
+        checkP2PVictory();
+    } else {
+        updateSoloMissionHUD();
+        checkSoloStageCompletion();
+    }
+
+    if (matchActive && !hasAnyValidMove()) {
+        if (gameMode === 'SOLO') {
+            handleSoloDeath("Tabuleiro totalmente trancado!");
+        } else {
+            showToast('Sem espaço! Tabuleiro renovado no P2P!');
+            setTimeout(() => {
+                if (matchActive) {
+                    clearBoardGrid();
+                    trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+                }
+            }, 750);
+        }
+    }
+
+    return true;
+}
+
+function sendScoreUpdate() {
+    if (conn && conn.open) conn.send({ type: 'SCORE_UPDATE', score: myScore });
+}
+
+/**
+ * RENDERIZAÇÃO E CANVAS
+ */
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+let animFrame = 0;
+
+let layout = {
+    cellSize: 38,
+    boardX: 0,
+    boardY: 10,
+    trayY: 340,
+    slotCenters: []
+};
+
+function resizeCanvas() {
+    const wrap = document.getElementById('canvas-wrap');
+    const maxW = Math.min(440, wrap.clientWidth - 8);
+    const maxH = wrap.clientHeight - 8;
+
+    const cellFromW = Math.floor((maxW - 16) / GRID_SIZE);
+    const cellFromH = Math.floor((maxH - 20) / (GRID_SIZE + 3.5));
+    const cellSize = Math.max(26, Math.min(46, cellFromW, cellFromH));
+
+    const boardPx = cellSize * GRID_SIZE;
+    const totalW = Math.max(boardPx + 16, maxW);
+    const totalH = boardPx + Math.round(cellSize * 3.4);
+
+    canvas.width = totalW;
+    canvas.height = totalH;
+
+    const boardX = Math.floor((totalW - boardPx) / 2);
+    const boardY = 6;
+    const trayY = boardY + boardPx + Math.round(cellSize * 1.6);
+
+    layout = {
+        cellSize,
+        boardX,
+        boardY,
+        trayY,
+        slotCenters: [
+            boardX + boardPx * 0.17,
+            boardX + boardPx * 0.50,
+            boardX + boardPx * 0.83
+        ]
+    };
+}
+window.addEventListener('resize', () => {
+    if (!document.getElementById('game-screen').classList.contains('hidden')) resizeCanvas();
+});
+
+function drawRoundedCell(x, y, size, color, alpha = 1) {
+    const pad = 2;
+    const s = size - pad * 2;
+    const r = Math.max(4, Math.floor(size * 0.16));
 
     ctx.save();
-    const sx = camera.shake > 0 ? (Math.random() - 0.5) * camera.shake : 0;
-    const sy = camera.shake > 0 ? (Math.random() - 0.5) * camera.shake : 0;
-    ctx.translate(-Math.round(camera.x + sx), -Math.round(camera.y + sy));
-
-    // Estrada principal de terra batida
-    ctx.fillStyle = '#332b21';
-    ctx.fillRect(40, 480, WORLD_W - 80, 140);
-    ctx.fillRect(920, 260, 320, 620);
-    ctx.fillRect(1740, 260, 320, 620);
-
-    // Fogueira central da Praça da Vila (x=1040, y=540)
-    const firePulse = Math.sin(worldTime * 12) * 4;
-    ctx.fillStyle = 'rgba(255, 111, 0, 0.16)';
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(1040, 540, 68 + firePulse, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ff6d00';
-    ctx.beginPath();
-    ctx.arc(1040, 540, 14 + firePulse * 0.4, 0, Math.PI * 2);
+    ctx.roundRect(x + pad, y + pad, s, s, r);
     ctx.fill();
 
-    // O Mercador (Chama Azul na Fazenda: x=1620, y=380)
-    ctx.fillStyle = 'rgba(41, 182, 246, 0.22)';
-    ctx.beginPath();
-    ctx.arc(1620, 380, 44 + firePulse, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#1a237e';
-    ctx.beginPath();
-    ctx.arc(1620, 380, 16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#81d4fa';
-    ctx.font = 'bold 10px sans-serif';
-    ctx.fillText('MERCADOR', 1592, 356);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.24)';
+    ctx.fillRect(x + pad + 3, y + pad + 2, s - 6, Math.max(3, Math.floor(s * 0.18)));
+    ctx.restore();
+}
 
-    // Prédios e Casas
-    for (const b of buildings) {
-      ctx.fillStyle = b.color;
-      ctx.fillRect(b.x, b.y, b.w, b.h);
-      ctx.strokeStyle = b.isShotgunHouse ? '#ffd54f' : '#1b1612';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(b.x, b.y, b.w, b.h);
+function drawSpecialCell(cx, cy, size, cell) {
+    const pad = 2;
+    const s = size - pad * 2;
+    const centerX = cx + size / 2;
+    const centerY = cy + size / 2;
 
-      if (b.label) {
-        ctx.fillStyle = 'rgba(255, 245, 220, 0.72)';
-        ctx.font = 'bold 10px sans-serif';
-        ctx.fillText(b.label, b.x + 8, b.y + 16);
-      }
-    }
-
-    // Árvores
-    for (const t of trees) {
-      ctx.fillStyle = '#1b2618';
-      ctx.beginPath();
-      ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#11180f';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    // Itens no chão (Escopeta, Pesetas $, Munições, Ervas, Rubi)
-    for (const it of lootDrops) {
-      const bob = Math.sin(worldTime * 5 + it.x) * 2;
-      ctx.fillStyle = it.type === 'weapon_shotgun' ? '#ffd54f' :
-                      it.type === 'treasure' ? '#ff1744' :
-                      it.type === 'ptas' ? '#ffca28' :
-                      it.type === 'herb' ? '#00e676' : '#4fc3f7';
-      ctx.beginPath();
-      ctx.arc(it.x, it.y + bob, it.type === 'weapon_shotgun' ? 9 : 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#f5efe6';
-      ctx.font = 'bold 9px sans-serif';
-      ctx.fillText(it.label, it.x - 24, it.y - 10 + bob);
-    }
-
-    // Inimigos (Ganados & Dr. Salvador)
-    for (const e of enemies) {
-      if (e.hp <= 0) continue;
-      ctx.save();
-      ctx.translate(e.x, e.y);
-
-      // Barra de vida acima do inimigo
-      ctx.fillStyle = '#111';
-      ctx.fillRect(-16, -e.r - 10, 32, 4);
-      ctx.fillStyle = e.isBoss ? '#ff6d00' : '#e53935';
-      ctx.fillRect(-16, -e.r - 10, 32 * (e.hp / e.maxHp), 4);
-
-      ctx.rotate(e.angle);
-      // Corpo
-      ctx.fillStyle = e.hitFlash > 0 ? '#ffffff' : e.shirt;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.r, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Cabeça / Saco de estopa do Dr. Salvador
-      ctx.fillStyle = e.isBoss ? '#a1887f' : '#d7ccc8';
-      ctx.beginPath();
-      ctx.arc(4, 0, e.r * 0.52, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Olhos vermelhos das Las Plagas
-      ctx.fillStyle = '#ff1744';
-      ctx.fillRect(7, -4, 3, 2);
-      ctx.fillRect(7, 2, 3, 2);
-
-      // Arma (Motosserra amarela do Dr. Salvador ou Forcado/Tocha)
-      if (e.isBoss) {
-        ctx.fillStyle = '#ffb300';
-        ctx.fillRect(8, 6, 22, 6);
-        ctx.fillStyle = '#cfd8dc';
-        ctx.fillRect(26, 7, 14, 4);
-      } else if (e.kind === 'torch') {
-        ctx.fillStyle = '#ff6d00';
+    if (cell.kind === 'LOCKER') {
+        drawRoundedCell(cx, cy, size, '#475569', 1);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cx + 5, cy + 5, size - 10, size - 10);
         ctx.beginPath();
-        ctx.arc(18, 8, 5, 0, Math.PI * 2);
+        ctx.moveTo(cx + 8, cy + 8);
+        ctx.lineTo(cx + size - 8, cy + size - 8);
+        ctx.moveTo(cx + size - 8, cy + 8);
+        ctx.lineTo(cx + 8, cy + size - 8);
+        ctx.stroke();
+    } else if (cell.kind === 'RESCUE_CAGE') {
+        const cageColor = cell.hp >= 2 ? '#b45309' : '#d97706';
+        drawRoundedCell(cx, cy, size, cageColor, 1);
+        ctx.strokeStyle = '#fef3c7';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx + size * 0.35, cy + 3);
+        ctx.lineTo(cx + size * 0.35, cy + size - 3);
+        ctx.moveTo(cx + size * 0.65, cy + 3);
+        ctx.lineTo(cx + size * 0.65, cy + size - 3);
+        ctx.stroke();
+    } else if (cell.kind === 'RESCUE_TARGET') {
+        const trembleX = Math.sin(animFrame * 0.35) * 1.5;
+        const eyeLookX = Math.sin(animFrame * 0.08) * 2.5;
+        const eyeLookY = Math.cos(animFrame * 0.06) * 1.5;
+
+        ctx.save();
+        ctx.translate(centerX + trembleX, centerY);
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(0, 0, s * 0.44, 0, Math.PI * 2);
         ctx.fill();
-      } else if (e.kind === 'pitchfork') {
-        ctx.fillStyle = '#8d6e63';
-        ctx.fillRect(6, 7, 22, 3);
-      }
-      ctx.restore();
+
+        ctx.fillStyle = '#fb7185';
+        ctx.beginPath();
+        ctx.arc(-s * 0.24, s * 0.08, s * 0.08, 0, Math.PI * 2);
+        ctx.arc(s * 0.24, s * 0.08, s * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-s * 0.15, -s * 0.06, s * 0.13, 0, Math.PI * 2);
+        ctx.arc(s * 0.15, -s * 0.06, s * 0.13, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(-s * 0.15 + eyeLookX, -s * 0.06 + eyeLookY, s * 0.06, 0, Math.PI * 2);
+        ctx.arc(s * 0.15 + eyeLookX, -s * 0.06 + eyeLookY, s * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, s * 0.18, s * 0.1, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    } else if (cell.kind === 'BOSS_CORE') {
+        drawRoundedCell(cx, cy, size, '#7f1d1d', 1);
+        if (cell.isMain) {
+            const bw = size * 2;
+            const pulse = Math.sin(animFrame * 0.12) * 2;
+            ctx.save();
+            ctx.translate(cx + size, cy + size + pulse);
+
+            ctx.fillStyle = '#991b1b';
+            ctx.beginPath();
+            ctx.roundRect(-bw * 0.42, -bw * 0.42, bw * 0.84, bw * 0.84, 12);
+            ctx.fill();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(-bw * 0.18, -bw * 0.08, bw * 0.08, 0, Math.PI * 2);
+            ctx.arc(bw * 0.18, -bw * 0.08, bw * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`HP ${cell.hp}`, 0, bw * 0.26);
+            ctx.restore();
+        }
     }
+}
 
-    // Mira a Laser Vermelha de Leon S. Kennedy!
-    if (laserHitPoint && state === 'playing') {
-      ctx.strokeStyle = 'rgba(255, 23, 68, 0.78)';
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(laserHitPoint.x1, laserHitPoint.y1);
-      ctx.lineTo(laserHitPoint.x2, laserHitPoint.y2);
-      ctx.stroke();
+function renderLoop() {
+    animFrame++;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Ponto vermelho brilhante onde a bala vai acertar
-      ctx.fillStyle = '#ff1744';
-      ctx.beginPath();
-      ctx.arc(laserHitPoint.x2, laserHitPoint.y2, 3.2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Leon S. Kennedy
     ctx.save();
-    ctx.translate(leon.x, leon.y);
-    ctx.rotate(leon.angle);
-    // Jaqueta de couro marrom com gola de lã
-    ctx.fillStyle = '#5d4037';
+    if (screenShake > 0) {
+        ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+        screenShake *= 0.82;
+        if (screenShake < 0.4) screenShake = 0;
+    }
+
+    const { cellSize, boardX, boardY, trayY, slotCenters } = layout;
+    const boardPx = cellSize * GRID_SIZE;
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
     ctx.beginPath();
-    ctx.arc(0, 0, leon.r, 0, Math.PI * 2);
+    ctx.roundRect(boardX - 6, boardY - 6, boardPx + 12, boardPx + 12, 12);
     ctx.fill();
-    ctx.strokeStyle = '#d7ccc8';
+    ctx.strokeStyle = soloStageType === 'BOSS' && gameMode === 'SOLO' ? '#ef4444' : '#334155';
     ctx.lineWidth = 2;
     ctx.stroke();
-    // Cabelo castanho claro de Leon
-    ctx.fillStyle = '#8d6e63';
-    ctx.beginPath();
-    ctx.arc(2, 0, 8, 0, Math.PI * 2);
-    ctx.fill();
-    // Arma empunhada
-    ctx.fillStyle = '#263238';
-    ctx.fillRect(10, 3, leon.weapon === 'pistol' ? 11 : 18, 4);
+
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            const cx = boardX + c * cellSize;
+            const cy = boardY + r * cellSize;
+
+            ctx.fillStyle = 'rgba(30, 41, 59, 0.65)';
+            ctx.beginPath();
+            ctx.roundRect(cx + 2, cy + 2, cellSize - 4, cellSize - 4, 5);
+            ctx.fill();
+
+            const cell = board[r] && board[r][c];
+            if (cell) {
+                if (cell.kind === 'NORMAL') {
+                    drawRoundedCell(cx, cy, cellSize, cell.color, 1);
+                } else if (cell.kind !== 'BOSS_CORE') {
+                    drawSpecialCell(cx, cy, cellSize, cell);
+                }
+            }
+        }
+    }
+
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            const cell = board[r] && board[r][c];
+            if (cell && cell.kind === 'BOSS_CORE') {
+                drawSpecialCell(boardX + c * cellSize, boardY + r * cellSize, cellSize, cell);
+            }
+        }
+    }
+
+    if (draggingIndex !== -1 && hoverCell && trayPieces[draggingIndex]) {
+        const piece = trayPieces[draggingIndex];
+        if (canPlacePiece(piece, hoverCell.row, hoverCell.col)) {
+            for (let r = 0; r < piece.rows; r++) {
+                for (let c = 0; c < piece.cols; c++) {
+                    if (piece.shape[r][c]) {
+                        const px = boardX + (hoverCell.col + c) * cellSize;
+                        const py = boardY + (hoverCell.row + r) * cellSize;
+                        drawRoundedCell(px, py, cellSize, piece.cellColors[r][c], 0.38);
+                    }
+                }
+            }
+        }
+    }
+
+    const miniSize = Math.floor(cellSize * 0.56);
+    for (let i = 0; i < 3; i++) {
+        const p = trayPieces[i];
+        if (!p || i === draggingIndex) continue;
+
+        const pw = p.cols * miniSize;
+        const ph = p.rows * miniSize;
+        const startX = slotCenters[i] - pw / 2;
+        const startY = trayY - ph / 2;
+
+        for (let r = 0; r < p.rows; r++) {
+            for (let c = 0; c < p.cols; c++) {
+                if (p.shape[r][c]) {
+                    drawRoundedCell(startX + c * miniSize, startY + r * miniSize, miniSize, p.cellColors[r][c], 1);
+                }
+            }
+        }
+    }
+
+    if (draggingIndex !== -1 && trayPieces[draggingIndex]) {
+        const p = trayPieces[draggingIndex];
+        const pw = p.cols * cellSize;
+        const ph = p.rows * cellSize;
+        const offsetY = cellSize * 1.45;
+        const startX = dragPos.x - pw / 2;
+        const startY = dragPos.y - ph / 2 - offsetY;
+
+        for (let r = 0; r < p.rows; r++) {
+            for (let c = 0; c < p.cols; c++) {
+                if (p.shape[r][c]) {
+                    drawRoundedCell(startX + c * cellSize, startY + r * cellSize, cellSize, p.cellColors[r][c], 0.95);
+                }
+            }
+        }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const pt = particles[i];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.life--;
+        ctx.fillStyle = pt.color;
+        ctx.fillRect(pt.x - 2, pt.y - 2, 5, 5);
+        if (pt.life <= 0) particles.splice(i, 1);
+    }
+
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y -= 0.9;
+        ft.life--;
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, ft.life / 18);
+        ctx.font = '900 18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText(ft.text, ft.x + 2, ft.y + 2);
+        ctx.fillStyle = ft.color;
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+        if (ft.life <= 0) floatingTexts.splice(i, 1);
+    }
+
     ctx.restore();
+    requestAnimationFrame(renderLoop);
+}
+requestAnimationFrame(renderLoop);
 
-    // Projéteis e Granadas
-    ctx.fillStyle = '#fff59d';
-    for (const b of bullets) {
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.fillStyle = '#4caf50';
-    for (const g of thrownGrenades) {
-      ctx.beginPath();
-      ctx.arc(g.x, g.y, 5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Partículas e textos flutuantes
-    for (const p of particles) {
-      ctx.fillStyle = p.color;
-      ctx.fillRect(p.x, p.y, p.size, p.size);
-    }
-    ctx.font = 'bold 11px sans-serif';
-    for (const f of floatingTexts) {
-      ctx.fillStyle = f.color;
-      ctx.fillText(f.txt, f.x - 24, f.y);
-    }
-
-    ctx.restore();
-  }
-
-  let lastTs = performance.now();
-  function loop(now) {
-    const dt = Math.min(0.05, (now - lastTs) / 1000);
-    lastTs = now;
-    update(dt);
-    render();
-    requestAnimationFrame(loop);
-  }
-
-  // =========================================================
-  // MODAIS: MALETA (ATTACHÉ CASE), MAPA E MERCADOR
-  // =========================================================
-  function openCase() {
-    if (state !== 'playing') return;
-    state = 'modal';
-    document.getElementById('case-modal').style.display = 'flex';
-    document.getElementById('case-stats').textContent =
-      'Vida: ' + leon.hp + '/' + leon.maxHp + ' | Pesetas: ' + leon.ptas.toLocaleString('pt-BR') + ' $';
-
-    const grid = document.getElementById('case-grid');
-    grid.innerHTML = '';
-
-    // Armas na Maleta
-    for (const key of ['pistol', 'shotgun', 'rifle']) {
-      const w = WEAPONS[key];
-      if (!w.owned) continue;
-      const card = document.createElement('div');
-      card.className = 'item-card' + (leon.weapon === key ? ' equipped' : '');
-      card.innerHTML = `
-        <div class="item-name">${w.name} (Nv.${w.level})</div>
-        <div class="item-desc">Pente: ${w.mag}/${w.maxMag} | Reserva: ${w.reserve} | Dano: ${Math.round(w.dmg * (1 + (w.level - 1) * 0.35))}</div>
-        <button class="small-btn">${leon.weapon === key ? 'EQUIPADA' : 'EQUIPAR'}</button>
-      `;
-      card.querySelector('button').onclick = () => {
-        leon.weapon = key;
-        openCase();
-      };
-      grid.appendChild(card);
-    }
-
-    // Ervas e Sprays
-    if (leon.herbs > 0) {
-      const card = document.createElement('div');
-      card.className = 'item-card';
-      card.innerHTML = `
-        <div class="item-name">Erva Verde (x${leon.herbs})</div>
-        <div class="item-desc">Restaura +45 de Vida</div>
-        <button class="small-btn">USAR ERVA</button>
-      `;
-      card.querySelector('button').onclick = () => {
-        leon.herbs--;
-        leon.hp = Math.min(leon.maxHp, leon.hp + 45);
-        playSound('pickup');
-        openCase();
-      };
-      grid.appendChild(card);
-    }
-
-    if (leon.sprays > 0) {
-      const card = document.createElement('div');
-      card.className = 'item-card';
-      card.innerHTML = `
-        <div class="item-name">Spray Primeiros Socorros (x${leon.sprays})</div>
-        <div class="item-desc">Restaura 100% da Vida</div>
-        <button class="small-btn">USAR SPRAY</button>
-      `;
-      card.querySelector('button').onclick = () => {
-        leon.sprays--;
-        leon.hp = leon.maxHp;
-        playSound('pickup');
-        openCase();
-      };
-      grid.appendChild(card);
-    }
-  }
-
-  function openMap() {
-    if (state !== 'playing') return;
-    state = 'modal';
-    document.getElementById('map-modal').style.display = 'flex';
-    const mc = document.getElementById('mapCanvas');
-    const mctx = mc.getContext('2d');
-    const sx = mc.width / WORLD_W;
-    const sy = mc.height / WORLD_H;
-
-    mctx.fillStyle = '#181410';
-    mctx.fillRect(0, 0, mc.width, mc.height);
-
-    // Estradas
-    mctx.fillStyle = '#2d261e';
-    mctx.fillRect(40 * sx, 480 * sy, (WORLD_W - 80) * sx, 140 * sy);
-
-    // Prédios
-    for (const b of buildings) {
-      mctx.fillStyle = b.isShotgunHouse ? '#ffd54f' : '#5d4037';
-      mctx.fillRect(b.x * sx, b.y * sy, b.w * sx, b.h * sy);
-    }
-
-    // Mercador
-    mctx.fillStyle = '#29b6f6';
-    mctx.beginPath();
-    mctx.arc(1620 * sx, 380 * sy, 5, 0, Math.PI * 2);
-    mctx.fill();
-
-    // Inimigos
-    mctx.fillStyle = '#ef5350';
-    for (const e of enemies) {
-      if (e.hp > 0) {
-        mctx.beginPath();
-        mctx.arc(e.x * sx, e.y * sy, e.isBoss ? 5 : 3, 0, Math.PI * 2);
-        mctx.fill();
-      }
-    }
-
-    // Leon
-    mctx.fillStyle = '#4fc3f7';
-    mctx.beginPath();
-    mctx.arc(leon.x * sx, leon.y * sy, 5, 0, Math.PI * 2);
-    mctx.fill();
-  }
-
-  function openMerchant() {
-    state = 'modal';
-    document.getElementById('merchant-modal').style.display = 'flex';
-    document.getElementById('merchant-ptas').textContent = 'SUAS PESETAS: ' + leon.ptas.toLocaleString('pt-BR') + ' $';
-    const grid = document.getElementById('merchant-grid');
-    grid.innerHTML = '';
-
-    const offers = [
-      {
-        title: 'Comprar Rifle SR M1903',
-        desc: WEAPONS.rifle.owned ? 'Já adquirido!' : 'Rifle de precisão de alto dano (8.000 $)',
-        cost: 8000,
-        disabled: WEAPONS.rifle.owned || leon.ptas < 8000,
-        action: () => { WEAPONS.rifle.owned = true; leon.weapon = 'rifle'; }
-      },
-      {
-        title: 'Melhorar Arma Equipada',
-        desc: 'Aumenta +35% de dano da ' + WEAPONS[leon.weapon].name + ' (3.000 $)',
-        cost: 3000,
-        disabled: leon.ptas < 3000,
-        action: () => { WEAPONS[leon.weapon].level++; }
-      },
-      {
-        title: 'Spray Primeiros Socorros',
-        desc: 'Recupera toda a barra de vida (2.000 $)',
-        cost: 2000,
-        disabled: leon.ptas < 2000,
-        action: () => { leon.sprays++; }
-      },
-      {
-        title: 'Pacote de Munição + Granada',
-        desc: '+15 Pistola, +6 Escopeta, +1 Granada (1.500 $)',
-        cost: 1500,
-        disabled: leon.ptas < 1500,
-        action: () => {
-          WEAPONS.pistol.reserve += 15;
-          WEAPONS.shotgun.reserve += 6;
-          leon.grenades += 1;
-        }
-      }
-    ];
-
-    for (const off of offers) {
-      const card = document.createElement('div');
-      card.className = 'item-card';
-      card.innerHTML = `
-        <div class="item-name">${off.title}</div>
-        <div class="item-desc">${off.desc}</div>
-        <button class="small-btn" ${off.disabled ? 'disabled style="opacity:0.45;"' : ''}>COMPRAR (${off.cost}$)</button>
-      `;
-      card.querySelector('button').onclick = () => {
-        if (!off.disabled) {
-          leon.ptas -= off.cost;
-          off.action();
-          playSound('pickup');
-          openMerchant();
-        }
-      };
-      grid.appendChild(card);
-    }
-
-    // Opção de vender tesouros (Ex: Rubi do Dr. Salvador)
-    leon.treasures.forEach((tr, idx) => {
-      const card = document.createElement('div');
-      card.className = 'item-card equipped';
-      card.innerHTML = `
-        <div class="item-name">Vender: ${tr.name}</div>
-        <div class="item-desc">Tesouro raro! Vale +${tr.val.toLocaleString('pt-BR')} PTAS</div>
-        <button class="small-btn">VENDER TESOURO</button>
-      `;
-      card.querySelector('button').onclick = () => {
-        leon.ptas += tr.val;
-        leon.treasures.splice(idx, 1);
-        playSound('pickup');
-        openMerchant();
-      };
-      grid.appendChild(card);
-    });
-  }
-
-  function startNewChapter() {
-    initAudio();
-    resize();
-    leon.x = 160;
-    leon.y = 540;
-    leon.hp = 100;
-    leon.ptas = 1500;
-    leon.weapon = 'pistol';
-    leon.grenades = 1;
-    leon.herbs = 1;
-    leon.sprays = 0;
-    leon.treasures = [];
-
-    WEAPONS.pistol.mag = 10; WEAPONS.pistol.reserve = 35; WEAPONS.pistol.level = 1;
-    WEAPONS.shotgun.owned = false; WEAPONS.shotgun.mag = 6; WEAPONS.shotgun.reserve = 14; WEAPONS.shotgun.level = 1;
-    WEAPONS.rifle.owned = false; WEAPONS.rifle.mag = 5; WEAPONS.rifle.reserve = 12; WEAPONS.rifle.level = 1;
-
-    storyFlags = {
-      introPlayed: true,
-      villageAlarmTriggered: false,
-      shotgunPicked: false,
-      salvadorSpawned: false,
-      bellRang: false,
-      farmGateOpen: false,
-      finalGateOpen: false,
-      villageTimer: 0
-    };
-
-    buildWorld();
-
-    document.getElementById('start-screen').style.display = 'none';
-    document.getElementById('end-screen').style.display = 'none';
-    document.getElementById('hud').style.display = 'flex';
-    document.getElementById('touch-ui').style.display = 'block';
-
-    startCutscene([
-      { speaker: 'LEON S. KENNEDY (RÁDIO)', text: '"Hunnigan, cheguei à vila rural. Os moradores parecem hostis... Vou entrar e procurar pela filha do Presidente."', dur: 3.4 }
-    ]);
-  }
-
-  function endGame(victory) {
-    state = 'ended';
-    document.getElementById('hud').style.display = 'none';
-    document.getElementById('touch-ui').style.display = 'none';
-    document.getElementById('context-btn').style.display = 'none';
-    document.getElementById('end-screen').style.display = 'flex';
-
-    document.getElementById('end-title').textContent = victory ? 'CAPÍTULO 1 CONCLUÍDO!' : 'VOCÊ MORREU';
-    document.getElementById('end-title').style.color = victory ? '#ffd54f' : '#c62828';
-    document.getElementById('end-sub').textContent = victory
-      ? 'Você sobreviveu ao horror de El Pueblo e avançou rumo ao Castelo!'
-      : 'Os Ganados dominaram a vila...';
-    document.getElementById('end-summary').textContent =
-      'Pesetas acumuladas: ' + leon.ptas.toLocaleString('pt-BR') + ' $ | Arma Principal: ' + WEAPONS[leon.weapon].name;
-  }
-
-  // =========================================================
-  // CONTROLES DUAL-STICK TOUCH & TECLADO / MOUSE
-  // =========================================================
-  function setupStick(zoneId, knobId, stickObj) {
-    const zone = document.getElementById(zoneId);
-    const knob = document.getElementById(knobId);
-    const maxR = 38;
-
-    function handleTouch(e) {
-      e.preventDefault();
-      const rect = zone.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-
-      for (let i = 0; i < e.touches.length; i++) {
-        const t = e.touches[i];
-        if (t.clientX >= rect.left - 30 && t.clientX <= rect.right + 30 &&
-            t.clientY >= rect.top - 30 && t.clientY <= rect.bottom + 30) {
-          const dx = t.clientX - cx;
-          const dy = t.clientY - cy;
-          const d = Math.hypot(dx, dy);
-          const clamped = Math.min(maxR, d);
-          const ang = Math.atan2(dy, dx);
-          knob.style.transform = `translate(${Math.cos(ang) * clamped}px, ${Math.sin(ang) * clamped}px)`;
-          stickObj.active = true;
-          stickObj.dx = d > 6 ? (dx / Math.max(maxR, d)) : 0;
-          stickObj.dy = d > 6 ? (dy / Math.max(maxR, d)) : 0;
-          return;
-        }
-      }
-      stickObj.active = false;
-      stickObj.dx = 0;
-      stickObj.dy = 0;
-      knob.style.transform = 'translate(0px, 0px)';
-    }
-
-    zone.addEventListener('touchstart', handleTouch, { passive: false });
-    zone.addEventListener('touchmove', handleTouch, { passive: false });
-    zone.addEventListener('touchend', handleTouch, { passive: false });
-    zone.addEventListener('touchcancel', handleTouch, { passive: false });
-  }
-
-  setupStick('left-stick', 'left-knob', moveStick);
-  setupStick('right-stick', 'right-knob', aimStick);
-
-  function bindBtn(id, fn) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); }, { passive: false });
-    el.addEventListener('click', (e) => { e.preventDefault(); fn(); });
-  }
-
-  bindBtn('btn-start', startNewChapter);
-  bindBtn('btn-restart', startNewChapter);
-  bindBtn('btn-case', openCase);
-  bindBtn('btn-close-case', () => { document.getElementById('case-modal').style.display = 'none'; state = 'playing'; });
-  bindBtn('btn-map', openMap);
-  bindBtn('btn-close-map', () => { document.getElementById('map-modal').style.display = 'none'; state = 'playing'; });
-  bindBtn('btn-close-merchant', () => { document.getElementById('merchant-modal').style.display = 'none'; state = 'playing'; });
-  bindBtn('btn-swap', swapWeapon);
-  bindBtn('btn-reload', reloadWeapon);
-  bindBtn('btn-knife', useKnife);
-  bindBtn('btn-grenade', throwGrenade);
-  bindBtn('context-btn', triggerContextAction);
-  bindBtn('btn-fs', () => {
-    try {
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-      else document.exitFullscreen();
-    } catch (e) {}
-  });
-
-  // Teclado e Mouse (caso jogue no PC)
-  window.addEventListener('keydown', (e) => {
-    const k = e.key.toLowerCase();
-    keyState[k] = true;
-    if (k === 'r') reloadWeapon();
-    if (k === 'q') swapWeapon();
-    if (k === 'f') useKnife();
-    if (k === 'g') throwGrenade();
-    if (k === 'e') triggerContextAction();
-    if (k === 'i') openCase();
-    if (k === 'm') openMap();
-  });
-  window.addEventListener('keyup', (e) => { keyState[e.key.toLowerCase()] = false; });
-
-  canvas.addEventListener('mousemove', (e) => {
-    if (state !== 'playing') return;
+/**
+ * CONTROLES DE TOQUE / MOUSE
+ */
+function getCanvasCoords(e) {
     const rect = canvas.getBoundingClientRect();
-    const wx = (e.clientX - rect.left) + camera.x;
-    const wy = (e.clientY - rect.top) + camera.y;
-    leon.angle = Math.atan2(wy - leon.y, wx - leon.x);
-  });
-  canvas.addEventListener('mousedown', (e) => {
-    if (state === 'playing' && e.button === 0) fireWeapon();
-  });
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+    };
+}
 
-  requestAnimationFrame(loop);
-})();
+function updateHoverCell() {
+    if (draggingIndex === -1 || !trayPieces[draggingIndex]) {
+        hoverCell = null;
+        return;
+    }
+    const p = trayPieces[draggingIndex];
+    const { cellSize, boardX, boardY } = layout;
+    const pw = p.cols * cellSize;
+    const ph = p.rows * cellSize;
+    const offsetY = cellSize * 1.45;
+
+    const topLeftX = dragPos.x - pw / 2;
+    const topLeftY = dragPos.y - ph / 2 - offsetY;
+
+    const col = Math.round((topLeftX - boardX) / cellSize);
+    const row = Math.round((topLeftY - boardY) / cellSize);
+
+    if (row >= -1 && row <= GRID_SIZE && col >= -1 && col <= GRID_SIZE) {
+        hoverCell = { row, col };
+    } else {
+        hoverCell = null;
+    }
+}
+
+function onPointerDown(e) {
+    if (!matchActive) return;
+    if (e.cancelable) e.preventDefault();
+    AudioFX.ensure();
+    const pos = getCanvasCoords(e);
+
+    for (let i = 0; i < 3; i++) {
+        if (!trayPieces[i]) continue;
+        const dx = Math.abs(pos.x - layout.slotCenters[i]);
+        const dy = Math.abs(pos.y - layout.trayY);
+        if (dx < layout.cellSize * 1.45 && dy < layout.cellSize * 1.45) {
+            draggingIndex = i;
+            dragPos = pos;
+            updateHoverCell();
+            break;
+        }
+    }
+}
+
+function onPointerMove(e) {
+    if (draggingIndex === -1) return;
+    if (e.cancelable) e.preventDefault();
+    dragPos = getCanvasCoords(e);
+    updateHoverCell();
+}
+
+function onPointerUp(e) {
+    if (draggingIndex === -1) return;
+    if (e.cancelable) e.preventDefault();
+
+    if (hoverCell) {
+        const placed = placePieceOnBoard(draggingIndex, hoverCell.row, hoverCell.col);
+        if (!placed) AudioFX.invalid();
+    }
+    draggingIndex = -1;
+    hoverCell = null;
+}
+
+canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+canvas.addEventListener('touchend', onPointerUp, { passive: false });
+canvas.addEventListener('mousedown', onPointerDown);
+window.addEventListener('mousemove', onPointerMove);
+window.addEventListener('mouseup', onPointerUp);
+
+/**
+ * MODAL DE CONFIGURAÇÕES
+ */
+function openSettings() {
+    applyVisualPrefs();
+    document.getElementById('settings-modal').classList.remove('hidden');
+}
+
+document.getElementById('btn-open-settings-lobby').addEventListener('click', openSettings);
+document.getElementById('btn-open-settings-game').addEventListener('click', openSettings);
+document.getElementById('btn-close-settings').addEventListener('click', () => {
+    document.getElementById('settings-modal').classList.add('hidden');
+});
+
+document.getElementById('btn-save-settings').addEventListener('click', () => {
+    userPrefs.colorMode = document.getElementById('block-color-mode').value;
+    userPrefs.fixedColor = document.getElementById('block-fixed-color').value;
+    userPrefs.bgUrl = document.getElementById('bg-image-url').value.trim();
+
+    localStorage.setItem('bb_colorMode', userPrefs.colorMode);
+    localStorage.setItem('bb_fixedColor', userPrefs.fixedColor);
+    localStorage.setItem('bb_bgUrl', userPrefs.bgUrl);
+
+    applyVisualPrefs();
+    if (board.length > 0) recolorExistingBlocks();
+    document.getElementById('settings-modal').classList.add('hidden');
+    showToast('Visual personalizado aplicado!');
+});
+
+document.getElementById('btn-clear-bg').addEventListener('click', () => {
+    userPrefs.bgUrl = '';
+    document.getElementById('bg-image-url').value = '';
+    localStorage.setItem('bb_bgUrl', '');
+    applyVisualPrefs();
+    showToast('Imagem de fundo removida.');
+});
 </script>
 </body>
 </html>
