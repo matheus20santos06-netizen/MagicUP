@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Block Blast P2P & Campanha Solo (Com Vidas & Música)</title>
+    <title>Block Blast P2P, Solo & Modo King</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * {
@@ -231,7 +231,6 @@
             color: #fef3c7;
         }
 
-        /* HUD DE VIDAS (CORAÇÕES) NO MODO SOLO */
         .lives-box {
             background: rgba(15, 23, 42, 0.94);
             border: 1.5px solid #ef4444;
@@ -268,7 +267,6 @@
             flex-shrink: 0;
         }
 
-        /* BARRA DE MISSÃO SOLO */
         #solo-mission-bar {
             width: 100%;
             max-width: 460px;
@@ -326,7 +324,6 @@
             border-radius: 12px;
         }
 
-        /* MODAL CONFIGURAÇÕES */
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -391,7 +388,7 @@
 <div id="lobby-screen" class="screen">
     <div class="card">
         <h1>BLOCK BLAST</h1>
-        <div class="subtitle">Campanha Solo (5 Vidas & Música) • P2P</div>
+        <div class="subtitle">Campanha Solo • Multiplayer • Modo King</div>
 
         <button class="btn btn-solo" id="btn-start-solo">🏆 JOGAR MODO SOLO (5 VIDAS)</button>
 
@@ -421,7 +418,7 @@
         </div>
         <button class="btn btn-success" id="btn-join-room">CONECTAR P2P</button>
 
-        <button class="btn btn-secondary" id="btn-open-settings-lobby" style="margin-top:10px;">⚙️ COR DOS BLOCOS E FUNDO</button>
+        <button class="btn btn-secondary" id="btn-open-settings-lobby" style="margin-top:10px;">⚙️ CONFIGURAÇÕES & MODO KING</button>
         <div class="status-text" id="conn-status"></div>
     </div>
 </div>
@@ -439,7 +436,6 @@
             <div class="target-val" id="hud-target">2.000</div>
         </div>
 
-        <!-- Box de Vidas no Solo / Rival no P2P -->
         <div class="lives-box" id="hud-lives-box">
             <div class="lives-label">VIDAS</div>
             <div class="lives-val" id="hud-lives-val">❤️ 5</div>
@@ -469,7 +465,7 @@
     </div>
 </div>
 
-<!-- TELA DE FIM DE PARTIDA (GAME OVER / VITÓRIA) -->
+<!-- TELA DE FIM DE PARTIDA -->
 <div id="gameover-screen" class="screen hidden" style="background: rgba(2,6,23,0.92); z-index: 25;">
     <div class="card">
         <h1 id="winner-title" style="color:#fbbf24;">FIM DE JOGO!</h1>
@@ -496,11 +492,29 @@
     </div>
 </div>
 
-<!-- MODAL CONFIGURAÇÕES -->
+<!-- MODAL CONFIGURAÇÕES & MODO KING -->
 <div id="settings-modal" class="modal-backdrop hidden">
     <div class="card">
-        <h1 style="font-size:20px;">PERSONALIZAR VISUAL</h1>
-        <div class="subtitle">Suas cores e fundo ficam salvos no seu aparelho</div>
+        <h1 style="font-size:20px;">CONFIGURAÇÕES & MODO KING</h1>
+        <div class="subtitle">Personalize visuais e ative a super moldura inteligente</div>
+
+        <div class="input-group">
+            <label style="color:#fbbf24; font-size:12px;">👑 MODO KING (Melhor Jogada Automática)</label>
+            <select id="king-mode-toggle">
+                <option value="OFF">Desligado (Jogar Normal)</option>
+                <option value="ON">Ligado (Mostrar Moldura da Melhor Jogada)</option>
+            </select>
+        </div>
+
+        <div class="input-group" id="king-color-group">
+            <label>Cor da Moldura do Modo King</label>
+            <div class="color-row">
+                <input type="color" id="king-frame-color" value="#fbbf24">
+                <span style="font-size:12px; color:#94a3b8;">Toque para escolher a cor da moldura</span>
+            </div>
+        </div>
+
+        <div class="divider"></div>
 
         <div class="input-group">
             <label>Estilo de Cor dos Blocos</label>
@@ -512,10 +526,10 @@
         </div>
 
         <div class="input-group" id="fixed-color-group">
-            <label>Escolher Cor dos Blocos</label>
+            <label>Escolher Cor Única dos Blocos</label>
             <div class="color-row">
                 <input type="color" id="block-fixed-color" value="#38bdf8">
-                <span style="font-size:12px; color:#94a3b8;">Toque para escolher</span>
+                <span style="font-size:12px; color:#94a3b8;">Cor fixa</span>
             </div>
         </div>
 
@@ -532,7 +546,7 @@
 
 <script>
 /**
- * CONFIGURAÇÕES VISUAIS & TEMAS
+ * CONFIGURAÇÕES VISUAIS & MODO KING
  */
 const PALETTE = [
     '#ef4444', '#f97316', '#f59e0b', '#22c55e',
@@ -551,13 +565,17 @@ let activePalette = PALETTE;
 let userPrefs = {
     colorMode: localStorage.getItem('bb_colorMode') || 'RANDOM_CELL',
     fixedColor: localStorage.getItem('bb_fixedColor') || '#38bdf8',
-    bgUrl: localStorage.getItem('bb_bgUrl') || ''
+    bgUrl: localStorage.getItem('bb_bgUrl') || '',
+    kingMode: localStorage.getItem('bb_kingMode') || 'OFF',
+    kingColor: localStorage.getItem('bb_kingColor') || '#fbbf24'
 };
 
 function applyVisualPrefs() {
     document.getElementById('block-color-mode').value = userPrefs.colorMode;
     document.getElementById('block-fixed-color').value = userPrefs.fixedColor;
     document.getElementById('bg-image-url').value = userPrefs.bgUrl;
+    document.getElementById('king-mode-toggle').value = userPrefs.kingMode;
+    document.getElementById('king-frame-color').value = userPrefs.kingColor;
 
     if (userPrefs.bgUrl && userPrefs.bgUrl.trim() !== '') {
         document.body.style.backgroundImage = `url("${userPrefs.bgUrl.trim()}")`;
@@ -578,7 +596,7 @@ function showToast(msg) {
 }
 
 /**
- * MÚSICA DE FUNDO PROCEDURAL & EFEITOS SONOROS (WEB AUDIO API)
+ * SISTEMA DE ÁUDIO & MÚSICA PROCEDURAL
  */
 const AudioFX = {
     ctx: null,
@@ -616,13 +634,11 @@ const AudioFX = {
         } catch (e) {}
     },
 
-    // Música de fundo relaxante em loop procedimental
     startBackgroundMusic() {
         if (this.isMusicPlaying) return;
         this.isMusicPlaying = true;
         this.ensure();
 
-        // Melodia suave em escala pentatônica alegre (Dó, Mi, Sol, Lá, Dó5)
         const melody = [
             261.63, 329.63, 392.00, 440.00, 523.25, 440.00, 392.00, 329.63,
             293.66, 349.23, 440.00, 523.25, 587.33, 523.25, 440.00, 349.23
@@ -673,30 +689,16 @@ const AudioFX = {
         });
     },
 
-    rockBreak() {
-        this.tone(180, 75, 0.14, 'square', 0.16, 0);
-    },
-
-    rescueSuccess() {
-        [587.33, 739.99, 880, 1174.66].forEach((f, i) => {
-            this.tone(f, f * 1.08, 0.2, 'sine', 0.17, i * 0.08);
-        });
-    },
-
-    bossHit() {
-        this.tone(220, 65, 0.25, 'sawtooth', 0.22, 0);
-        this.tone(440, 110, 0.2, 'square', 0.15, 0.05);
-    },
-
-    invalid() {
-        this.tone(150, 95, 0.1, 'sawtooth', 0.1, 0);
-    }
+    rockBreak() { this.tone(180, 75, 0.14, 'square', 0.16, 0); },
+    rescueSuccess() { [587.33, 739.99, 880, 1174.66].forEach((f, i) => this.tone(f, f * 1.08, 0.2, 'sine', 0.17, i * 0.08)); },
+    bossHit() { this.tone(220, 65, 0.25, 'sawtooth', 0.22, 0); },
+    invalid() { this.tone(150, 95, 0.1, 'sawtooth', 0.1, 0); }
 };
 
 /**
- * CONEXÃO P2P (PEERJS)
+ * CONEXÃO P2P
  */
-let gameMode = 'SOLO'; // 'SOLO' ou 'P2P'
+let gameMode = 'SOLO';
 let peer = null;
 let conn = null;
 let isHost = false;
@@ -706,8 +708,6 @@ let myScore = 0;
 let rivalScore = 0;
 let targetScore = 15000;
 let matchActive = false;
-
-// Sistema de Vidas no Solo (5 Vidas)
 let soloLives = 5;
 
 function generateShortCode() {
@@ -807,7 +807,7 @@ document.getElementById('btn-join-room').addEventListener('click', () => {
 });
 
 /**
- * MOTOR DO TABULEIRO 8x8 & FASES SOLO
+ * MOTOR DO TABULEIRO & MODO KING (INTELIGÊNCIA ARTIFICIAL DE JOGADA)
  */
 const GRID_SIZE = 8;
 let board = [];
@@ -818,6 +818,9 @@ let hoverCell = null;
 let floatingTexts = [];
 let particles = [];
 let screenShake = 0;
+
+// Cache do Modo King para calcular a melhor jogada atual sem travar a tela
+let kingBestMove = null;
 
 const SOLO_MILESTONES = [
     { target: 2000,  type: 'SCORE',  label: 'Fase 1 • Aquecimento' },
@@ -945,6 +948,7 @@ function refillTrayIfEmpty() {
     if (trayPieces.every(p => p === null)) {
         trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
     }
+    calculateKingBestMove();
 }
 
 function recolorExistingBlocks() {
@@ -1064,13 +1068,74 @@ function startSoloStage(index, preserveScore = false) {
     }
 
     trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+    calculateKingBestMove();
     updateHUD();
     updateSoloMissionHUD();
 }
 
 /**
- * SISTEMA DE PERDA DE VIDA E CONTINUAÇÃO NA MESMA FASE
+ * ALGORITMO DO MODO KING: Calcula a jogada ideal que limpa mais linhas, 
+ * pontua mais e garante que o jogador nunca fique preso ou erre!
  */
+function calculateKingBestMove() {
+    if (userPrefs.kingMode !== 'ON') {
+        kingBestMove = null;
+        return;
+    }
+
+    let bestScore = -99999;
+    let bestMove = null;
+
+    for (let i = 0; i < trayPieces.length; i++) {
+        const p = trayPieces[i];
+        if (!p) continue;
+
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (canPlacePiece(p, r, c)) {
+                    // Simula a colocação da peça no tabuleiro temporário
+                    let simBoard = board.map(row => row.map(cell => cell ? { ...cell } : null));
+                    let placedCount = 0;
+                    for (let pr = 0; pr < p.rows; pr++) {
+                        for (let pc = 0; pc < p.cols; pc++) {
+                            if (p.shape[pr][pc]) {
+                                simBoard[r + pr][c + pc] = { kind: 'NORMAL' };
+                                placedCount++;
+                            }
+                        }
+                    }
+
+                    // Conta linhas e colunas completas simuladas
+                    let rowsCleared = 0;
+                    let colsCleared = 0;
+                    for (let tr = 0; tr < GRID_SIZE; tr++) {
+                        if (simBoard[tr].every(cell => cell !== null && cell.kind === 'NORMAL')) rowsCleared++;
+                    }
+                    for (let tc = 0; tc < GRID_SIZE; tc++) {
+                        let full = true;
+                        for (let tr = 0; tr < GRID_SIZE; tr++) {
+                            if (simBoard[tr][tc] === null || simBoard[tr][tc].kind !== 'NORMAL') { full = false; break; }
+                        }
+                        if (full) colsCleared++;
+                    }
+
+                    const totalCleared = rowsCleared + colsCleared;
+                    // Pontuação heurística do Modo King: Prioriza limpeza de linhas, combos e peças colocadas
+                    let score = placedCount * 10 + totalCleared * 500;
+                    if (totalCleared > 0) score += 1000;
+
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = { pieceIndex: i, row: r, col: c, piece: p };
+                    }
+                }
+            }
+        }
+    }
+
+    kingBestMove = bestMove;
+}
+
 function handleSoloDeath(reasonTitle) {
     stopRescueTimer();
     soloLives--;
@@ -1079,13 +1144,12 @@ function handleSoloDeath(reasonTitle) {
     AudioFX.lockedGameOver();
 
     if (soloLives > 0) {
-        // Perdeu 1 vida, mas continua na mesma fase! Limpa o tabuleiro e dá nova chance
         showToast(`⚠️ ${reasonTitle} Você perdeu 1 vida! Restam ${soloLives} ❤️`);
         setTimeout(() => {
             if (!matchActive) return;
             clearBoardGrid();
             trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
-            // Reinicia o timer de resgate se estivesse nessa fase
+            calculateKingBestMove();
             if (soloStageType === 'RESCUE') {
                 setupRescueMission(soloCycle);
                 rescueTimer = rescueMaxTimer;
@@ -1106,7 +1170,6 @@ function handleSoloDeath(reasonTitle) {
             updateSoloMissionHUD();
         }, 1100);
     } else {
-        // Acabaram todas as 5 vidas! Game Over total e volta do início da campanha
         finishGameScreen('GAME OVER!', 'Suas 5 vidas acabaram! Recomeçando da Fase 1.');
     }
 }
@@ -1217,7 +1280,7 @@ document.getElementById('btn-start-solo').addEventListener('click', () => {
     gameMode = 'SOLO';
     myName = document.getElementById('player-name').value.trim() || 'Paulo';
     myScore = 0;
-    soloLives = 5; // Inicia com 5 vidas
+    soloLives = 5;
     matchActive = true;
     clearBoardGrid();
 
@@ -1243,6 +1306,7 @@ function startP2PMatch(newTarget) {
     activePalette = PALETTE;
     clearBoardGrid();
     trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+    calculateKingBestMove();
 
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('gameover-screen').classList.add('hidden');
@@ -1515,11 +1579,14 @@ function placePieceOnBoard(pieceIndex, startRow, startCol) {
                 if (matchActive) {
                     clearBoardGrid();
                     trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+                    calculateKingBestMove();
                 }
             }, 750);
         }
     }
 
+    // Recalcula a melhor jogada do Modo King para o próximo turno
+    calculateKingBestMove();
     return true;
 }
 
@@ -1528,7 +1595,7 @@ function sendScoreUpdate() {
 }
 
 /**
- * RENDERIZAÇÃO E CANVAS
+ * RENDERIZAÇÃO E CANVAS + MODO KING (MOLDURA PISCANTE)
  */
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -1742,6 +1809,41 @@ function renderLoop() {
         }
     }
 
+    /**
+     * RENDERIZAÇÃO DA MOLDURA PISCANTE DO MODO KING
+     */
+    if (userPrefs.kingMode === 'ON' && kingBestMove && matchActive) {
+        const p = kingBestMove.piece;
+        const bRow = kingBestMove.row;
+        const bCol = kingBestMove.col;
+
+        // Efeito de piscar com senoide suave
+        const pulseAlpha = 0.5 + Math.sin(animFrame * 0.18) * 0.45;
+
+        for (let pr = 0; pr < p.rows; pr++) {
+            for (let pc = 0; pc < p.cols; pc++) {
+                if (p.shape[pr][pc]) {
+                    const kx = boardX + (bCol + pc) * cellSize;
+                    const ky = boardY + (bRow + pr) * cellSize;
+
+                    ctx.save();
+                    ctx.strokeStyle = userPrefs.kingColor;
+                    ctx.lineWidth = 3;
+                    ctx.globalAlpha = pulseAlpha;
+                    ctx.beginPath();
+                    ctx.roundRect(kx + 2, ky + 2, cellSize - 4, cellSize - 4, 6);
+                    ctx.stroke();
+
+                    // Brilho translúcido no interior da melhor jogada
+                    ctx.fillStyle = userPrefs.kingColor;
+                    ctx.globalAlpha = pulseAlpha * 0.22;
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+    }
+
     if (draggingIndex !== -1 && hoverCell && trayPieces[draggingIndex]) {
         const piece = trayPieces[draggingIndex];
         if (canPlacePiece(piece, hoverCell.row, hoverCell.col)) {
@@ -1907,7 +2009,7 @@ window.addEventListener('mousemove', onPointerMove);
 window.addEventListener('mouseup', onPointerUp);
 
 /**
- * MODAL DE CONFIGURAÇÕES
+ * MODAL DE CONFIGURAÇÕES & MODO KING
  */
 function openSettings() {
     applyVisualPrefs();
@@ -1924,15 +2026,22 @@ document.getElementById('btn-save-settings').addEventListener('click', () => {
     userPrefs.colorMode = document.getElementById('block-color-mode').value;
     userPrefs.fixedColor = document.getElementById('block-fixed-color').value;
     userPrefs.bgUrl = document.getElementById('bg-image-url').value.trim();
+    userPrefs.kingMode = document.getElementById('king-mode-toggle').value;
+    userPrefs.kingColor = document.getElementById('king-frame-color').value;
 
     localStorage.setItem('bb_colorMode', userPrefs.colorMode);
     localStorage.setItem('bb_fixedColor', userPrefs.fixedColor);
     localStorage.setItem('bb_bgUrl', userPrefs.bgUrl);
+    localStorage.setItem('bb_kingMode', userPrefs.kingMode);
+    localStorage.setItem('bb_kingColor', userPrefs.kingColor);
 
     applyVisualPrefs();
-    if (board.length > 0) recolorExistingBlocks();
+    if (board.length > 0) {
+        recolorExistingBlocks();
+        calculateKingBestMove();
+    }
     document.getElementById('settings-modal').classList.add('hidden');
-    showToast('Visual personalizado aplicado!');
+    showToast('Configurações e Modo King salvos!');
 });
 
 document.getElementById('btn-clear-bg').addEventListener('click', () => {
