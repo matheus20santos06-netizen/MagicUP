@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Block Blast - Modo King Full Auto (Corrigido)</title>
+    <title>Block Blast - Modo King Full Auto & Vidas Infinitas</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * {
@@ -91,7 +91,7 @@
             text-transform: uppercase;
         }
 
-        input[type="text"], input[type="number"], input[type="url"], select {
+        input[type="text"], input[type="number"], input[type="url"], input[type="password"], select {
             width: 100%;
             padding: 8px 10px;
             border-radius: 8px;
@@ -171,7 +171,6 @@
         #game-screen {
             justify-content: space-between;
             padding: 6px 8px 10px;
-            touch-action: none;
         }
 
         .top-hud {
@@ -415,7 +414,7 @@
 <div id="lobby-screen" class="screen">
     <div class="card">
         <h1>BLOCK BLAST</h1>
-        <div class="subtitle">Modo King Full Auto • Toque Otimizado</div>
+        <div class="subtitle">Modo King Full Auto • Vidas Infinitas Protegidas</div>
 
         <button class="btn btn-solo" id="btn-start-solo">🏆 JOGAR MODO SOLO (FULL AUTO)</button>
 
@@ -445,7 +444,7 @@
         </div>
         <button class="btn-success btn" id="btn-join-room">CONECTAR P2P</button>
 
-        <button class="btn btn-secondary" id="btn-open-settings-lobby" style="margin-top:8px;">⚙️ CONFIGURAÇÕES & FULL AUTO</button>
+        <button class="btn btn-secondary" id="btn-open-settings-lobby" style="margin-top:8px;">⚙️ CONFIGURAÇÕES & TRAPAÇAS</button>
         <div class="status-text" id="conn-status"></div>
     </div>
 </div>
@@ -526,11 +525,11 @@
     </div>
 </div>
 
-<!-- MODAL CONFIGURAÇÕES & FULL AUTO -->
+<!-- MODAL CONFIGURAÇÕES & TRAPAÇAS -->
 <div id="settings-modal" class="modal-backdrop hidden">
     <div class="card">
-        <h1 style="font-size:18px;">CONFIGURAÇÕES & FULL AUTO</h1>
-        <div class="subtitle">IA com Rotação Automática e Quebra de Obstáculos</div>
+        <h1 style="font-size:18px;">CONFIGURAÇÕES & TRAPAÇAS</h1>
+        <div class="subtitle">Segurança por Senha para Vidas Infinitas</div>
 
         <div class="input-group">
             <label style="color:#fbbf24; font-size:11px;">👑 MODO KING (IA com Giro Automático)</label>
@@ -554,6 +553,19 @@
                 <option value="OFF">Desligado</option>
                 <option value="ON">Ligado (Destrói Trancas Sozinho)</option>
             </select>
+        </div>
+
+        <div class="input-group">
+            <label style="color:#22c55e; font-size:11px;">♾️ VIDAS INFINITAS (EXIGE SENHA)</label>
+            <select id="infinite-lives-toggle">
+                <option value="OFF">Desligado</option>
+                <option value="ON">Ligado (Imortalidade)</option>
+            </select>
+        </div>
+
+        <div class="input-group" id="password-group">
+            <label style="color:#f59e0b;">Senha de Liberação de Vidas Infinitas</label>
+            <input type="password" id="cheat-password-input" placeholder="Digite a senha..." maxlength="12">
         </div>
 
         <div class="input-group" id="king-color-group">
@@ -616,8 +628,11 @@ let userPrefs = {
     kingMode: localStorage.getItem('bb_kingMode') || 'ON',
     autoPlace: localStorage.getItem('bb_autoPlace') || 'OFF',
     autoBreak: localStorage.getItem('bb_autoBreak') || 'OFF',
+    infiniteLives: localStorage.getItem('bb_infiniteLives') || 'OFF',
     kingColor: localStorage.getItem('bb_kingColor') || '#fbbf24'
 };
+
+const SECRET_CHEAT_PASSWORD = '123456798';
 
 function applyVisualPrefs() {
     document.getElementById('block-color-mode').value = userPrefs.colorMode;
@@ -626,6 +641,7 @@ function applyVisualPrefs() {
     document.getElementById('king-mode-toggle').value = userPrefs.kingMode;
     document.getElementById('auto-place-toggle').value = userPrefs.autoPlace;
     document.getElementById('auto-break-toggle').value = userPrefs.autoBreak;
+    document.getElementById('infinite-lives-toggle').value = userPrefs.infiniteLives;
     document.getElementById('king-frame-color').value = userPrefs.kingColor;
 
     updateButtonsUI();
@@ -1259,6 +1275,14 @@ document.getElementById('btn-power-bomb').addEventListener('click', () => {
 });
 
 function handleSoloDeath(reasonTitle) {
+    if (userPrefs.infiniteLives === 'ON') {
+        showToast('♾️ Vidas Infinitas ativas! Tabuleiro limpo para continuar.');
+        clearBoardGrid();
+        trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+        calculateKingBestMove();
+        return;
+    }
+
     stopRescueTimer();
     soloLives--;
     updateHUD();
@@ -1399,7 +1423,6 @@ function checkSoloStageCompletion() {
     }
 }
 
-// INICIALIZADOR SEGURO DE BOTÕES (Garante clique e toque em qualquer dispositivo)
 function bindClick(elementId, handler) {
     const el = document.getElementById(elementId);
     if (!el) return;
@@ -1470,7 +1493,13 @@ function updateHUD() {
         const liv = document.getElementById('hud-lives-val');
         if (lbl) lbl.textContent = soloStageType === 'BOSS' ? 'CHEFE' : (soloStageType === 'RESCUE' ? 'RESGATE' : 'META FASE');
         if (tgt) tgt.textContent = soloStageType === 'BOSS' ? 'BOSS' : (soloStageType === 'RESCUE' ? `${rescueTimer}s` : soloStageTargetScore.toLocaleString('pt-BR'));
-        if (liv) liv.textContent = `❤️ ${soloLives}`;
+        if (liv) {
+            if (userPrefs.infiniteLives === 'ON') {
+                liv.innerHTML = '❤️ <span style="font-size:16px; color:#38bdf8;">∞</span>';
+            } else {
+                liv.textContent = `❤️ ${soloLives}`;
+            }
+        }
     } else {
         const lbl = document.getElementById('hud-target-label');
         const tgt = document.getElementById('hud-target');
@@ -1763,17 +1792,24 @@ function placePieceOnBoard(pieceIndex, startRow, startCol) {
     }
 
     if (matchActive && !hasAnyValidMove()) {
-        if (gameMode === 'SOLO') {
-            handleSoloDeath("Tabuleiro totalmente trancado!");
+        if (userPrefs.infiniteLives === 'ON') {
+            showToast('♾️ Vidas Infinitas: Tabuleiro sem espaço limpo automaticamente!');
+            clearBoardGrid();
+            trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+            calculateKingBestMove();
         } else {
-            showToast('Sem espaço! Tabuleiro renovado no P2P!');
-            setTimeout(() => {
-                if (matchActive) {
-                    clearBoardGrid();
-                    trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
-                    calculateKingBestMove();
-                }
-            }, 750);
+            if (gameMode === 'SOLO') {
+                handleSoloDeath("Tabuleiro totalmente trancado!");
+            } else {
+                showToast('Sem espaço! Tabuleiro renovado no P2P!');
+                setTimeout(() => {
+                    if (matchActive) {
+                        clearBoardGrid();
+                        trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+                        calculateKingBestMove();
+                    }
+                }, 750);
+            }
         }
     }
 
@@ -2203,6 +2239,22 @@ bindClick('btn-close-settings', () => {
 });
 
 bindClick('btn-save-settings', () => {
+    const desiredInfinite = document.getElementById('infinite-lives-toggle').value;
+    const typedPassword = document.getElementById('cheat-password-input').value.trim();
+
+    if (desiredInfinite === 'ON') {
+        if (typedPassword !== SECRET_CHEAT_PASSWORD) {
+            showToast('❌ Senha incorreta! Vidas Infinitas negadas.');
+            document.getElementById('infinite-lives-toggle').value = 'OFF';
+            userPrefs.infiniteLives = 'OFF';
+        } else {
+            userPrefs.infiniteLives = 'ON';
+            showToast('♾️ Vidas Infinitas ATIVADAS com sucesso!');
+        }
+    } else {
+        userPrefs.infiniteLives = 'OFF';
+    }
+
     userPrefs.colorMode = document.getElementById('block-color-mode').value;
     userPrefs.fixedColor = document.getElementById('block-fixed-color').value;
     userPrefs.bgUrl = document.getElementById('bg-image-url').value.trim();
@@ -2217,15 +2269,16 @@ bindClick('btn-save-settings', () => {
     localStorage.setItem('bb_kingMode', userPrefs.kingMode);
     localStorage.setItem('bb_autoPlace', userPrefs.autoPlace);
     localStorage.setItem('bb_autoBreak', userPrefs.autoBreak);
+    localStorage.setItem('bb_infiniteLives', userPrefs.infiniteLives);
     localStorage.setItem('bb_kingColor', userPrefs.kingColor);
 
     applyVisualPrefs();
+    updateHUD();
     if (board.length > 0) {
         recolorExistingBlocks();
         calculateKingBestMove();
     }
     document.getElementById('settings-modal').classList.add('hidden');
-    showToast('Configurações Full Auto salvas!');
 });
 
 bindClick('btn-clear-bg', () => {
