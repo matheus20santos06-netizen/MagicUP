@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Block Blast P2P Multiplayer</title>
+    <title>Block Blast P2P & Campanha Solo</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * {
@@ -33,6 +33,7 @@
             background: rgba(15, 23, 42, 0.72);
             z-index: 0;
             pointer-events: none;
+            transition: background 0.4s;
         }
 
         .screen {
@@ -42,7 +43,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 16px;
+            padding: 14px;
             z-index: 10;
         }
 
@@ -51,32 +52,34 @@
         }
 
         .card {
-            background: rgba(30, 41, 59, 0.92);
+            background: rgba(30, 41, 59, 0.94);
             border: 2px solid #334155;
             border-radius: 16px;
-            padding: 20px;
+            padding: 18px;
             width: 100%;
-            max-width: 390px;
+            max-width: 400px;
             text-align: center;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+            max-height: 92vh;
+            overflow-y: auto;
         }
 
         h1 {
-            font-size: 24px;
+            font-size: 23px;
             font-weight: 900;
             color: #38bdf8;
             letter-spacing: 0.04em;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .subtitle {
             font-size: 12px;
             color: #94a3b8;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         .input-group {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             text-align: left;
         }
 
@@ -91,7 +94,7 @@
 
         input[type="text"], input[type="number"], input[type="url"], select {
             width: 100%;
-            padding: 10px 12px;
+            padding: 9px 12px;
             border-radius: 8px;
             border: 1.5px solid #475569;
             background: #0f172a;
@@ -107,10 +110,10 @@
 
         .btn {
             width: 100%;
-            padding: 12px;
+            padding: 11px;
             border: none;
             border-radius: 10px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 900;
             cursor: pointer;
             letter-spacing: 0.04em;
@@ -120,6 +123,13 @@
 
         .btn:active {
             transform: scale(0.97);
+        }
+
+        .btn-solo {
+            background: linear-gradient(180deg, #f59e0b, #d97706);
+            color: #0f172a;
+            font-size: 15px;
+            padding: 13px;
         }
 
         .btn-primary {
@@ -141,9 +151,9 @@
             background: #0f172a;
             border: 2px dashed #38bdf8;
             border-radius: 10px;
-            padding: 12px;
-            margin: 12px 0;
-            font-size: 22px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 20px;
             font-weight: 900;
             letter-spacing: 0.15em;
             color: #fbbf24;
@@ -151,7 +161,7 @@
         }
 
         .divider {
-            margin: 14px 0;
+            margin: 12px 0;
             font-size: 11px;
             color: #64748b;
             font-weight: 800;
@@ -160,7 +170,7 @@
         /* ÁREA DO JOGO */
         #game-screen {
             justify-content: space-between;
-            padding: 10px 12px 16px;
+            padding: 8px 10px 12px;
         }
 
         .top-hud {
@@ -174,10 +184,10 @@
 
         .score-card {
             flex: 1;
-            background: rgba(15, 23, 42, 0.88);
+            background: rgba(15, 23, 42, 0.9);
             border: 1.5px solid #334155;
             border-radius: 10px;
-            padding: 6px 10px;
+            padding: 5px 8px;
             text-align: center;
         }
 
@@ -190,7 +200,7 @@
         }
 
         .player-tag {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 800;
             color: #94a3b8;
             white-space: nowrap;
@@ -199,18 +209,18 @@
         }
 
         .score-val {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 900;
             color: #f8fafc;
         }
 
         .target-box {
-            background: rgba(15, 23, 42, 0.92);
+            background: rgba(15, 23, 42, 0.94);
             border: 1.5px solid #fbbf24;
             border-radius: 10px;
-            padding: 6px 8px;
+            padding: 5px 8px;
             text-align: center;
-            min-width: 82px;
+            min-width: 90px;
         }
 
         .target-label {
@@ -226,18 +236,63 @@
         }
 
         .icon-btn {
-            background: rgba(30, 41, 59, 0.9);
+            background: rgba(30, 41, 59, 0.92);
             border: 1.5px solid #475569;
             color: #f8fafc;
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             flex-shrink: 0;
+        }
+
+        /* BARRA DE MISSÃO SOLO (RESGATE / BOSS / FASE) */
+        #solo-mission-bar {
+            width: 100%;
+            max-width: 460px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1.5px solid #475569;
+            border-radius: 10px;
+            padding: 5px 10px;
+            margin-top: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .mission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        #mission-title {
+            color: #fbbf24;
+        }
+
+        #mission-extra {
+            color: #38bdf8;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 7px;
+            background: #1e293b;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #mission-progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b, #22c55e);
+            transition: width 0.2s;
         }
 
         #canvas-wrap {
@@ -283,17 +338,17 @@
         .status-text {
             font-size: 12px;
             color: #fbbf24;
-            margin-top: 8px;
+            margin-top: 6px;
             min-height: 16px;
             font-weight: 700;
         }
 
         .toast {
             position: fixed;
-            top: 64px;
+            top: 86px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.95);
+            background: rgba(15, 23, 42, 0.96);
             border: 1.5px solid #38bdf8;
             color: #bae6fd;
             padding: 7px 14px;
@@ -304,6 +359,8 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s;
+            text-align: center;
+            max-width: 90%;
         }
     </style>
 </head>
@@ -312,11 +369,15 @@
 <div id="bg-overlay"></div>
 <div id="toast" class="toast"></div>
 
-<!-- TELA DE CONEXÃO P2P -->
+<!-- TELA INICIAL (SOLO + MULTIPLAYER P2P) -->
 <div id="lobby-screen" class="screen">
     <div class="card">
-        <h1>BLOCK BLAST P2P</h1>
-        <div class="subtitle">Disputa em tempo real • Você vs Sua Irmã</div>
+        <h1>BLOCK BLAST</h1>
+        <div class="subtitle">Campanha Solo Infinita • Multiplayer P2P</div>
+
+        <button class="btn btn-solo" id="btn-start-solo">🏆 JOGAR MODO SOLO (FASES & BOSS)</button>
+
+        <div class="divider">— OU DISPUTAR MULTIPLAYER P2P —</div>
 
         <div class="input-group">
             <label>Seu Nome</label>
@@ -325,10 +386,10 @@
 
         <div id="create-section">
             <div class="input-group">
-                <label>Meta de Pontos para Vencer</label>
+                <label>Meta de Pontos P2P</label>
                 <input type="number" id="target-score-input" value="15000" min="500" step="500">
             </div>
-            <button class="btn btn-primary" id="btn-create-room">GERAR CÓDIGO DA SALA</button>
+            <button class="btn btn-primary" id="btn-create-room">GERAR CÓDIGO P2P</button>
 
             <div id="host-wait-box" class="hidden">
                 <div class="code-box" id="room-code-display" title="Toque para copiar">------</div>
@@ -336,15 +397,13 @@
             </div>
         </div>
 
-        <div class="divider">— OU ENTRE COM O CÓDIGO DELA —</div>
-
-        <div class="input-group">
-            <label>Código da Sala</label>
+        <div class="input-group" style="margin-top:10px;">
+            <label>Entrar com Código P2P</label>
             <input type="text" id="join-code-input" placeholder="Ex: AB12CD" maxlength="8" style="text-transform:uppercase;">
         </div>
-        <button class="btn btn-success" id="btn-join-room">CONECTAR E JOGAR</button>
+        <button class="btn btn-success" id="btn-join-room">CONECTAR P2P</button>
 
-        <button class="btn btn-secondary" id="btn-open-settings-lobby" style="margin-top:12px;">⚙️ COR DOS BLOCOS E FUNDO</button>
+        <button class="btn btn-secondary" id="btn-open-settings-lobby" style="margin-top:10px;">⚙️ COR DOS BLOCOS E FUNDO</button>
         <div class="status-text" id="conn-status"></div>
     </div>
 </div>
@@ -353,21 +412,32 @@
 <div id="game-screen" class="screen hidden">
     <div class="top-hud">
         <div class="score-card me">
-            <div class="player-tag" id="hud-my-name">VOCÊ</div>
+            <div class="player-tag" id="hud-my-name">PAULO</div>
             <div class="score-val" id="hud-my-score">0</div>
         </div>
 
         <div class="target-box">
-            <div class="target-label">META</div>
-            <div class="target-val" id="hud-target">15.000</div>
+            <div class="target-label" id="hud-target-label">META FASE 1</div>
+            <div class="target-val" id="hud-target">2.000</div>
         </div>
 
-        <div class="score-card rival">
-            <div class="player-tag" id="hud-rival-name">RIVAL</div>
-            <div class="score-val" id="hud-rival-score">0</div>
+        <div class="score-card rival" id="hud-rival-card">
+            <div class="player-tag" id="hud-rival-name">FASE</div>
+            <div class="score-val" id="hud-rival-score">1</div>
         </div>
 
         <button class="icon-btn" id="btn-open-settings-game" title="Configurações">⚙️</button>
+        <button class="icon-btn" id="btn-back-menu" title="Menu Inicial">🏠</button>
+    </div>
+
+    <div id="solo-mission-bar" class="hidden">
+        <div class="mission-header">
+            <span id="mission-title">FASE 1: Alcance 2.000 pontos</span>
+            <span id="mission-extra"></span>
+        </div>
+        <div class="progress-track">
+            <div id="mission-progress-fill"></div>
+        </div>
     </div>
 
     <div id="canvas-wrap">
@@ -376,28 +446,29 @@
 </div>
 
 <!-- TELA DE FIM DE PARTIDA -->
-<div id="gameover-screen" class="screen hidden" style="background: rgba(2,6,23,0.88); z-index: 25;">
+<div id="gameover-screen" class="screen hidden" style="background: rgba(2,6,23,0.9); z-index: 25;">
     <div class="card">
         <h1 id="winner-title" style="color:#fbbf24;">FIM DE JOGO!</h1>
-        <div class="subtitle" id="winner-desc">Alguém atingiu a meta de pontos!</div>
+        <div class="subtitle" id="winner-desc">Resultado da partida</div>
 
         <div style="display:flex; justify-content:space-around; margin: 14px 0; background:#0f172a; padding:10px; border-radius:10px;">
             <div>
-                <div style="font-size:10px; color:#94a3b8;" id="end-my-name">VOCÊ</div>
+                <div style="font-size:10px; color:#94a3b8;" id="end-my-name">PONTUAÇÃO</div>
                 <div style="font-size:20px; font-weight:900; color:#38bdf8;" id="end-my-score">0</div>
             </div>
-            <div>
+            <div id="end-rival-box">
                 <div style="font-size:10px; color:#94a3b8;" id="end-rival-name">RIVAL</div>
                 <div style="font-size:20px; font-weight:900; color:#f43f5e;" id="end-rival-score">0</div>
             </div>
         </div>
 
-        <div class="input-group">
+        <div class="input-group" id="p2p-next-target-group">
             <label>Nova Meta de Pontos (Próxima Partida)</label>
             <input type="number" id="new-target-input" value="15000" min="500" step="500">
         </div>
 
-        <button class="btn btn-success" id="btn-restart-match">INICIAR NOVA PARTIDA</button>
+        <button class="btn btn-success" id="btn-restart-match">JOGAR NOVAMENTE</button>
+        <button class="btn btn-secondary" id="btn-menu-from-end">VOLTAR AO MENU</button>
     </div>
 </div>
 
@@ -405,7 +476,7 @@
 <div id="settings-modal" class="modal-backdrop hidden">
     <div class="card">
         <h1 style="font-size:20px;">PERSONALIZAR VISUAL</h1>
-        <div class="subtitle">Suas cores e fundo ficam salvos só no seu aparelho</div>
+        <div class="subtitle">Suas cores e fundo ficam salvos no seu aparelho</div>
 
         <div class="input-group">
             <label>Estilo de Cor dos Blocos</label>
@@ -420,7 +491,7 @@
             <label>Escolher Cor dos Blocos</label>
             <div class="color-row">
                 <input type="color" id="block-fixed-color" value="#38bdf8">
-                <span style="font-size:12px; color:#94a3b8;">Toque no quadrado para escolher a cor</span>
+                <span style="font-size:12px; color:#94a3b8;">Toque no quadrado para escolher</span>
             </div>
         </div>
 
@@ -443,6 +514,16 @@ const PALETTE = [
     '#ef4444', '#f97316', '#f59e0b', '#22c55e',
     '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'
 ];
+
+// Paletas dinâmicas que mudam nos ciclos infinitos após o primeiro Boss
+const CYCLE_THEMES = [
+    { name: 'Clássico', palette: ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'], bgTint: 'rgba(15, 23, 42, 0.72)' },
+    { name: 'Neon Cyber', palette: ['#00f5d4', '#00bbf9', '#fee440', '#f15bb5', '#9b5de5', '#ff006e', '#3a86ff', '#8338ec'], bgTint: 'rgba(18, 8, 38, 0.76)' },
+    { name: 'Forja Vulcânica', palette: ['#ff4d00', '#ff7b00', '#ffb700', '#dc2626', '#facc15', '#fb7185', '#ea580c', '#fde047'], bgTint: 'rgba(35, 10, 8, 0.76)' },
+    { name: 'Abismo Esmeralda', palette: ['#10b981', '#34d399', '#059669', '#06b6d4', '#22d3ee', '#a3e635', '#2dd4bf', '#38bdf8'], bgTint: 'rgba(6, 28, 24, 0.76)' }
+];
+
+let activePalette = PALETTE;
 
 let userPrefs = {
     colorMode: localStorage.getItem('bb_colorMode') || 'RANDOM_CELL',
@@ -470,44 +551,92 @@ function showToast(msg) {
     t.textContent = msg;
     t.style.opacity = '1';
     clearTimeout(t._timer);
-    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2400);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2600);
 }
 
 /**
- * ÁUDIO LEVE (WEB AUDIO API)
+ * SISTEMA DE ÁUDIO COMPLETO (WEB AUDIO API)
  */
 const AudioFX = {
     ctx: null,
-    play(f1, f2, dur, type = 'sine') {
+    ensure() {
+        if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+        }
+        return this.ctx;
+    },
+    tone(freq1, freq2, dur, type = 'sine', vol = 0.14, delay = 0) {
         try {
-            if (!this.ctx) {
-                const AC = window.AudioContext || window.webkitAudioContext;
-                if (AC) this.ctx = new AC();
-            }
-            if (!this.ctx) return;
-            if (this.ctx.state === 'suspended') this.ctx.resume();
-            const t = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const g = this.ctx.createGain();
+            const ctx = this.ensure();
+            if (!ctx) return;
+            const t = ctx.currentTime + delay;
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
             osc.type = type;
-            osc.frequency.setValueAtTime(f1, t);
-            osc.frequency.exponentialRampToValueAtTime(f2, t + dur);
-            g.gain.setValueAtTime(0.12, t);
+            osc.frequency.setValueAtTime(freq1, t);
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq2), t + dur);
+            g.gain.setValueAtTime(vol, t);
             g.gain.exponentialRampToValueAtTime(0.001, t + dur);
             osc.connect(g);
-            g.connect(this.ctx.destination);
+            g.connect(ctx.destination);
             osc.start(t);
             osc.stop(t + dur + 0.02);
         } catch (e) {}
     },
-    place() { this.play(320, 520, 0.09, 'triangle'); },
-    clear(lines) { this.play(440, 880 + lines * 120, 0.22, 'sine'); },
-    invalid() { this.play(160, 90, 0.12, 'sawtooth'); }
+    // Som ao colocar bloco no tabuleiro
+    place() {
+        this.tone(240, 420, 0.08, 'triangle', 0.15, 0);
+        this.tone(520, 640, 0.06, 'sine', 0.08, 0.03);
+    },
+    // Som escalonado para pares/combos: 1 linha, 2, 3, 4+
+    combo(linesCount) {
+        const baseNotes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // Dó, Mi, Sol, Dó5, Mi5
+        const steps = Math.min(linesCount + 1, baseNotes.length);
+        for (let i = 0; i < steps; i++) {
+            const f = baseNotes[i] * (1 + (linesCount - 1) * 0.08);
+            this.tone(f, f * 1.15, 0.16, i >= 2 ? 'triangle' : 'sine', 0.16, i * 0.065);
+        }
+    },
+    // Som personalizado "MUITO BOM!" quando todo o tabuleiro fica limpo
+    boardAllClear() {
+        const fanfare = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+        fanfare.forEach((f, idx) => {
+            this.tone(f, f * 1.05, 0.22, 'triangle', 0.18, idx * 0.075);
+        });
+        this.tone(1046.50, 2093.0, 0.45, 'sine', 0.15, 0.42);
+    },
+    // Som grave dramático quando o tabuleiro fica trancado totalmente
+    lockedGameOver() {
+        const notes = [330, 293.66, 261.63, 196.00, 130.81];
+        notes.forEach((f, i) => {
+            this.tone(f, f * 0.85, 0.26, 'sawtooth', 0.15, i * 0.14);
+        });
+    },
+    rockBreak() {
+        this.tone(180, 75, 0.14, 'square', 0.16, 0);
+    },
+    rescueSuccess() {
+        [587.33, 739.99, 880, 1174.66].forEach((f, i) => {
+            this.tone(f, f * 1.08, 0.2, 'sine', 0.17, i * 0.08);
+        });
+    },
+    bossHit() {
+        this.tone(220, 65, 0.25, 'sawtooth', 0.22, 0);
+        this.tone(440, 110, 0.2, 'square', 0.15, 0.05);
+    },
+    invalid() {
+        this.tone(150, 95, 0.1, 'sawtooth', 0.1, 0);
+    }
 };
 
 /**
  * CONEXÃO P2P (PEERJS)
  */
+let gameMode = 'SOLO'; // 'SOLO' ou 'P2P'
 let peer = null;
 let conn = null;
 let isHost = false;
@@ -521,9 +650,7 @@ let matchActive = false;
 function generateShortCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
-    for (let i = 0; i < 6; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
     return code;
 }
 
@@ -533,47 +660,38 @@ function setStatus(text) {
 
 function setupConnectionHandlers(connection) {
     conn = connection;
-
     conn.on('open', () => {
         myName = document.getElementById('player-name').value.trim() || 'Jogador';
         if (isHost) {
             targetScore = Math.max(500, parseInt(document.getElementById('target-score-input').value, 10) || 15000);
-            conn.send({
-                type: 'WELCOME',
-                hostName: myName,
-                targetScore: targetScore
-            });
-            startNewMatch(targetScore);
+            conn.send({ type: 'WELCOME', hostName: myName, targetScore: targetScore });
+            startP2PMatch(targetScore);
         } else {
-            conn.send({
-                type: 'HELLO',
-                guestName: myName
-            });
+            conn.send({ type: 'HELLO', guestName: myName });
         }
     });
 
     conn.on('data', (data) => {
         if (!data || !data.type) return;
-
         if (data.type === 'HELLO') {
             rivalName = data.guestName || 'Convidado';
             updateHUD();
         } else if (data.type === 'WELCOME') {
             rivalName = data.hostName || 'Anfitrião';
             targetScore = data.targetScore || 15000;
-            startNewMatch(targetScore);
+            startP2PMatch(targetScore);
         } else if (data.type === 'SCORE_UPDATE') {
             rivalScore = data.score;
             updateHUD();
-            checkVictoryCondition();
+            checkP2PVictory();
         } else if (data.type === 'NEW_MATCH') {
             targetScore = data.targetScore || 15000;
-            startNewMatch(targetScore);
-            showToast(`Nova partida iniciada! Meta: ${targetScore.toLocaleString('pt-BR')}`);
+            startP2PMatch(targetScore);
+            showToast(`Nova partida P2P! Meta: ${targetScore.toLocaleString('pt-BR')}`);
         } else if (data.type === 'MATCH_WON') {
             rivalScore = data.winnerScore;
             updateHUD();
-            finishMatch(data.winnerName);
+            finishGameScreen(`${data.winnerName.toUpperCase()} VENCEU!`, `Atingiu ${targetScore.toLocaleString('pt-BR')} pontos!`);
         }
     });
 
@@ -587,33 +705,23 @@ document.getElementById('btn-create-room').addEventListener('click', () => {
     myName = document.getElementById('player-name').value.trim() || 'Paulo';
     isHost = true;
     const shortCode = generateShortCode();
-    const peerId = 'BBP2P-' + shortCode;
-
     setStatus('Gerando sala P2P...');
     if (peer) peer.destroy();
 
-    peer = new Peer(peerId);
+    peer = new Peer('BBP2P-' + shortCode);
     peer.on('open', () => {
         document.getElementById('host-wait-box').classList.remove('hidden');
         document.getElementById('room-code-display').textContent = shortCode;
-        setStatus('Aguardando sua irmã conectar com o código...');
+        setStatus('Aguardando conectar com o código...');
     });
-
-    peer.on('connection', (incomingConn) => {
-        setupConnectionHandlers(incomingConn);
-    });
-
-    peer.on('error', (err) => {
-        setStatus('Erro ao criar sala: ' + err.type);
-    });
+    peer.on('connection', setupConnectionHandlers);
+    peer.on('error', (err) => setStatus('Erro ao criar sala: ' + err.type));
 });
 
 document.getElementById('room-code-display').addEventListener('click', () => {
     const code = document.getElementById('room-code-display').textContent;
     if (navigator.clipboard && code !== '------') {
-        navigator.clipboard.writeText(code).then(() => {
-            showToast('Código ' + code + ' copiado!');
-        }).catch(() => {});
+        navigator.clipboard.writeText(code).then(() => showToast('Código ' + code + ' copiado!')).catch(() => {});
     }
 });
 
@@ -623,26 +731,27 @@ document.getElementById('btn-join-room').addEventListener('click', () => {
         setStatus('Digite o código da sala primeiro.');
         return;
     }
-
     myName = document.getElementById('player-name').value.trim() || 'Tássia';
     isHost = false;
     setStatus('Conectando a ' + rawCode + '...');
-
     if (peer) peer.destroy();
     peer = new Peer();
-
     peer.on('open', () => {
         const outgoingConn = peer.connect('BBP2P-' + rawCode, { reliable: true });
         setupConnectionHandlers(outgoingConn);
     });
-
-    peer.on('error', (err) => {
-        setStatus('Não foi possível conectar (' + err.type + '). Verifique o código.');
-    });
+    peer.on('error', (err) => setStatus('Erro ao conectar (' + err.type + ').'));
 });
 
 /**
- * MOTOR DO BLOCK BLAST (TABULEIRO 8x8 + PEÇAS ALEATÓRIAS)
+ * MOTOR DO TABULEIRO 8x8 + CÉLULAS ESPECIAIS (BLOQUEIOS, RESGATE, BOSS)
+ * Cada célula de board[r][c] pode ser:
+ * - null: vazia
+ * - { kind: 'NORMAL', color: '#...' }
+ * - { kind: 'LOCKER', hp: 1, maxHp: 1 } (bloco que fecha quadradinhos; quebra fazendo linha/coluna adjacente)
+ * - { kind: 'RESCUE_TARGET' } (carinha fofinha assustada mexendo os olhos)
+ * - { kind: 'RESCUE_CAGE', hp: 2, maxHp: 2 } (blocos resistentes ao redor da carinha)
+ * - { kind: 'BOSS_CORE', hp: 5, maxHp: 5, name: '...' } (núcleo do Boss no tabuleiro; sofre dano ao fazer linhas/colunas que cruzam ele ou encostam nele)
  */
 const GRID_SIZE = 8;
 let board = [];
@@ -650,8 +759,104 @@ let trayPieces = [null, null, null];
 let draggingIndex = -1;
 let dragPos = { x: 0, y: 0 };
 let hoverCell = null;
+let floatingTexts = [];
+let particles = [];
+let screenShake = 0;
 
-// Formatos variados de blocos (sempre sorteados aleatoriamente)
+// Estado da Campanha Solo
+const SOLO_MILESTONES = [
+    { target: 2000,  type: 'SCORE',  label: 'Fase 1 • Aquecimento' },
+    { target: 3000,  type: 'SCORE',  label: 'Fase 2 • Ritmo Crescente' },
+    { target: 4500,  type: 'SCORE',  label: 'Fase 3 • Domínio do Tabuleiro' },
+    { target: 5000,  type: 'LOCKER', label: 'Fase 4 • Blocos Trancados!' },
+    { target: 6000,  type: 'LOCKER', label: 'Fase 5 • Ruínas Seladas' },
+    { target: 7500,  type: 'LOCKER', label: 'Fase 6 • Pressão Constante' },
+    { target: 9000,  type: 'LOCKER', label: 'Fase 7 • Muralha de Pedra' },
+    { target: 10000, type: 'RESCUE', label: 'Fase 8 • Missão Resgate!' },
+    { target: 11500, type: 'RESCUE', label: 'Fase 9 • Resgate Duplo' },
+    { target: 13000, type: 'RESCUE', label: 'Fase 10 • Prisão Reforçada' },
+    { target: 15000, type: 'RESCUE', label: 'Fase 11 • Último Socorro' },
+    { target: 16000, type: 'BOSS',   label: 'Fase 12 • BOSS: GUARDIÃO DE OBSIDIANA' }
+];
+
+let soloStageIndex = 0;
+let soloCycle = 1; // Aumenta a cada Boss derrotado para gerar infinitas fases mais difíceis
+let soloStageStartScore = 0;
+let soloStageTargetScore = 2000;
+let soloStageType = 'SCORE'; // 'SCORE', 'LOCKER', 'RESCUE', 'BOSS'
+let soloStageLabel = '';
+let rescueTimer = 0;
+let rescueMaxTimer = 45;
+let rescueTimerInterval = null;
+let movesInStage = 0;
+
+function getSoloStageConfig(index) {
+    if (index < SOLO_MILESTONES.length) {
+        const m = SOLO_MILESTONES[index];
+        const prevTarget = index === 0 ? 0 : SOLO_MILESTONES[index - 1].target;
+        return {
+            stageNum: index + 1,
+            cycle: 1,
+            type: m.type,
+            target: m.target,
+            stepPoints: m.target - prevTarget,
+            label: m.label
+        };
+    }
+
+    // Fases infinitas geradas automaticamente após 16.000 seguindo a mesma lógica + dificuldade/temas
+    const extraIdx = index - SOLO_MILESTONES.length;
+    const cycle = Math.floor(extraIdx / 4) + 2;
+    const patternPos = extraIdx % 4; // 0: SCORE, 1: LOCKER, 2: RESCUE, 3: BOSS
+    const types = ['SCORE', 'LOCKER', 'RESCUE', 'BOSS'];
+    const type = types[patternPos];
+    const stepPoints = 2000 + cycle * 600;
+    const target = soloStageTargetScore + stepPoints;
+
+    const bossNames = ['TITÃ DE MAGMA', 'COLOSSO DE CRISTAL', 'ESPECTRO DO VAZIO', 'IMPERADOR DOS BLOCOS'];
+    let label = `Ciclo ${cycle} • Fase ${index + 1}`;
+    if (type === 'LOCKER') label = `Ciclo ${cycle} • Armadilhas Selvagens`;
+    if (type === 'RESCUE') label = `Ciclo ${cycle} • Resgate Urgente`;
+    if (type === 'BOSS') label = `BOSS: ${bossNames[(cycle - 2) % bossNames.length]}`;
+
+    return {
+        stageNum: index + 1,
+        cycle,
+        type,
+        target,
+        stepPoints,
+        label
+    };
+}
+
+function applyCycleTheme(cycle) {
+    const theme = CYCLE_THEMES[(cycle - 1) % CYCLE_THEMES.length];
+    activePalette = theme.palette;
+    if (!userPrefs.bgUrl || userPrefs.bgUrl.trim() === '') {
+        document.getElementById('bg-overlay').style.background = theme.bgTint;
+    }
+}
+
+function spawnFloatingText(x, y, text, color = '#fbbf24') {
+    floatingTexts.push({ x, y, text, color, life: 48 });
+}
+
+function spawnParticles(x, y, color, count = 12) {
+    for (let i = 0; i < count; i++) {
+        if (particles.length > 90) particles.shift();
+        particles.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 7,
+            vy: (Math.random() - 0.6) * 7,
+            color,
+            life: 22 + Math.random() * 12
+        });
+    }
+}
+
+/**
+ * GERADOR DE PEÇAS ALEATÓRIAS
+ */
 const SHAPES = [
     [[1]],
     [[1, 1]],
@@ -683,29 +888,21 @@ const SHAPES = [
 ];
 
 function randomPaletteColor() {
-    return PALETTE[Math.floor(Math.random() * PALETTE.length)];
+    return activePalette[Math.floor(Math.random() * activePalette.length)];
 }
 
 function createRandomPiece() {
     const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
     const pieceBaseColor = randomPaletteColor();
-
-    // Matriz de cores individuais para cada célula da peça
     const cellColors = shape.map(row =>
         row.map(val => {
             if (!val) return null;
             if (userPrefs.colorMode === 'FIXED') return userPrefs.fixedColor;
             if (userPrefs.colorMode === 'RANDOM_PIECE') return pieceBaseColor;
-            return randomPaletteColor(); // RANDOM_CELL: cada quadradinho aleatório
+            return randomPaletteColor();
         })
     );
-
-    return {
-        shape,
-        cellColors,
-        rows: shape.length,
-        cols: shape[0].length
-    };
+    return { shape, cellColors, rows: shape.length, cols: shape[0].length };
 }
 
 function refillTrayIfEmpty() {
@@ -715,11 +912,11 @@ function refillTrayIfEmpty() {
 }
 
 function recolorExistingBlocks() {
-    // Atualiza cores ao mudar nas configurações durante a partida
     for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
-            if (board[r][c]) {
-                board[r][c] = userPrefs.colorMode === 'FIXED' ? userPrefs.fixedColor : randomPaletteColor();
+            const cell = board[r][c];
+            if (cell && cell.kind === 'NORMAL') {
+                cell.color = userPrefs.colorMode === 'FIXED' ? userPrefs.fixedColor : randomPaletteColor();
             }
         }
     }
@@ -738,23 +935,253 @@ function recolorExistingBlocks() {
     });
 }
 
-function resetBoardOnly() {
+function clearBoardGrid() {
     board = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
-    trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
-    draggingIndex = -1;
-    hoverCell = null;
 }
 
-function startNewMatch(newTarget) {
-    targetScore = newTarget;
+/**
+ * MECÂNICAS ESPECIAIS DO MODO SOLO (BLOQUEIOS, RESGATE, BOSS)
+ */
+function spawnRandomLockers(count = 2) {
+    const emptyCells = [];
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            if (board[r][c] === null) emptyCells.push({ r, c });
+        }
+    }
+    for (let i = 0; i < count && emptyCells.length > 0; i++) {
+        const idx = Math.floor(Math.random() * emptyCells.length);
+        const pos = emptyCells.splice(idx, 1)[0];
+        board[pos.r][pos.c] = { kind: 'LOCKER', hp: 1, maxHp: 1 };
+        const px = layout.boardX + pos.c * layout.cellSize + layout.cellSize / 2;
+        const py = layout.boardY + pos.r * layout.cellSize + layout.cellSize / 2;
+        spawnParticles(px, py, '#94a3b8', 8);
+    }
+}
+
+function setupRescueMission(cycle) {
+    // Limpa alguns blocos para abrir espaço e posiciona a carinha fofinha cercada por blocos resistentes
+    clearBoardGrid();
+    const tr = 2 + Math.floor(Math.random() * 4);
+    const tc = 2 + Math.floor(Math.random() * 4);
+    const cageHp = Math.min(3, 1 + Math.floor(cycle / 2) + (soloStageIndex >= 9 ? 1 : 0));
+
+    board[tr][tc] = { kind: 'RESCUE_TARGET' };
+
+    const neighbors = [
+        [-1, 0], [1, 0], [0, -1], [0, 1],
+        [-1, -1], [-1, 1], [1, -1], [1, 1]
+    ];
+    neighbors.forEach(([dr, dc]) => {
+        const nr = tr + dr;
+        const nc = tc + dc;
+        if (nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE) {
+            board[nr][nc] = { kind: 'RESCUE_CAGE', hp: cageHp, maxHp: cageHp };
+        }
+    });
+
+    rescueMaxTimer = Math.max(28, 48 - (cycle - 1) * 4);
+    rescueTimer = rescueMaxTimer;
+}
+
+function setupBossEncounter(cycle) {
+    clearBoardGrid();
+    const bossHp = 4 + cycle * 2;
+    // Posiciona o Boss em um bloco 2x2 no centro-topo do tabuleiro
+    const startR = 2;
+    const startC = 3;
+    for (let r = startR; r < startR + 2; r++) {
+        for (let c = startC; c < startC + 2; c++) {
+            board[r][c] = {
+                kind: 'BOSS_CORE',
+                hp: bossHp,
+                maxHp: bossHp,
+                isMain: (r === startR && c === startC)
+            };
+        }
+    }
+    // Adiciona alguns bloqueios ao redor dependendo do ciclo
+    spawnRandomLockers(Math.min(4, cycle + 1));
+    showToast('BOSS APARECEU! Faça linhas/colunas encostando nele para causar dano!');
+}
+
+function stopRescueTimer() {
+    if (rescueTimerInterval) {
+        clearInterval(rescueTimerInterval);
+        rescueTimerInterval = null;
+    }
+}
+
+function startSoloStage(index) {
+    stopRescueTimer();
+    soloStageIndex = index;
+    const cfg = getSoloStageConfig(index);
+    soloCycle = cfg.cycle;
+    soloStageType = cfg.type;
+    soloStageStartScore = myScore;
+    soloStageTargetScore = Math.max(cfg.target, myScore + cfg.stepPoints);
+    soloStageLabel = cfg.label;
+    movesInStage = 0;
+
+    applyCycleTheme(soloCycle);
+
+    if (soloStageType === 'LOCKER') {
+        spawnRandomLockers(Math.min(4, 1 + soloCycle));
+        showToast('Atenção! Blocos trancados surgem no tabuleiro. Limpe linhas perto deles!');
+    } else if (soloStageType === 'RESCUE') {
+        setupRescueMission(soloCycle);
+        showToast('MISSÃO RESGATE! Quebre os blocos ao redor da carinha antes do tempo acabar!');
+        rescueTimerInterval = setInterval(() => {
+            if (!matchActive || gameMode !== 'SOLO' || soloStageType !== 'RESCUE') return;
+            rescueTimer--;
+            updateSoloMissionHUD();
+            if (rescueTimer <= 0) {
+                stopRescueTimer();
+                AudioFX.lockedGameOver();
+                finishGameScreen('TEMPO ESGOTADO!', 'Você não conseguiu resgatar o amiguinho a tempo!');
+            }
+        }, 1000);
+    } else if (soloStageType === 'BOSS') {
+        setupBossEncounter(soloCycle);
+    }
+
+    trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+    updateHUD();
+    updateSoloMissionHUD();
+}
+
+function updateSoloMissionHUD() {
+    if (gameMode !== 'SOLO') return;
+    const titleEl = document.getElementById('mission-title');
+    const extraEl = document.getElementById('mission-extra');
+    const fillEl = document.getElementById('mission-progress-fill');
+
+    titleEl.textContent = soloStageLabel;
+
+    if (soloStageType === 'RESCUE') {
+        let cagesLeft = 0;
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] && board[r][c].kind === 'RESCUE_CAGE') cagesLeft += board[r][c].hp;
+            }
+        }
+        extraEl.textContent = `⏱️ ${rescueTimer}s • Trancas: ${cagesLeft}`;
+        const pct = Math.max(0, Math.min(100, (rescueTimer / rescueMaxTimer) * 100));
+        fillEl.style.width = pct + '%';
+        fillEl.style.background = rescueTimer <= 10 ? '#ef4444' : 'linear-gradient(90deg, #38bdf8, #22c55e)';
+    } else if (soloStageType === 'BOSS') {
+        let bossHp = 0, bossMax = 1;
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] && board[r][c].kind === 'BOSS_CORE' && board[r][c].isMain) {
+                    bossHp = board[r][c].hp;
+                    bossMax = board[r][c].maxHp;
+                }
+            }
+        }
+        extraEl.textContent = `👹 HP BOSS: ${bossHp}/${bossMax}`;
+        fillEl.style.width = Math.max(0, (bossHp / bossMax) * 100) + '%';
+        fillEl.style.background = 'linear-gradient(90deg, #dc2626, #f97316)';
+    } else {
+        const gained = myScore - soloStageStartScore;
+        const needed = soloStageTargetScore - soloStageStartScore;
+        const pct = Math.max(0, Math.min(100, (gained / needed) * 100));
+        extraEl.textContent = `${myScore.toLocaleString('pt-BR')} / ${soloStageTargetScore.toLocaleString('pt-BR')}`;
+        fillEl.style.width = pct + '%';
+        fillEl.style.background = 'linear-gradient(90deg, #f59e0b, #22c55e)';
+    }
+}
+
+function checkSoloStageCompletion() {
+    if (gameMode !== 'SOLO' || !matchActive) return;
+
+    if (soloStageType === 'RESCUE') {
+        let hasCages = false;
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] && board[r][c].kind === 'RESCUE_CAGE') hasCages = true;
+            }
+        }
+        if (!hasCages) {
+            // Libera o amiguinho resgatado!
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (board[r][c] && board[r][c].kind === 'RESCUE_TARGET') {
+                        const px = layout.boardX + c * layout.cellSize + layout.cellSize / 2;
+                        const py = layout.boardY + r * layout.cellSize + layout.cellSize / 2;
+                        spawnParticles(px, py, '#fde047', 24);
+                        board[r][c] = null;
+                    }
+                }
+            }
+            AudioFX.rescueSuccess();
+            myScore += 500 + rescueTimer * 15;
+            showToast('RESGATE CONCLUÍDO! +Bônus de Tempo!');
+            startSoloStage(soloStageIndex + 1);
+        }
+        return;
+    }
+
+    if (soloStageType === 'BOSS') {
+        let bossAlive = false;
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] && board[r][c].kind === 'BOSS_CORE') bossAlive = true;
+            }
+        }
+        if (!bossAlive) {
+            AudioFX.boardAllClear();
+            myScore += 1500 * soloCycle;
+            screenShake = 14;
+            showToast(`BOSS DERROTADO! Iniciando Ciclo ${soloCycle + 1}!`);
+            startSoloStage(soloStageIndex + 1);
+        }
+        return;
+    }
+
+    // Fases de pontuação normal ou com bloqueios
+    if (myScore >= soloStageTargetScore) {
+        AudioFX.rescueSuccess();
+        showToast(`FASE ${soloStageIndex + 1} CONCLUÍDA!`);
+        startSoloStage(soloStageIndex + 1);
+    }
+}
+
+/**
+ * INICIALIZAÇÃO DE PARTIDAS (SOLO E P2P)
+ */
+document.getElementById('btn-start-solo').addEventListener('click', () => {
+    AudioFX.ensure();
+    gameMode = 'SOLO';
+    myName = document.getElementById('player-name').value.trim() || 'Paulo';
     myScore = 0;
-    rivalScore = 0;
     matchActive = true;
-    resetBoardOnly();
+    clearBoardGrid();
 
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('gameover-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
+    document.getElementById('solo-mission-bar').classList.remove('hidden');
+
+    resizeCanvas();
+    startSoloStage(0);
+});
+
+function startP2PMatch(newTarget) {
+    stopRescueTimer();
+    gameMode = 'P2P';
+    targetScore = newTarget;
+    myScore = 0;
+    rivalScore = 0;
+    matchActive = true;
+    activePalette = PALETTE;
+    clearBoardGrid();
+    trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+
+    document.getElementById('lobby-screen').classList.add('hidden');
+    document.getElementById('gameover-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    document.getElementById('solo-mission-bar').classList.add('hidden');
 
     resizeCanvas();
     updateHUD();
@@ -762,55 +1189,78 @@ function startNewMatch(newTarget) {
 
 function updateHUD() {
     document.getElementById('hud-my-name').textContent = myName.toUpperCase();
-    document.getElementById('hud-rival-name').textContent = rivalName.toUpperCase();
     document.getElementById('hud-my-score').textContent = myScore.toLocaleString('pt-BR');
-    document.getElementById('hud-rival-score').textContent = rivalScore.toLocaleString('pt-BR');
-    document.getElementById('hud-target').textContent = targetScore.toLocaleString('pt-BR');
-}
 
-function sendScoreUpdate() {
-    if (conn && conn.open) {
-        conn.send({ type: 'SCORE_UPDATE', score: myScore });
+    if (gameMode === 'SOLO') {
+        document.getElementById('hud-target-label').textContent = soloStageType === 'BOSS' ? 'CHEFE' : (soloStageType === 'RESCUE' ? 'RESGATE' : 'META FASE');
+        document.getElementById('hud-target').textContent = soloStageType === 'BOSS' ? 'BOSS' : (soloStageType === 'RESCUE' ? `${rescueTimer}s` : soloStageTargetScore.toLocaleString('pt-BR'));
+        document.getElementById('hud-rival-name').textContent = 'FASE';
+        document.getElementById('hud-rival-score').textContent = `${soloStageIndex + 1}`;
+    } else {
+        document.getElementById('hud-target-label').textContent = 'META P2P';
+        document.getElementById('hud-target').textContent = targetScore.toLocaleString('pt-BR');
+        document.getElementById('hud-rival-name').textContent = rivalName.toUpperCase();
+        document.getElementById('hud-rival-score').textContent = rivalScore.toLocaleString('pt-BR');
     }
 }
 
-function checkVictoryCondition() {
-    if (!matchActive) return;
+function checkP2PVictory() {
+    if (gameMode !== 'P2P' || !matchActive) return;
     if (myScore >= targetScore) {
-        if (conn && conn.open) {
-            conn.send({ type: 'MATCH_WON', winnerName: myName, winnerScore: myScore });
-        }
-        finishMatch(myName);
+        if (conn && conn.open) conn.send({ type: 'MATCH_WON', winnerName: myName, winnerScore: myScore });
+        finishGameScreen(`${myName.toUpperCase()} VENCEU!`, `Atingiu ${targetScore.toLocaleString('pt-BR')} pontos!`);
     } else if (rivalScore >= targetScore) {
-        finishMatch(rivalName);
+        finishGameScreen(`${rivalName.toUpperCase()} VENCEU!`, `Atingiu ${targetScore.toLocaleString('pt-BR')} pontos!`);
     }
 }
 
-function finishMatch(winnerName) {
+function finishGameScreen(title, desc) {
     matchActive = false;
+    stopRescueTimer();
     draggingIndex = -1;
 
-    document.getElementById('winner-title').textContent = `${winnerName.toUpperCase()} VENCEU!`;
-    document.getElementById('winner-desc').textContent = `Atingiu a meta de ${targetScore.toLocaleString('pt-BR')} pontos!`;
+    document.getElementById('winner-title').textContent = title;
+    document.getElementById('winner-desc').textContent = desc;
     document.getElementById('end-my-name').textContent = myName.toUpperCase();
-    document.getElementById('end-rival-name').textContent = rivalName.toUpperCase();
     document.getElementById('end-my-score').textContent = myScore.toLocaleString('pt-BR');
-    document.getElementById('end-rival-score').textContent = rivalScore.toLocaleString('pt-BR');
-    document.getElementById('new-target-input').value = targetScore;
+
+    if (gameMode === 'SOLO') {
+        document.getElementById('end-rival-name').textContent = 'FASE ALCANÇADA';
+        document.getElementById('end-rival-score').textContent = `Fase ${soloStageIndex + 1}`;
+        document.getElementById('p2p-next-target-group').classList.add('hidden');
+    } else {
+        document.getElementById('end-rival-name').textContent = rivalName.toUpperCase();
+        document.getElementById('end-rival-score').textContent = rivalScore.toLocaleString('pt-BR');
+        document.getElementById('p2p-next-target-group').classList.remove('hidden');
+        document.getElementById('new-target-input').value = targetScore;
+    }
 
     document.getElementById('gameover-screen').classList.remove('hidden');
 }
 
 document.getElementById('btn-restart-match').addEventListener('click', () => {
-    const nextTarget = Math.max(500, parseInt(document.getElementById('new-target-input').value, 10) || 15000);
-    if (conn && conn.open) {
-        conn.send({ type: 'NEW_MATCH', targetScore: nextTarget });
+    if (gameMode === 'SOLO') {
+        document.getElementById('btn-start-solo').click();
+    } else {
+        const nextTarget = Math.max(500, parseInt(document.getElementById('new-target-input').value, 10) || 15000);
+        if (conn && conn.open) conn.send({ type: 'NEW_MATCH', targetScore: nextTarget });
+        startP2PMatch(nextTarget);
     }
-    startNewMatch(nextTarget);
 });
 
+function returnToLobby() {
+    matchActive = false;
+    stopRescueTimer();
+    document.getElementById('gameover-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.add('hidden');
+    document.getElementById('lobby-screen').classList.remove('hidden');
+}
+
+document.getElementById('btn-back-menu').addEventListener('click', returnToLobby);
+document.getElementById('btn-menu-from-end').addEventListener('click', returnToLobby);
+
 /**
- * VALIDAÇÃO DE ENCAIXE E LIMPEZA DE LINHAS/COLUNAS
+ * VALIDAÇÃO DE ENCAIXE, COMBOS E INTERAÇÕES ESPECIAIS
  */
 function canPlacePiece(piece, startRow, startCol) {
     if (!piece) return false;
@@ -840,6 +1290,68 @@ function hasAnyValidMove() {
     return false;
 }
 
+function damageSpecialNeighbors(clearedCellsSet) {
+    let brokeAny = false;
+    let damagedBoss = false;
+    const processedBoss = new Set();
+
+    clearedCellsSet.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+        dirs.forEach(([dr, dc]) => {
+            const nr = r + dr;
+            const nc = c + dc;
+            if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE) return;
+            const target = board[nr][nc];
+            if (!target) return;
+
+            if (target.kind === 'LOCKER' || target.kind === 'RESCUE_CAGE') {
+                target.hp--;
+                brokeAny = true;
+                const px = layout.boardX + nc * layout.cellSize + layout.cellSize / 2;
+                const py = layout.boardY + nr * layout.cellSize + layout.cellSize / 2;
+                if (target.hp <= 0) {
+                    board[nr][nc] = null;
+                    spawnParticles(px, py, '#38bdf8', 12);
+                } else {
+                    spawnParticles(px, py, '#fbbf24', 6);
+                }
+            } else if (target.kind === 'BOSS_CORE' && !damagedBoss) {
+                damagedBoss = true;
+                // Reduz HP em todas as células do Boss
+                for (let br = 0; br < GRID_SIZE; br++) {
+                    for (let bc = 0; bc < GRID_SIZE; bc++) {
+                        if (board[br][bc] && board[br][bc].kind === 'BOSS_CORE') {
+                            board[br][bc].hp--;
+                            if (board[br][bc].hp <= 0) {
+                                board[br][bc] = null;
+                            }
+                        }
+                    }
+                }
+                const bx = layout.boardX + nc * layout.cellSize;
+                const by = layout.boardY + nr * layout.cellSize;
+                spawnParticles(bx, by, '#ef4444', 18);
+                spawnFloatingText(bx, by - 10, '-1 HP BOSS!', '#ef4444');
+                screenShake = 9;
+                AudioFX.bossHit();
+            }
+        });
+    });
+
+    if (brokeAny) AudioFX.rockBreak();
+}
+
+function isBoardCompletelyEmpty() {
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            if (board[r][c] !== null) return false;
+        }
+    }
+    return true;
+}
+
 function placePieceOnBoard(pieceIndex, startRow, startCol) {
     const piece = trayPieces[pieceIndex];
     if (!canPlacePiece(piece, startRow, startCol)) return false;
@@ -848,7 +1360,10 @@ function placePieceOnBoard(pieceIndex, startRow, startCol) {
     for (let r = 0; r < piece.rows; r++) {
         for (let c = 0; c < piece.cols; c++) {
             if (piece.shape[r][c]) {
-                board[startRow + r][startCol + c] = piece.cellColors[r][c];
+                board[startRow + r][startCol + c] = {
+                    kind: 'NORMAL',
+                    color: piece.cellColors[r][c]
+                };
                 placedCells++;
             }
         }
@@ -856,58 +1371,118 @@ function placePieceOnBoard(pieceIndex, startRow, startCol) {
 
     trayPieces[pieceIndex] = null;
     AudioFX.place();
+    movesInStage++;
 
-    // Verifica linhas e colunas completas
+    // Verifica linhas e colunas completas (células especiais como Boss/Resgate impedem limpeza direta daquela linha, exigindo limpeza ao lado!)
     const fullRows = [];
     const fullCols = [];
 
     for (let r = 0; r < GRID_SIZE; r++) {
-        if (board[r].every(cell => cell !== null)) fullRows.push(r);
+        if (board[r].every(cell => cell !== null && cell.kind === 'NORMAL')) fullRows.push(r);
     }
     for (let c = 0; c < GRID_SIZE; c++) {
         let full = true;
         for (let r = 0; r < GRID_SIZE; r++) {
-            if (board[r][c] === null) { full = false; break; }
+            if (board[r][c] === null || board[r][c].kind !== 'NORMAL') { full = false; break; }
         }
         if (full) fullCols.push(c);
     }
 
     const totalCleared = fullRows.length + fullCols.length;
+    const clearedCoords = new Set();
+
     if (totalCleared > 0) {
         fullRows.forEach(r => {
-            for (let c = 0; c < GRID_SIZE; c++) board[r][c] = null;
+            for (let c = 0; c < GRID_SIZE; c++) {
+                clearedCoords.add(`${r},${c}`);
+                const px = layout.boardX + c * layout.cellSize + layout.cellSize / 2;
+                const py = layout.boardY + r * layout.cellSize + layout.cellSize / 2;
+                if (board[r][c]) spawnParticles(px, py, board[r][c].color || '#38bdf8', 5);
+                board[r][c] = null;
+            }
         });
         fullCols.forEach(c => {
-            for (let r = 0; r < GRID_SIZE; r++) board[r][c] = null;
+            for (let r = 0; r < GRID_SIZE; r++) {
+                clearedCoords.add(`${r},${c}`);
+                const px = layout.boardX + c * layout.cellSize + layout.cellSize / 2;
+                const py = layout.boardY + r * layout.cellSize + layout.cellSize / 2;
+                if (board[r][c]) spawnParticles(px, py, board[r][c].color || '#38bdf8', 5);
+                board[r][c] = null;
+            }
         });
-        AudioFX.clear(totalCleared);
+
+        // Aplica dano em bloqueios adjacentes, jaulas de resgate ou Boss
+        damageSpecialNeighbors(clearedCoords);
+
+        // Verifica se eliminou TODOS os blocos do tabuleiro
+        if (isBoardCompletelyEmpty()) {
+            AudioFX.boardAllClear();
+            myScore += 1000;
+            spawnFloatingText(canvas.width / 2, layout.boardY + 120, 'MUITO BOM! +1.000', '#22c55e');
+            showToast('MUITO BOM! Tabuleiro 100% limpo (+1.000 pts)!');
+        } else {
+            AudioFX.combo(totalCleared);
+            if (totalCleared >= 2) {
+                spawnFloatingText(canvas.width / 2, layout.boardY + 120, `COMBO ${totalCleared}x!`, '#38bdf8');
+            }
+        }
     }
 
-    // Pontuação estilo Block Blast (blocos + bônus de combo)
+    // Cálculo de pontos
     const lineBonus = totalCleared > 0 ? (totalCleared * totalCleared * 180) : 0;
     myScore += (placedCells * 15) + lineBonus;
 
+    // Na fase de bloqueios ou Boss, novos cadeados surgem periodicamente a cada 3 jogadas
+    if (gameMode === 'SOLO' && (soloStageType === 'LOCKER' || soloStageType === 'BOSS')) {
+        if (movesInStage % 3 === 0) {
+            spawnRandomLockers(soloStageType === 'BOSS' ? 1 : Math.min(2, soloCycle));
+        }
+    }
+
     refillTrayIfEmpty();
     updateHUD();
-    sendScoreUpdate();
-    checkVictoryCondition();
 
-    // Se travar sem movimentos possíveis, limpa o tabuleiro mantendo os pontos e continua a disputa!
+    if (gameMode === 'P2P') {
+        sendScoreUpdate();
+        checkP2PVictory();
+    } else {
+        updateSoloMissionHUD();
+        checkSoloStageCompletion();
+    }
+
+    // Verifica se o jogador ficou totalmente trancado sem jogadas possíveis
     if (matchActive && !hasAnyValidMove()) {
-        showToast('Sem espaço! Tabuleiro renovado!');
-        setTimeout(() => {
-            if (matchActive) resetBoardOnly();
-        }, 700);
+        AudioFX.lockedGameOver();
+        if (gameMode === 'SOLO') {
+            setTimeout(() => {
+                if (matchActive) {
+                    finishGameScreen('SEM MOVIMENTOS!', 'O tabuleiro ficou totalmente trancado!');
+                }
+            }, 650);
+        } else {
+            showToast('Sem espaço! Tabuleiro renovado no P2P!');
+            setTimeout(() => {
+                if (matchActive) {
+                    clearBoardGrid();
+                    trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
+                }
+            }, 750);
+        }
     }
 
     return true;
 }
 
+function sendScoreUpdate() {
+    if (conn && conn.open) conn.send({ type: 'SCORE_UPDATE', score: myScore });
+}
+
 /**
- * RENDERIZAÇÃO NO CANVAS + TOQUE/ARRASTO RESPONSIVO
+ * RENDERIZAÇÃO NO CANVAS + ANIMAÇÕES (OLHOS DO RESGATE, BOSS, PARTÍCULAS)
  */
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
+let animFrame = 0;
 
 let layout = {
     cellSize: 38,
@@ -922,21 +1497,20 @@ function resizeCanvas() {
     const maxW = Math.min(440, wrap.clientWidth - 8);
     const maxH = wrap.clientHeight - 8;
 
-    // Calcula tamanho ideal das células para caber tabuleiro 8x8 + bandeja inferior
     const cellFromW = Math.floor((maxW - 16) / GRID_SIZE);
-    const cellFromH = Math.floor((maxH - 24) / (GRID_SIZE + 3.6));
+    const cellFromH = Math.floor((maxH - 20) / (GRID_SIZE + 3.5));
     const cellSize = Math.max(26, Math.min(46, cellFromW, cellFromH));
 
     const boardPx = cellSize * GRID_SIZE;
     const totalW = Math.max(boardPx + 16, maxW);
-    const totalH = boardPx + Math.round(cellSize * 3.5);
+    const totalH = boardPx + Math.round(cellSize * 3.4);
 
     canvas.width = totalW;
     canvas.height = totalH;
 
     const boardX = Math.floor((totalW - boardPx) / 2);
-    const boardY = 8;
-    const trayY = boardY + boardPx + Math.round(cellSize * 1.65);
+    const boardY = 6;
+    const trayY = boardY + boardPx + Math.round(cellSize * 1.6);
 
     layout = {
         cellSize,
@@ -951,9 +1525,7 @@ function resizeCanvas() {
     };
 }
 window.addEventListener('resize', () => {
-    if (!document.getElementById('game-screen').classList.contains('hidden')) {
-        resizeCanvas();
-    }
+    if (!document.getElementById('game-screen').classList.contains('hidden')) resizeCanvas();
 });
 
 function drawRoundedCell(x, y, size, color, alpha = 1) {
@@ -968,28 +1540,143 @@ function drawRoundedCell(x, y, size, color, alpha = 1) {
     ctx.roundRect(x + pad, y + pad, s, s, r);
     ctx.fill();
 
-    // Brilho sutil no topo do bloco
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.24)';
     ctx.fillRect(x + pad + 3, y + pad + 2, s - 6, Math.max(3, Math.floor(s * 0.18)));
     ctx.restore();
 }
 
+function drawSpecialCell(cx, cy, size, cell) {
+    const pad = 2;
+    const s = size - pad * 2;
+    const centerX = cx + size / 2;
+    const centerY = cy + size / 2;
+
+    if (cell.kind === 'LOCKER') {
+        drawRoundedCell(cx, cy, size, '#475569', 1);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cx + 5, cy + 5, size - 10, size - 10);
+        // Ícone de cadeado/X metálico
+        ctx.beginPath();
+        ctx.moveTo(cx + 8, cy + 8);
+        ctx.lineTo(cx + size - 8, cy + size - 8);
+        ctx.moveTo(cx + size - 8, cy + 8);
+        ctx.lineTo(cx + 8, cy + size - 8);
+        ctx.stroke();
+    } else if (cell.kind === 'RESCUE_CAGE') {
+        const cageColor = cell.hp >= 2 ? '#b45309' : '#d97706';
+        drawRoundedCell(cx, cy, size, cageColor, 1);
+        ctx.strokeStyle = '#fef3c7';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx + size * 0.35, cy + 3);
+        ctx.lineTo(cx + size * 0.35, cy + size - 3);
+        ctx.moveTo(cx + size * 0.65, cy + 3);
+        ctx.lineTo(cx + size * 0.65, cy + size - 3);
+        ctx.stroke();
+    } else if (cell.kind === 'RESCUE_TARGET') {
+        // Carinha fofinha assustada mexendo os olhos!
+        const trembleX = Math.sin(animFrame * 0.35) * 1.5;
+        const eyeLookX = Math.sin(animFrame * 0.08) * 2.5;
+        const eyeLookY = Math.cos(animFrame * 0.06) * 1.5;
+
+        ctx.save();
+        ctx.translate(centerX + trembleX, centerY);
+
+        // Rostinho amarelo fofo
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(0, 0, s * 0.44, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bochechas rosadas
+        ctx.fillStyle = '#fb7185';
+        ctx.beginPath();
+        ctx.arc(-s * 0.24, s * 0.08, s * 0.08, 0, Math.PI * 2);
+        ctx.arc(s * 0.24, s * 0.08, s * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Olhos brancos arregalados de medo
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-s * 0.15, -s * 0.06, s * 0.13, 0, Math.PI * 2);
+        ctx.arc(s * 0.15, -s * 0.06, s * 0.13, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pupilas se mexendo para os lados
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(-s * 0.15 + eyeLookX, -s * 0.06 + eyeLookY, s * 0.06, 0, Math.PI * 2);
+        ctx.arc(s * 0.15 + eyeLookX, -s * 0.06 + eyeLookY, s * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Boquinha ondulada de susto
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, s * 0.18, s * 0.1, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.restore();
+    } else if (cell.kind === 'BOSS_CORE') {
+        drawRoundedCell(cx, cy, size, '#7f1d1d', 1);
+        if (cell.isMain) {
+            // Desenha o rosto do Boss ocupando a área 2x2
+            const bw = size * 2;
+            const pulse = Math.sin(animFrame * 0.12) * 2;
+            ctx.save();
+            ctx.translate(cx + size, cy + size + pulse);
+
+            ctx.fillStyle = '#991b1b';
+            ctx.beginPath();
+            ctx.roundRect(-bw * 0.42, -bw * 0.42, bw * 0.84, bw * 0.84, 12);
+            ctx.fill();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Olhos brilhantes do Boss
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(-bw * 0.18, -bw * 0.08, bw * 0.08, 0, Math.PI * 2);
+            ctx.arc(bw * 0.18, -bw * 0.08, bw * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Texto HP no Boss
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`HP ${cell.hp}`, 0, bw * 0.26);
+
+            ctx.restore();
+        }
+    }
+}
+
 function renderLoop() {
+    animFrame++;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    if (screenShake > 0) {
+        ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+        screenShake *= 0.82;
+        if (screenShake < 0.4) screenShake = 0;
+    }
 
     const { cellSize, boardX, boardY, trayY, slotCenters } = layout;
     const boardPx = cellSize * GRID_SIZE;
 
     // Fundo do tabuleiro 8x8
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.86)';
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
     ctx.beginPath();
     ctx.roundRect(boardX - 6, boardY - 6, boardPx + 12, boardPx + 12, 12);
     ctx.fill();
-    ctx.strokeStyle = '#334155';
+    ctx.strokeStyle = soloStageType === 'BOSS' && gameMode === 'SOLO' ? '#ef4444' : '#334155';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Grade e blocos fixos
+    // Grade e células
     for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
             const cx = boardX + c * cellSize;
@@ -1000,13 +1687,28 @@ function renderLoop() {
             ctx.roundRect(cx + 2, cy + 2, cellSize - 4, cellSize - 4, 5);
             ctx.fill();
 
-            if (board[r] && board[r][c]) {
-                drawRoundedCell(cx, cy, cellSize, board[r][c], 1);
+            const cell = board[r] && board[r][c];
+            if (cell) {
+                if (cell.kind === 'NORMAL') {
+                    drawRoundedCell(cx, cy, cellSize, cell.color, 1);
+                } else if (cell.kind !== 'BOSS_CORE') {
+                    drawSpecialCell(cx, cy, cellSize, cell);
+                }
             }
         }
     }
 
-    // Pré-visualização de encaixe (sombra no tabuleiro)
+    // Desenha o Boss por cima das 4 células dele para não cortar o rosto
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            const cell = board[r] && board[r][c];
+            if (cell && cell.kind === 'BOSS_CORE') {
+                drawSpecialCell(boardX + c * cellSize, boardY + r * cellSize, cellSize, cell);
+            }
+        }
+    }
+
+    // Pré-visualização de encaixe
     if (draggingIndex !== -1 && hoverCell && trayPieces[draggingIndex]) {
         const piece = trayPieces[draggingIndex];
         if (canPlacePiece(piece, hoverCell.row, hoverCell.col)) {
@@ -1022,7 +1724,7 @@ function renderLoop() {
         }
     }
 
-    // Bandeja com as 3 peças disponíveis
+    // Bandeja com as 3 peças
     const miniSize = Math.floor(cellSize * 0.56);
     for (let i = 0; i < 3; i++) {
         const p = trayPieces[i];
@@ -1042,7 +1744,7 @@ function renderLoop() {
         }
     }
 
-    // Peça sendo arrastada pelo dedo/mouse (elevada acima do dedo para visibilidade)
+    // Peça arrastada
     if (draggingIndex !== -1 && trayPieces[draggingIndex]) {
         const p = trayPieces[draggingIndex];
         const pw = p.cols * cellSize;
@@ -1060,12 +1762,41 @@ function renderLoop() {
         }
     }
 
+    // Partículas
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const pt = particles[i];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.life--;
+        ctx.fillStyle = pt.color;
+        ctx.fillRect(pt.x - 2, pt.y - 2, 5, 5);
+        if (pt.life <= 0) particles.splice(i, 1);
+    }
+
+    // Textos flutuantes (Combos, Muito Bom, Dano no Boss)
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y -= 0.9;
+        ft.life--;
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, ft.life / 18);
+        ctx.font = '900 18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText(ft.text, ft.x + 2, ft.y + 2);
+        ctx.fillStyle = ft.color;
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+        if (ft.life <= 0) floatingTexts.splice(i, 1);
+    }
+
+    ctx.restore();
     requestAnimationFrame(renderLoop);
 }
 requestAnimationFrame(renderLoop);
 
 /**
- * EVENTOS DE PONTEIRO (TOUCH + MOUSE)
+ * EVENTOS DE TOQUE / MOUSE
  */
 function getCanvasCoords(e) {
     const rect = canvas.getBoundingClientRect();
@@ -1104,9 +1835,9 @@ function updateHoverCell() {
 function onPointerDown(e) {
     if (!matchActive) return;
     if (e.cancelable) e.preventDefault();
+    AudioFX.ensure();
     const pos = getCanvasCoords(e);
 
-    // Verifica qual slot da bandeja foi tocado
     for (let i = 0; i < 3; i++) {
         if (!trayPieces[i]) continue;
         const dx = Math.abs(pos.x - layout.slotCenters[i]);
@@ -1147,7 +1878,7 @@ window.addEventListener('mousemove', onPointerMove);
 window.addEventListener('mouseup', onPointerUp);
 
 /**
- * CONTROLES DO MODAL DE CONFIGURAÇÕES VISUAIS
+ * MODAL DE PERSONALIZAÇÃO VISUAL
  */
 function openSettings() {
     applyVisualPrefs();
