@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Block Blast - Modo King Full Auto (Girar & Quebrar)</title>
+    <title>Block Blast - Modo King Full Auto (Corrigido)</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * {
@@ -24,7 +24,6 @@
             background-repeat: no-repeat;
             color: #f8fafc;
             overflow: hidden;
-            touch-action: none;
         }
 
         #bg-overlay {
@@ -110,7 +109,7 @@
 
         .btn {
             width: 100%;
-            padding: 11px;
+            padding: 12px;
             border: none;
             border-radius: 10px;
             font-size: 13px;
@@ -119,6 +118,7 @@
             letter-spacing: 0.04em;
             transition: transform 0.1s;
             margin-top: 6px;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn:active {
@@ -129,7 +129,7 @@
             background: linear-gradient(180deg, #f59e0b, #d97706);
             color: #0f172a;
             font-size: 14px;
-            padding: 12px;
+            padding: 13px;
         }
 
         .btn-primary {
@@ -171,6 +171,7 @@
         #game-screen {
             justify-content: space-between;
             padding: 6px 8px 10px;
+            touch-action: none;
         }
 
         .top-hud {
@@ -267,7 +268,6 @@
             flex-shrink: 0;
         }
 
-        /* BARRA DE PODERES FULL AUTO */
         .power-bar {
             width: 100%;
             max-width: 460px;
@@ -415,7 +415,7 @@
 <div id="lobby-screen" class="screen">
     <div class="card">
         <h1>BLOCK BLAST</h1>
-        <div class="subtitle">Modo King Full Auto • Girar & Quebrar Automático</div>
+        <div class="subtitle">Modo King Full Auto • Toque Otimizado</div>
 
         <button class="btn btn-solo" id="btn-start-solo">🏆 JOGAR MODO SOLO (FULL AUTO)</button>
 
@@ -477,7 +477,6 @@
         <button class="icon-btn" id="btn-back-menu" title="Menu Inicial">🏠</button>
     </div>
 
-    <!-- BARRA DE PODERES FULL AUTO -->
     <div class="power-bar">
         <button class="power-btn" id="btn-toggle-autoplay">🤖 Auto-Jogar: OFF</button>
         <button class="power-btn" id="btn-toggle-autobreak">💣 Quebra Auto: OFF</button>
@@ -596,9 +595,6 @@
 </div>
 
 <script>
-/**
- * CONFIGURAÇÕES VISUAIS & MODO KING FULL AUTO
- */
 const PALETTE = [
     '#ef4444', '#f97316', '#f59e0b', '#22c55e',
     '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'
@@ -664,22 +660,6 @@ function updateButtonsUI() {
     }
 }
 
-document.getElementById('btn-toggle-autoplay').addEventListener('click', () => {
-    userPrefs.autoPlace = userPrefs.autoPlace === 'ON' ? 'OFF' : 'ON';
-    userPrefs.kingMode = 'ON';
-    localStorage.setItem('bb_autoPlace', userPrefs.autoPlace);
-    localStorage.setItem('bb_kingMode', userPrefs.kingMode);
-    applyVisualPrefs();
-    showToast(userPrefs.autoPlace === 'ON' ? 'Auto-Colocar ATIVADO!' : 'Auto-Colocar DESATIVADO!');
-});
-
-document.getElementById('btn-toggle-autobreak').addEventListener('click', () => {
-    userPrefs.autoBreak = userPrefs.autoBreak === 'ON' ? 'OFF' : 'ON';
-    localStorage.setItem('bb_autoBreak', userPrefs.autoBreak);
-    applyVisualPrefs();
-    showToast(userPrefs.autoBreak === 'ON' ? 'Quebra Automática ATIVADA!' : 'Quebra Automática DESATIVADA!');
-});
-
 function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -688,9 +668,6 @@ function showToast(msg) {
     t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2600);
 }
 
-/**
- * SISTEMA DE ÁUDIO & MÚSICA PROCEDURAL
- */
 const AudioFX = {
     ctx: null,
     musicTimer: null,
@@ -788,9 +765,6 @@ const AudioFX = {
     invalid() { this.tone(150, 95, 0.1, 'sawtooth', 0.1, 0); }
 };
 
-/**
- * CONEXÃO P2P
- */
 let gameMode = 'SOLO';
 let peer = null;
 let conn = null;
@@ -811,7 +785,8 @@ function generateShortCode() {
 }
 
 function setStatus(text) {
-    document.getElementById('conn-status').textContent = text;
+    const el = document.getElementById('conn-status');
+    if (el) el.textContent = text;
 }
 
 function setupConnectionHandlers(connection) {
@@ -857,51 +832,6 @@ function setupConnectionHandlers(connection) {
     });
 }
 
-document.getElementById('btn-create-room').addEventListener('click', () => {
-    myName = document.getElementById('player-name').value.trim() || 'Paulo';
-    isHost = true;
-    const shortCode = generateShortCode();
-    setStatus('Gerando sala P2P...');
-    if (peer) peer.destroy();
-
-    peer = new Peer('BBP2P-' + shortCode);
-    peer.on('open', () => {
-        document.getElementById('host-wait-box').classList.remove('hidden');
-        document.getElementById('room-code-display').textContent = shortCode;
-        setStatus('Aguardando conectar com o código...');
-    });
-    peer.on('connection', setupConnectionHandlers);
-    peer.on('error', (err) => setStatus('Erro ao criar sala: ' + err.type));
-});
-
-document.getElementById('room-code-display').addEventListener('click', () => {
-    const code = document.getElementById('room-code-display').textContent;
-    if (navigator.clipboard && code !== '------') {
-        navigator.clipboard.writeText(code).then(() => showToast('Código ' + code + ' copiado!')).catch(() => {});
-    }
-});
-
-document.getElementById('btn-join-room').addEventListener('click', () => {
-    const rawCode = document.getElementById('join-code-input').value.trim().toUpperCase();
-    if (rawCode.length < 4) {
-        setStatus('Digite o código da sala primeiro.');
-        return;
-    }
-    myName = document.getElementById('player-name').value.trim() || 'Tássia';
-    isHost = false;
-    setStatus('Conectando a ' + rawCode + '...');
-    if (peer) peer.destroy();
-    peer = new Peer();
-    peer.on('open', () => {
-        const outgoingConn = peer.connect('BBP2P-' + rawCode, { reliable: true });
-        setupConnectionHandlers(outgoingConn);
-    });
-    peer.on('error', (err) => setStatus('Erro ao conectar (' + err.type + ').'));
-});
-
-/**
- * MOTOR DO TABULEIRO & INTELIGÊNCIA MODO KING (COM ROTAÇÃO AUTOMÁTICA)
- */
 const GRID_SIZE = 8;
 let board = [];
 let trayPieces = [null, null, null];
@@ -1184,9 +1114,6 @@ function startSoloStage(index, preserveScore = false) {
     updateSoloMissionHUD();
 }
 
-/**
- * INTELIGÊNCIA MODO KING: TESTA TODAS AS ROTAÇÕES E POSIÇÕES POSSÍVEIS
- */
 function calculateKingBestMove() {
     if (userPrefs.kingMode !== 'ON') {
         kingBestMove = null;
@@ -1200,7 +1127,6 @@ function calculateKingBestMove() {
         let p = trayPieces[i];
         if (!p) continue;
 
-        // Testa o formato original e todas as 3 rotações possíveis (90°, 180°, 270°)
         let currentP = p;
         for (let rot = 0; rot < 4; rot++) {
             if (rot > 0) currentP = rotatePiece(currentP);
@@ -1249,13 +1175,9 @@ function calculateKingBestMove() {
     kingBestMove = bestMove;
 }
 
-/**
- * AUTO-JOGAR E QUEBRA AUTOMÁTICA DE BLOQUEIOS
- */
 function checkAutoPlayAndBreak() {
     if (!matchActive) return;
 
-    // Quebra automática de bloqueios se ativada e o jogador ficar sem jogadas ou houver obstáculos
     if (userPrefs.autoBreak === 'ON' && !kingBestMove) {
         let cleared = false;
         for (let r = 0; r < GRID_SIZE; r++) {
@@ -1276,13 +1198,11 @@ function checkAutoPlayAndBreak() {
         }
     }
 
-    // Auto-colocar automático
     if (userPrefs.autoPlace === 'ON' && kingBestMove && draggingIndex === -1) {
         if (!autoPlayTimer) {
             autoPlayTimer = setTimeout(() => {
                 autoPlayTimer = null;
                 if (userPrefs.autoPlace === 'ON' && kingBestMove && matchActive && draggingIndex === -1) {
-                    // Aplica rotações necessárias na peça antes de colocar
                     let pTarget = trayPieces[kingBestMove.pieceIndex];
                     for (let rot = 0; rot < kingBestMove.rotationsNeeded; rot++) {
                         pTarget = rotatePiece(pTarget);
@@ -1295,9 +1215,6 @@ function checkAutoPlayAndBreak() {
     }
 }
 
-/**
- * BOTÕES DE PODER (GIRAR MANUAL & BOMBA)
- */
 document.getElementById('btn-power-rotate').addEventListener('click', () => {
     if (!matchActive) return;
     for (let i = 0; i < 3; i++) {
@@ -1385,7 +1302,7 @@ function updateSoloMissionHUD() {
     const extraEl = document.getElementById('mission-extra');
     const fillEl = document.getElementById('mission-progress-fill');
 
-    titleEl.textContent = soloStageLabel;
+    if (titleEl) titleEl.textContent = soloStageLabel;
 
     if (soloStageType === 'RESCUE') {
         let cagesLeft = 0;
@@ -1394,10 +1311,12 @@ function updateSoloMissionHUD() {
                 if (board[r][c] && board[r][c].kind === 'RESCUE_CAGE') cagesLeft += board[r][c].hp;
             }
         }
-        extraEl.textContent = `⏱️ ${rescueTimer}s • Trancas: ${cagesLeft}`;
+        if (extraEl) extraEl.textContent = `⏱️ ${rescueTimer}s • Trancas: ${cagesLeft}`;
         const pct = Math.max(0, Math.min(100, (rescueTimer / rescueMaxTimer) * 100));
-        fillEl.style.width = pct + '%';
-        fillEl.style.background = rescueTimer <= 10 ? '#ef4444' : 'linear-gradient(90deg, #38bdf8, #22c55e)';
+        if (fillEl) {
+            fillEl.style.width = pct + '%';
+            fillEl.style.background = rescueTimer <= 10 ? '#ef4444' : 'linear-gradient(90deg, #38bdf8, #22c55e)';
+        }
     } else if (soloStageType === 'BOSS') {
         let bossHp = 0, bossMax = 1;
         for (let r = 0; r < GRID_SIZE; r++) {
@@ -1408,16 +1327,20 @@ function updateSoloMissionHUD() {
                 }
             }
         }
-        extraEl.textContent = `👹 HP BOSS: ${bossHp}/${bossMax}`;
-        fillEl.style.width = Math.max(0, (bossHp / bossMax) * 100) + '%';
-        fillEl.style.background = 'linear-gradient(90deg, #dc2626, #f97316)';
+        if (extraEl) extraEl.textContent = `👹 HP BOSS: ${bossHp}/${bossMax}`;
+        if (fillEl) {
+            fillEl.style.width = Math.max(0, (bossHp / bossMax) * 100) + '%';
+            fillEl.style.background = 'linear-gradient(90deg, #dc2626, #f97316)';
+        }
     } else {
         const gained = myScore - soloStageStartScore;
         const needed = soloStageTargetScore - soloStageStartScore;
         const pct = Math.max(0, Math.min(100, (gained / needed) * 100));
-        extraEl.textContent = `${myScore.toLocaleString('pt-BR')} / ${soloStageTargetScore.toLocaleString('pt-BR')}`;
-        fillEl.style.width = pct + '%';
-        fillEl.style.background = 'linear-gradient(90deg, #f59e0b, #22c55e)';
+        if (extraEl) extraEl.textContent = `${myScore.toLocaleString('pt-BR')} / ${soloStageTargetScore.toLocaleString('pt-BR')}`;
+        if (fillEl) {
+            fillEl.style.width = pct + '%';
+            fillEl.style.background = 'linear-gradient(90deg, #f59e0b, #22c55e)';
+        }
     }
 }
 
@@ -1476,10 +1399,21 @@ function checkSoloStageCompletion() {
     }
 }
 
-/**
- * INICIALIZAÇÃO DE PARTIDAS
- */
-document.getElementById('btn-start-solo').addEventListener('click', () => {
+// INICIALIZADOR SEGURO DE BOTÕES (Garante clique e toque em qualquer dispositivo)
+function bindClick(elementId, handler) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.addEventListener('click', (e) => {
+        e.preventDefault();
+        handler(e);
+    });
+    el.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        handler(e);
+    }, { passive: false });
+}
+
+bindClick('btn-start-solo', () => {
     AudioFX.ensure();
     AudioFX.startBackgroundMusic();
     gameMode = 'SOLO';
@@ -1525,18 +1459,27 @@ function startP2PMatch(newTarget) {
 }
 
 function updateHUD() {
-    document.getElementById('hud-my-name').textContent = myName.toUpperCase();
-    document.getElementById('hud-my-score').textContent = myScore.toLocaleString('pt-BR');
+    const myNameEl = document.getElementById('hud-my-name');
+    const myScoreEl = document.getElementById('hud-my-score');
+    if (myNameEl) myNameEl.textContent = myName.toUpperCase();
+    if (myScoreEl) myScoreEl.textContent = myScore.toLocaleString('pt-BR');
 
     if (gameMode === 'SOLO') {
-        document.getElementById('hud-target-label').textContent = soloStageType === 'BOSS' ? 'CHEFE' : (soloStageType === 'RESCUE' ? 'RESGATE' : 'META FASE');
-        document.getElementById('hud-target').textContent = soloStageType === 'BOSS' ? 'BOSS' : (soloStageType === 'RESCUE' ? `${rescueTimer}s` : soloStageTargetScore.toLocaleString('pt-BR'));
-        document.getElementById('hud-lives-val').textContent = `❤️ ${soloLives}`;
+        const lbl = document.getElementById('hud-target-label');
+        const tgt = document.getElementById('hud-target');
+        const liv = document.getElementById('hud-lives-val');
+        if (lbl) lbl.textContent = soloStageType === 'BOSS' ? 'CHEFE' : (soloStageType === 'RESCUE' ? 'RESGATE' : 'META FASE');
+        if (tgt) tgt.textContent = soloStageType === 'BOSS' ? 'BOSS' : (soloStageType === 'RESCUE' ? `${rescueTimer}s` : soloStageTargetScore.toLocaleString('pt-BR'));
+        if (liv) liv.textContent = `❤️ ${soloLives}`;
     } else {
-        document.getElementById('hud-target-label').textContent = 'META P2P';
-        document.getElementById('hud-target').textContent = targetScore.toLocaleString('pt-BR');
-        document.getElementById('hud-rival-name').textContent = rivalName.toUpperCase();
-        document.getElementById('hud-rival-score').textContent = rivalScore.toLocaleString('pt-BR');
+        const lbl = document.getElementById('hud-target-label');
+        const tgt = document.getElementById('hud-target');
+        const rName = document.getElementById('hud-rival-name');
+        const rScore = document.getElementById('hud-rival-score');
+        if (lbl) lbl.textContent = 'META P2P';
+        if (tgt) tgt.textContent = targetScore.toLocaleString('pt-BR');
+        if (rName) rName.textContent = rivalName.toUpperCase();
+        if (rScore) rScore.textContent = rivalScore.toLocaleString('pt-BR');
     }
 }
 
@@ -1575,7 +1518,7 @@ function finishGameScreen(title, desc) {
     document.getElementById('gameover-screen').classList.remove('hidden');
 }
 
-document.getElementById('btn-restart-match').addEventListener('click', () => {
+bindClick('btn-restart-match', () => {
     if (gameMode === 'SOLO') {
         document.getElementById('btn-start-solo').click();
     } else {
@@ -1595,12 +1538,50 @@ function returnToLobby() {
     document.getElementById('lobby-screen').classList.remove('hidden');
 }
 
-document.getElementById('btn-back-menu').addEventListener('click', returnToLobby);
-document.getElementById('btn-menu-from-end').addEventListener('click', returnToLobby);
+bindClick('btn-back-menu', returnToLobby);
+bindClick('btn-menu-from-end', returnToLobby);
+bindClick('btn-create-room', () => {
+    myName = document.getElementById('player-name').value.trim() || 'Paulo';
+    isHost = true;
+    const shortCode = generateShortCode();
+    setStatus('Gerando sala P2P...');
+    if (peer) peer.destroy();
 
-/**
- * VALIDAÇÃO E MECÂNICA DE ENCAIXE
- */
+    peer = new Peer('BBP2P-' + shortCode);
+    peer.on('open', () => {
+        document.getElementById('host-wait-box').classList.remove('hidden');
+        document.getElementById('room-code-display').textContent = shortCode;
+        setStatus('Aguardando conectar com o código...');
+    });
+    peer.on('connection', setupConnectionHandlers);
+    peer.on('error', (err) => setStatus('Erro ao criar sala: ' + err.type));
+});
+
+document.getElementById('room-code-display').addEventListener('click', () => {
+    const code = document.getElementById('room-code-display').textContent;
+    if (navigator.clipboard && code !== '------') {
+        navigator.clipboard.writeText(code).then(() => showToast('Código ' + code + ' copiado!')).catch(() => {});
+    }
+});
+
+bindClick('btn-join-room', () => {
+    const rawCode = document.getElementById('join-code-input').value.trim().toUpperCase();
+    if (rawCode.length < 4) {
+        setStatus('Digite o código da sala primeiro.');
+        return;
+    }
+    myName = document.getElementById('player-name').value.trim() || 'Tássia';
+    isHost = false;
+    setStatus('Conectando a ' + rawCode + '...');
+    if (peer) peer.destroy();
+    peer = new Peer();
+    peer.on('open', () => {
+        const outgoingConn = peer.connect('BBP2P-' + rawCode, { reliable: true });
+        setupConnectionHandlers(outgoingConn);
+    });
+    peer.on('error', (err) => setStatus('Erro ao conectar (' + err.type + ').'));
+});
+
 function canPlacePiece(piece, startRow, startCol) {
     if (!piece) return false;
     for (let r = 0; r < piece.rows; r++) {
@@ -1804,9 +1785,6 @@ function sendScoreUpdate() {
     if (conn && conn.open) conn.send({ type: 'SCORE_UPDATE', score: myScore });
 }
 
-/**
- * RENDERIZAÇÃO E CANVAS + FULL AUTO CHECK
- */
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 let animFrame = 0;
@@ -1821,6 +1799,7 @@ let layout = {
 
 function resizeCanvas() {
     const wrap = document.getElementById('canvas-wrap');
+    if (!wrap) return;
     const maxW = Math.min(440, wrap.clientWidth - 8);
     const maxH = wrap.clientHeight - 8;
 
@@ -2019,10 +1998,8 @@ function renderLoop() {
         }
     }
 
-    // Executa as verificações do Full Auto (Auto-Jogar & Auto-Quebrar)
     checkAutoPlayAndBreak();
 
-    // Moldura do Modo King
     if (userPrefs.kingMode === 'ON' && kingBestMove && matchActive) {
         const p = kingBestMove.piece;
         const bRow = kingBestMove.row;
@@ -2134,9 +2111,6 @@ function renderLoop() {
 }
 requestAnimationFrame(renderLoop);
 
-/**
- * CONTROLES DE TOQUE / MOUSE
- */
 function getCanvasCoords(e) {
     const rect = canvas.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -2217,27 +2191,24 @@ canvas.addEventListener('mousedown', onPointerDown);
 window.addEventListener('mousemove', onPointerMove);
 window.addEventListener('mouseup', onPointerUp);
 
-/**
- * MODAL DE CONFIGURAÇÕES
- */
 function openSettings() {
     applyVisualPrefs();
     document.getElementById('settings-modal').classList.remove('hidden');
 }
 
-document.getElementById('btn-open-settings-lobby').addEventListener('click', openSettings);
-document.getElementById('btn-open-settings-game').addEventListener('click', openSettings);
-document.getElementById('btn-close-settings').addEventListener('click', () => {
+bindClick('btn-open-settings-lobby', openSettings);
+bindClick('btn-open-settings-game', openSettings);
+bindClick('btn-close-settings', () => {
     document.getElementById('settings-modal').classList.add('hidden');
 });
 
-document.getElementById('btn-save-settings').addEventListener('click', () => {
+bindClick('btn-save-settings', () => {
     userPrefs.colorMode = document.getElementById('block-color-mode').value;
     userPrefs.fixedColor = document.getElementById('block-fixed-color').value;
     userPrefs.bgUrl = document.getElementById('bg-image-url').value.trim();
     userPrefs.kingMode = document.getElementById('king-mode-toggle').value;
     userPrefs.autoPlace = document.getElementById('auto-place-toggle').value;
-    userPrefs.autoBreak = document.getElementById('auto-break-toggle'].value;
+    userPrefs.autoBreak = document.getElementById('auto-break-toggle').value;
     userPrefs.kingColor = document.getElementById('king-frame-color').value;
 
     localStorage.setItem('bb_colorMode', userPrefs.colorMode);
@@ -2257,12 +2228,71 @@ document.getElementById('btn-save-settings').addEventListener('click', () => {
     showToast('Configurações Full Auto salvas!');
 });
 
-document.getElementById('btn-clear-bg').addEventListener('click', () => {
+bindClick('btn-clear-bg', () => {
     userPrefs.bgUrl = '';
     document.getElementById('bg-image-url').value = '';
     localStorage.setItem('bb_bgUrl', '');
     applyVisualPrefs();
     showToast('Imagem de fundo removida.');
+});
+
+bindClick('btn-toggle-autoplay', () => {
+    userPrefs.autoPlace = userPrefs.autoPlace === 'ON' ? 'OFF' : 'ON';
+    userPrefs.kingMode = 'ON';
+    localStorage.setItem('bb_autoPlace', userPrefs.autoPlace);
+    localStorage.setItem('bb_kingMode', userPrefs.kingMode);
+    applyVisualPrefs();
+    showToast(userPrefs.autoPlace === 'ON' ? 'Auto-Colocar ATIVADO!' : 'Auto-Colocar DESATIVADO!');
+});
+
+bindClick('btn-toggle-autobreak', () => {
+    userPrefs.autoBreak = userPrefs.autoBreak === 'ON' ? 'OFF' : 'ON';
+    localStorage.setItem('bb_autoBreak', userPrefs.autoBreak);
+    applyVisualPrefs();
+    showToast(userPrefs.autoBreak === 'ON' ? 'Quebra Automática ATIVADA!' : 'Quebra Automática DESATIVADA!');
+});
+
+bindClick('btn-power-rotate', () => {
+    if (!matchActive) return;
+    for (let i = 0; i < 3; i++) {
+        if (trayPieces[i]) {
+            trayPieces[i] = rotatePiece(trayPieces[i]);
+            calculateKingBestMove();
+            showToast('🔄 Peça rotacionada manualmente!');
+            AudioFX.place();
+            break;
+        }
+    }
+});
+
+bindClick('btn-power-bomb', () => {
+    if (!matchActive) return;
+    let cleared = false;
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            if (board[r][c] && board[r][c].kind !== 'NORMAL') {
+                board[r][c] = null;
+                spawnParticles(layout.boardX + c * layout.cellSize, layout.boardY + r * layout.cellSize, '#ef4444', 20);
+                cleared = true;
+                break;
+            }
+        }
+        if (cleared) break;
+    }
+    if (!cleared) {
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] !== null) {
+                    board[r][c] = null;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    AudioFX.rockBreak();
+    showToast('💥 Bomba acionada!');
+    calculateKingBestMove();
 });
 </script>
 </body>
