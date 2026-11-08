@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebRTC Remote Control & Screen Mirror</title>
+    <title>WebRTC Screen Mirror + Telemetria & Logs</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,7 +22,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
             margin-bottom: 20px;
             text-align: center;
         }
@@ -38,16 +38,17 @@
         }
         button:hover { background: #2563eb; }
         .btn-active { background: #22c55e !important; }
-        input {
+        input, textarea {
             padding: 10px;
-            font-size: 1rem;
+            font-size: 0.9rem;
             border-radius: 6px;
             border: 1px solid #475569;
             background: #0f172a;
             color: white;
-            width: 70%;
-            margin-right: 5px;
+            width: 90%;
+            margin-top: 5px;
         }
+        textarea { height: 70px; font-size: 0.8rem; color: #38bdf8; }
         video {
             width: 100%;
             max-height: 400px;
@@ -56,34 +57,36 @@
             margin-top: 10px;
             cursor: crosshair;
         }
-        textarea {
-            width: 90%;
-            height: 80px;
-            background: #0f172a;
-            color: #38bdf8;
-            border: 1px solid #475569;
-            border-radius: 6px;
-            padding: 8px;
-            font-size: 0.8rem;
-            margin-top: 10px;
-        }
         .log-box {
-            background: #0f172a;
+            background: #020617;
             border: 1px solid #334155;
             padding: 10px;
             border-radius: 6px;
             text-align: left;
-            font-size: 0.85rem;
-            height: 80px;
+            font-size: 0.8rem;
+            height: 140px;
             overflow-y: auto;
             color: #38bdf8;
             margin-top: 10px;
+            font-family: monospace;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            text-align: left;
+            font-size: 0.85rem;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border: 1px solid #334155;
         }
     </style>
 </head>
 <body>
 
-    <h1>Espelhamento + Controle Remoto P2P</h1>
+    <h1>Espelhamento + Telemetria P2P</h1>
 
     <!-- PAINEL DO TRANSMISSOR -->
     <div class="card">
@@ -95,37 +98,39 @@
         <p>Copie e envie ao outro dispositivo:</p>
         <textarea id="txtOferta" readonly placeholder="Oferta aparecerá aqui..."></textarea>
         
-        <p style="margin-top: 15px;">Cole a resposta do receptor:</p>
-        <input type="text" id="inputResposta" placeholder="Cole a resposta...">
+        <p style="margin-top: 10px;">Cole a resposta do receptor:</p>
+        <input type="text" id="inputResposta" placeholder="Cole a resposta aqui...">
         <button onclick="conectarResposta()">Conectar</button>
         
         <div id="statusTransmissor" style="margin-top: 10px; font-weight: bold; color: #94a3b8;">Status: Desconectado</div>
+        
+        <h4>📊 Painel de Análise e Dispositivo Conectado</h4>
+        <div class="info-grid" id="painelInfo">
+            <div><strong>IP Público:</strong> <span id="infoIp">Aguardando...</span></div>
+            <div><strong>Navegador:</strong> <span id="infoNav">-</span></div>
+            <div><strong>Resolução Tela:</strong> <span id="infoRes">-</span></div>
+            <div><strong>Bateria:</strong> <span id="infoBat">-</span></div>
+        </div>
     </div>
 
     <!-- PAINEL DO RECEPTOR -->
     <div class="card">
-        <h3>2. Assistir e Controlar (Espectador)</h3>
+        <h3>2. Assistir e Analisar (Espectador)</h3>
         <p>Cole o código do transmissor:</p>
         <textarea id="inputOferta" placeholder="Cole a oferta aqui..."></textarea>
         <button onclick="gerarResposta()">Gerar Resposta</button>
         
-        <p style="margin-top: 15px;">Envie de volta ao transmissor:</p>
+        <p style="margin-top: 10px;">Envie de volta ao transmissor:</p>
         <textarea id="txtResposta" readonly placeholder="Resposta aparecerá aqui..."></textarea>
         
         <div id="statusReceptor" style="margin-top: 10px; font-weight: bold; color: #94a3b8;">Status: Desconectado</div>
     </div>
 
-    <!-- TELA REMOTA E CONTROLES -->
+    <!-- TELA REMOTA E LOGS -->
     <div class="card" style="width: 100%; max-width: 800px;">
-        <h3>Tela Recebida & Controles</h3>
-        <p style="font-size: 0.9rem; color: #94a3b8;">Clique na tela abaixo para enviar um comando de clique para o outro dispositivo:</p>
+        <h3>Tela Recebida & Console de Logs</h3>
         <video id="videoRemoto" autoplay playsinline></video>
-        
-        <div style="margin-top: 15px;">
-            <button onclick="enviarComando('Alerta enviado pelo espectador!')" style="background: #8b5cf6;">📢 Enviar Alerta Sonoro/Visual</button>
-        </div>
-
-        <div class="log-box" id="logBox">Logs de comandos aparecerão aqui...</div>
+        <div class="log-box" id="logBox">Logs de interações e eventos aparecerão aqui...</div>
     </div>
 
     <script>
@@ -140,7 +145,8 @@
 
         function logMsg(msg) {
             const box = document.getElementById('logBox');
-            box.innerHTML += `<div>> ${msg}</div>`;
+            const timestamp = new Date().toLocaleTimeString();
+            box.innerHTML += `<div>[${timestamp}] ${msg}</div>`;
             box.scrollTop = box.scrollHeight;
         }
 
@@ -157,6 +163,34 @@
             }
         }
 
+        // Coleta informações detalhadas do dispositivo atual
+        async function coletarInfosDispositivo() {
+            let ip = "Desconhecido";
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                ip = data.ip;
+            } catch(e) {
+                ip = "Indisponível (Bloqueado por CORS/Rede)";
+            }
+
+            let bateriaInfo = "Não suportada";
+            if ('getBattery' in navigator) {
+                try {
+                    const bat = await navigator.getBattery();
+                    bateriaInfo = `${Math.round(bat.level * 100)}% (${bat.charging ? 'Carregando' : 'Descarga'})`;
+                } catch(e) {}
+            }
+
+            return {
+                ip: ip,
+                nav: navigator.userAgent.includes("Mobile") ? "Dispositivo Móvel" : "Desktop/PC",
+                res: `${window.screen.width}x${window.screen.height}`,
+                bat: bateriaInfo,
+                plataforma: navigator.platform
+            };
+        }
+
         // --- TRANSMISSOR ---
         async function iniciarTransmissao() {
             try {
@@ -166,12 +200,11 @@
                 });
                 
                 peerConnection = new RTCPeerConnection(rtcConfig);
-                
                 localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-                // Cria o canal de dados para receber comandos do outro aparelho
-                dataChannel = peerConnection.createDataChannel("controleRemoto");
-                configurarDataChannel();
+                // Cria o canal de dados
+                dataChannel = peerConnection.createDataChannel("telemetriaChannel");
+                configurarDataChannelTransmissor();
 
                 peerConnection.onicecandidate = event => {
                     if (event.candidate === null) {
@@ -182,6 +215,7 @@
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
                 document.getElementById('statusTransmissor').innerText = "Status: Aguardando Conexão...";
+                logMsg("Transmissão iniciada. Aguardando pareamento...");
                 ativarModoSegundoPlano();
 
             } catch (err) {
@@ -195,8 +229,31 @@
             
             const answer = JSON.parse(respostaTxt);
             await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-            document.getElementById('statusTransmissor').innerText = "Status: Conectado com Sucesso! 🟢";
-            logMsg("Conexão P2P estabelecida no Transmissor.");
+            document.getElementById('statusTransmissor').innerText = "Status: Conectado 🟢";
+            logMsg("Conexão P2P estabelecida com sucesso.");
+        }
+
+        function configurarDataChannelTransmissor() {
+            dataChannel.onopen = async () => {
+                logMsg("Canal de dados aberto. Solicitando telemetria...");
+            };
+            
+            dataChannel.onmessage = async event => {
+                try {
+                    const dados = JSON.parse(event.data);
+                    if (dados.tipo === 'telemetria') {
+                        document.getElementById('infoIp').innerText = dados.info.ip;
+                        document.getElementById('infoNav').innerText = dados.info.nav + " (" + dados.info.plataforma + ")";
+                        document.getElementById('infoRes').innerText = dados.info.res;
+                        document.getElementById('infoBat').innerText = dados.info.bat;
+                        logMsg(`Dados do dispositivo remoto recebidos com sucesso.`);
+                    } else if (dados.tipo === 'evento') {
+                        logMsg(`[Ação Espectador] ${dados.msg}`);
+                    }
+                } catch(e) {
+                    logMsg(`Mensagem: ${event.data}`);
+                }
+            };
         }
 
         // --- RECEPTOR ---
@@ -213,10 +270,18 @@
                 }
             };
 
-            // Escuta o canal de dados vindo do transmissor
             peerConnection.ondatachannel = event => {
                 dataChannel = event.channel;
-                configurarDataChannel();
+                dataChannel.onopen = async () => {
+                    document.getElementById('statusReceptor').innerText = "Status: Conectado 🟢";
+                    logMsg("Conectado ao transmissor. Enviando telemetria...");
+                    
+                    // Coleta e envia as informações do próprio dispositivo para o transmissor
+                    const info = await coletarInfosDispositivo();
+                    dataChannel.send(JSON.stringify({ tipo: 'telemetria', info: info }));
+                };
+
+                dataChannel.onmessage = e => logMsg("Mensagem: " + e.data);
             };
 
             peerConnection.onicecandidate = event => {
@@ -233,49 +298,25 @@
             document.getElementById('statusReceptor').innerText = "Status: Resposta Gerada 🟢";
         }
 
-        // --- CANAL DE DADOS (COMANDOS) ---
-        function configurarDataChannel() {
-            dataChannel.onopen = () => {
-                logMsg("Canal de comandos ativado! Comunicação bidirecional pronta.");
-                document.getElementById('statusReceptor').innerText = "Status: Conectado e Controlando 🟢";
-            };
-            
-            dataChannel.onmessage = event => {
-                logMsg(`Comando recebido: ${event.data}`);
-                try {
-                    const cmd = JSON.parse(event.data);
-                    if (cmd.tipo === 'alerta') {
-                        alert("Alerta remoto recebido: " + cmd.texto);
-                    } else if (cmd.tipo === 'clique') {
-                        // Aqui você pode disparar ações automáticas no dispositivo transmissor
-                        console.log(`Clique nas coordenadas X: ${cmd.x}, Y: ${cmd.y}`);
-                    }
-                } catch(e) {
-                    console.log("Mensagem de texto simples: " + event.data);
-                }
-            };
-        }
-
-        function enviarComando(texto) {
-            if (dataChannel && dataChannel.readyState === 'open') {
-                const payload = JSON.stringify({ tipo: 'alerta', texto: texto });
-                dataChannel.send(payload);
-                logMsg(`Comando enviado: ${texto}`);
-            } else {
-                alert("Canal de dados ainda não está conectado!");
-            }
-        }
-
-        // Detecta cliques no vídeo remoto para simular envio de coordenadas de toque/clique
+        // Monitoramento de interações locais do espectador para envio de logs
         document.getElementById('videoRemoto').addEventListener('click', (e) => {
             const rect = e.target.getBoundingClientRect();
             const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
             const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
 
             if (dataChannel && dataChannel.readyState === 'open') {
-                const payload = JSON.stringify({ tipo: 'clique', x: x, y: y });
-                dataChannel.send(payload);
-                logMsg(`Enviado toque na tela relativo: X=${x}%, Y=${y}%`);
+                dataChannel.send(JSON.stringify({ 
+                    tipo: 'evento', 
+                    msg: `Clique na tela nas coordenadas X:${x}%, Y:${y}%` 
+                }));
+            }
+        });
+
+        // Monitora se o usuário mudou de aba ou minimizou no receptor
+        document.addEventListener('visibilitychange', () => {
+            if (dataChannel && dataChannel.readyState === 'open') {
+                const estado = document.hidden ? "Espectador minimizou ou saiu da aba" : "Espectador retornou à aba";
+                dataChannel.send(JSON.stringify({ tipo: 'evento', msg: estado }));
             }
         });
     </script>
