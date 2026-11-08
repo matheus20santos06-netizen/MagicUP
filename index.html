@@ -1,325 +1,2157 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebRTC Screen Mirror + Telemetria & Logs</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #0f172a;
-            color: #f8fafc;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h1 { font-size: 1.5rem; margin-bottom: 10px; text-align: center; }
-        .card {
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 600px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        button {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            margin: 5px;
-        }
-        button:hover { background: #2563eb; }
-        .btn-active { background: #22c55e !important; }
-        input, textarea {
-            padding: 10px;
-            font-size: 0.9rem;
-            border-radius: 6px;
-            border: 1px solid #475569;
-            background: #0f172a;
-            color: white;
-            width: 90%;
-            margin-top: 5px;
-        }
-        textarea { height: 70px; font-size: 0.8rem; color: #38bdf8; }
-        video {
-            width: 100%;
-            max-height: 400px;
-            background: black;
-            border-radius: 8px;
-            margin-top: 10px;
-            cursor: crosshair;
-        }
-        .log-box {
-            background: #020617;
-            border: 1px solid #334155;
-            padding: 10px;
-            border-radius: 6px;
-            text-align: left;
-            font-size: 0.8rem;
-            height: 140px;
-            overflow-y: auto;
-            color: #38bdf8;
-            margin-top: 10px;
-            font-family: monospace;
-        }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            text-align: left;
-            font-size: 0.85rem;
-            background: #0f172a;
-            padding: 10px;
-            border-radius: 6px;
-            margin-top: 10px;
-            border: 1px solid #334155;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>99 Noites na Floresta - Multiplayer P2P</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PeerJS para Multiplayer P2P sem servidor próprio -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      font-family: 'Inter', sans-serif;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #090d16;
+      color: #f8fafc;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    /* Animação suave para notificações e modais */
+    @keyframes popIn {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .modal-anim {
+      animation: popIn 0.16s ease-out forwards;
+    }
+    .btn-touch {
+      transition: transform 0.08s ease, filter 0.08s ease;
+    }
+    .btn-touch:active {
+      transform: scale(0.92);
+      filter: brightness(1.15);
+    }
+  </style>
 </head>
 <body>
 
-    <h1>Espelhamento + Telemetria P2P</h1>
-
-    <!-- PAINEL DO TRANSMISSOR -->
-    <div class="card">
-        <h3>1. Transmitir (Este Dispositivo)</h3>
-        <button onclick="iniciarTransmissao()">Compartilhar Tela</button>
-        <br>
-        <button id="btnWakeLock" onclick="ativarModoSegundoPlano()" style="background: #64748b; font-size: 0.9rem;">🔒 Manter Tela Acesa / Fundo</button>
-        
-        <p>Copie e envie ao outro dispositivo:</p>
-        <textarea id="txtOferta" readonly placeholder="Oferta aparecerá aqui..."></textarea>
-        
-        <p style="margin-top: 10px;">Cole a resposta do receptor:</p>
-        <input type="text" id="inputResposta" placeholder="Cole a resposta aqui...">
-        <button onclick="conectarResposta()">Conectar</button>
-        
-        <div id="statusTransmissor" style="margin-top: 10px; font-weight: bold; color: #94a3b8;">Status: Desconectado</div>
-        
-        <h4>📊 Painel de Análise e Dispositivo Conectado</h4>
-        <div class="info-grid" id="painelInfo">
-            <div><strong>IP Público:</strong> <span id="infoIp">Aguardando...</span></div>
-            <div><strong>Navegador:</strong> <span id="infoNav">-</span></div>
-            <div><strong>Resolução Tela:</strong> <span id="infoRes">-</span></div>
-            <div><strong>Bateria:</strong> <span id="infoBat">-</span></div>
+  <!-- TELA INICIAL / LOBBY MULTIPLAYER -->
+  <div id="lobbyScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-slate-950 via-emerald-950/90 to-slate-950 p-4">
+    <div class="w-full max-w-md rounded-2xl bg-slate-900/95 border border-emerald-500/30 p-5 shadow-2xl modal-anim">
+      <div class="text-center mb-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold mb-2">
+          <span>🔥 SOBREVIVÊNCIA COOPERATIVA</span>
         </div>
+        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">99 NOITES NA FLORESTA</h1>
+        <p class="text-xs text-slate-400 mt-1">Resgate as 4 crianças, alimente a fogueira e sobreviva ao Cervo e aos Cultistas.</p>
+      </div>
+
+      <!-- Nome do Jogador -->
+      <div class="mb-3">
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Seu Nome</label>
+        <input id="playerNameInput" type="text" maxlength="14" value="Sobrevivente"
+          class="w-full rounded-xl bg-slate-800 border border-slate-700 px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-400" />
+      </div>
+
+      <!-- Botão Jogar Solo -->
+      <button id="btnStartSolo" class="btn-touch w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 font-extrabold text-sm text-white shadow-lg shadow-emerald-900/40 mb-3">
+        🌲 JOGAR SOLO (OFFLINE 60 FPS)
+      </button>
+
+      <!-- Multiplayer P2P -->
+      <div class="rounded-xl bg-slate-800/80 border border-slate-700/80 p-3">
+        <div class="text-xs font-bold text-emerald-300 mb-2 flex items-center justify-between">
+          <span>🌐 MULTIPLAYER ONLINE (P2P)</span>
+          <span id="peerStatusBadge" class="text-[11px] text-slate-400">Pronto</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btnHostRoom" class="btn-touch rounded-xl bg-amber-600 hover:bg-amber-500 py-2.5 px-2 font-bold text-xs text-white">
+            ➕ CRIAR SALA
+          </button>
+          <div class="flex gap-1">
+            <input id="roomCodeInput" type="text" maxlength="4" placeholder="CÓD."
+              class="w-full rounded-xl bg-slate-900 border border-slate-600 px-2 py-2 text-center text-xs font-black uppercase tracking-widest text-amber-300 focus:outline-none focus:border-amber-400" />
+            <button id="btnJoinRoom" class="btn-touch rounded-xl bg-sky-600 hover:bg-sky-500 px-3 py-2 font-bold text-xs text-white">
+              ENTRAR
+            </button>
+          </div>
+        </div>
+        <p id="lobbyFeedback" class="text-[11px] text-amber-300 mt-2 hidden"></p>
+      </div>
+
+      <!-- Dicas rápidas -->
+      <div class="mt-3 text-[11px] text-slate-400 bg-slate-950/60 rounded-xl p-2.5 border border-slate-800 leading-relaxed">
+        <strong class="text-slate-200">Regras da Floresta:</strong> À noite, o <span class="text-red-400 font-semibold">Cervo</span> e <span class="text-slate-300 font-semibold">Lobos</span> não entram na luz da Fogueira, mas <span class="text-purple-400 font-semibold">Cultistas</span> invadem! Use a <span class="text-yellow-300 font-semibold">Lanterna</span> para paralisar e espantar o Cervo.
+      </div>
+    </div>
+  </div>
+
+  <!-- CANVAS PRINCIPAL DO JOGO -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- HUD SUPERIOR -->
+  <div id="hudContainer" class="fixed inset-0 pointer-events-none hidden">
+    <!-- Barra Superior: Dia/Noite, Crianças, Sala e Botões de Menu -->
+    <div class="flex items-start justify-between p-2 sm:p-3 gap-2">
+      <!-- Status Dia, Fogueira e Crianças -->
+      <div class="flex flex-col gap-1.5 pointer-events-auto">
+        <div class="flex flex-wrap items-center gap-1.5 bg-slate-900/85 backdrop-blur-sm border border-slate-700/80 rounded-xl px-2.5 py-1.5 shadow-md">
+          <span id="hudDayText" class="text-xs sm:text-sm font-black text-amber-400">☀️ DIA 1 / 99</span>
+          <span class="text-slate-600">|</span>
+          <span id="hudTimeText" class="text-xs font-semibold text-slate-200">08:00</span>
+          <span class="text-slate-600">|</span>
+          <span id="hudChildrenText" class="text-xs font-bold text-emerald-400">👶 0/4</span>
+          <span id="hudRoomBadge" class="hidden text-[11px] font-black bg-sky-500/20 text-sky-300 border border-sky-400/30 px-1.5 py-0.5 rounded-lg cursor-pointer" title="Clique para copiar código">SALA: ----</span>
+        </div>
+
+        <!-- Barras de Vida, Fome, Fogueira e Bateria da Lanterna -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-900/80 border border-slate-800 rounded-xl p-1.5 text-[11px] font-bold">
+          <div>
+            <div class="flex justify-between text-rose-300 mb-0.5"><span>❤️ Vida</span><span id="hpVal">100</span></div>
+            <div class="w-20 sm:w-24 h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div id="hpBar" class="h-full bg-rose-500 transition-all duration-150" style="width: 100%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-amber-300 mb-0.5"><span>🍖 Fome</span><span id="hungerVal">100</span></div>
+            <div class="w-20 sm:w-24 h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div id="hungerBar" class="h-full bg-amber-500 transition-all duration-150" style="width: 100%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-orange-300 mb-0.5"><span>🔥 Fogueira</span><span id="fireVal">100%</span></div>
+            <div class="w-20 sm:w-24 h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div id="fireBar" class="h-full bg-orange-500 transition-all duration-150" style="width: 100%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-yellow-200 mb-0.5"><span>🔦 Luz</span><span id="batteryVal">0%</span></div>
+            <div class="w-20 sm:w-24 h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div id="batteryBar" class="h-full bg-yellow-400 transition-all duration-150" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recursos compactos -->
+        <div class="flex flex-wrap items-center gap-2 bg-slate-900/80 border border-slate-800 rounded-xl px-2.5 py-1 text-[11px] font-bold text-slate-200">
+          <span>🪵 <span id="resWood">15</span></span>
+          <span>🪨 <span id="resStone">5</span></span>
+          <span>🥩 <span id="resMeat">1</span></span>
+          <span>🍖 <span id="resCooked">1</span></span>
+          <span>🔸 <span id="resAmmo">12</span></span>
+          <span class="text-yellow-400">🪙 <span id="resCoins">30</span></span>
+        </div>
+      </div>
+
+      <!-- Botões de Abertura de Menus (Craft, Loja, Mapa) -->
+      <div class="flex flex-col items-end gap-1.5 pointer-events-auto">
+        <div class="flex gap-1.5">
+          <button id="btnOpenCraft" class="btn-touch rounded-xl bg-amber-600/95 border border-amber-400/40 px-3 py-2 text-xs font-extrabold text-white shadow-lg">
+            🔨 CRAFT
+          </button>
+          <button id="btnOpenShop" class="btn-touch rounded-xl bg-purple-600/95 border border-purple-400/40 px-3 py-2 text-xs font-extrabold text-white shadow-lg">
+            ⭐ LOJA
+          </button>
+          <button id="btnOpenMap" class="hidden btn-touch rounded-xl bg-emerald-600/95 border border-emerald-400/40 px-3 py-2 text-xs font-extrabold text-white shadow-lg">
+            🗺️ MAPA
+          </button>
+        </div>
+
+        <!-- Seletor de Armas Equipadas -->
+        <div class="flex gap-1 bg-slate-900/85 border border-slate-700/80 rounded-xl p-1">
+          <button id="slotAxe" class="btn-touch px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white" title="Machado (24 Dano)">
+            🪓 <span class="hidden sm:inline">Machado</span>
+          </button>
+          <button id="slotRevolver" class="btn-touch px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 opacity-50" title="Revólver (42 Dano)">
+            🔫 <span class="hidden sm:inline">Revólver</span>
+          </button>
+          <button id="slotRifle" class="btn-touch px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 opacity-50" title="Rifle (95 Dano)">
+            🎯 <span class="hidden sm:inline">Rifle</span>
+          </button>
+          <button id="btnEatFood" class="btn-touch px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-700/80 text-amber-100" title="Comer Carne Assada">
+            🍖 Comer
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- PAINEL DO RECEPTOR -->
-    <div class="card">
-        <h3>2. Assistir e Analisar (Espectador)</h3>
-        <p>Cole o código do transmissor:</p>
-        <textarea id="inputOferta" placeholder="Cole a oferta aqui..."></textarea>
-        <button onclick="gerarResposta()">Gerar Resposta</button>
-        
-        <p style="margin-top: 10px;">Envie de volta ao transmissor:</p>
-        <textarea id="txtResposta" readonly placeholder="Resposta aparecerá aqui..."></textarea>
-        
-        <div id="statusReceptor" style="margin-top: 10px; font-weight: bold; color: #94a3b8;">Status: Desconectado</div>
+    <!-- Banner de Alerta Central (Noite, Cervo, Cultistas, Resgate) -->
+    <div id="toastBanner" class="fixed top-28 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-slate-950/90 border border-amber-400/50 text-amber-200 text-xs font-bold shadow-xl opacity-0 transition-opacity duration-200 pointer-events-none text-center max-w-[90vw]">
+      Alerta da Floresta
     </div>
 
-    <!-- TELA REMOTA E LOGS -->
-    <div class="card" style="width: 100%; max-width: 800px;">
-        <h3>Tela Recebida & Console de Logs</h3>
-        <video id="videoRemoto" autoplay playsinline></video>
-        <div class="log-box" id="logBox">Logs de interações e eventos aparecerão aqui...</div>
+    <!-- CONTROLES TOUCH MOBILE (Inferior Esquerdo e Inferior Direito) -->
+    <!-- Joystick Virtual Esquerdo -->
+    <div id="joystickZone" class="fixed bottom-4 left-4 w-32 h-32 rounded-full bg-slate-900/40 border-2 border-white/15 pointer-events-auto flex items-center justify-center">
+      <div id="joystickKnob" class="w-12 h-12 rounded-full bg-white/35 border border-white/60 shadow-lg pointer-events-none"></div>
     </div>
 
-    <script>
-        let peerConnection;
-        let localStream;
-        let dataChannel;
-        let wakeLock = null;
+    <!-- Botões de Ação Direita -->
+    <div class="fixed bottom-4 right-4 flex flex-col items-end gap-2.5 pointer-events-auto">
+      <div class="flex gap-2.5">
+        <!-- Botão Interagir (Abrir Baú, Resgatar Criança, Dormir na Cama, Alimentar Fogueira) -->
+        <button id="btnInteract" class="btn-touch w-14 h-14 rounded-2xl bg-emerald-600/90 border-2 border-emerald-300/60 flex flex-col items-center justify-center text-white shadow-xl">
+          <span class="text-lg leading-none">✋</span>
+          <span id="interactLabel" class="text-[9px] font-black mt-0.5">USAR</span>
+        </button>
+        <!-- Botão Lanterna (Ligar/Desligar feixe que paralisa/espanta o Cervo) -->
+        <button id="btnFlashlight" class="btn-touch w-14 h-14 rounded-2xl bg-yellow-600/90 border-2 border-yellow-300/60 flex flex-col items-center justify-center text-white shadow-xl">
+          <span class="text-lg leading-none">🔦</span>
+          <span class="text-[9px] font-black mt-0.5">LUZ</span>
+        </button>
+      </div>
+      <!-- Botão Principal de Ataque / Corte / Tiro -->
+      <button id="btnAttack" class="btn-touch w-20 h-20 rounded-full bg-rose-600/95 border-4 border-rose-300/70 flex flex-col items-center justify-center text-white shadow-2xl">
+        <span id="attackIcon" class="text-2xl leading-none">🪓</span>
+        <span class="text-[10px] font-black mt-0.5">ATACAR</span>
+      </button>
+    </div>
+  </div>
 
-        const rtcConfig = {
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+  <!-- MODAL DE CRAFTING -->
+  <div id="craftModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/75 p-4">
+    <div class="w-full max-w-md rounded-2xl bg-slate-900 border border-amber-500/40 p-4 shadow-2xl modal-anim max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-3">
+        <h2 class="text-base font-black text-amber-400">🔨 BANCADA DE CRAFTING</h2>
+        <button id="btnCloseCraft" class="btn-touch rounded-lg bg-slate-800 px-3 py-1 text-xs font-bold text-slate-300">✕ FECHAR</button>
+      </div>
+      <div id="craftList" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- MODAL LOJINHA DE HABILIDADES (SANTUÁRIO) -->
+  <div id="shopModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/75 p-4">
+    <div class="w-full max-w-md rounded-2xl bg-slate-900 border border-purple-500/40 p-4 shadow-2xl modal-anim max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-3">
+        <div>
+          <h2 class="text-base font-black text-purple-300">⭐ LOJA DE HABILIDADES</h2>
+          <p class="text-[11px] text-slate-400">Suas Moedas: <span id="shopCoinsDisplay" class="text-yellow-400 font-bold">0</span> 🪙</p>
+        </div>
+        <button id="btnCloseShop" class="btn-touch rounded-lg bg-slate-800 px-3 py-1 text-xs font-bold text-slate-300">✕ FECHAR</button>
+      </div>
+      <div id="shopList" class="space-y-2.5"></div>
+    </div>
+  </div>
+
+  <!-- MODAL MAPA DA FLORESTA (Liberado após Craft do Mapa) -->
+  <div id="mapModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/80 p-4">
+    <div class="w-full max-w-md rounded-2xl bg-slate-900 border border-emerald-500/40 p-4 shadow-2xl modal-anim">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+        <h2 class="text-base font-black text-emerald-400">🗺️ MAPA DA FLORESTA</h2>
+        <button id="btnCloseMap" class="btn-touch rounded-lg bg-slate-800 px-3 py-1 text-xs font-bold text-slate-300">✕ FECHAR</button>
+      </div>
+      <div class="relative w-full aspect-square bg-slate-950 rounded-xl border border-slate-700 overflow-hidden">
+        <canvas id="minimapCanvas" class="w-full h-full"></canvas>
+      </div>
+      <div class="grid grid-cols-2 gap-1.5 mt-3 text-[11px] text-slate-300 bg-slate-950/70 p-2 rounded-xl">
+        <span>🔥 Fogueira (Base Segura)</span>
+        <span>🧑 Você / Aliados</span>
+        <span>📦 Baú Fechado (Lanternas/Armas)</span>
+        <span>👶 Criança Perdida (+Lobos)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL FIM DE JOGO / VITÓRIA 99 NOITES -->
+  <div id="endModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/85 p-4">
+    <div class="w-full max-w-sm rounded-2xl bg-slate-900 border border-rose-500/40 p-5 text-center shadow-2xl modal-anim">
+      <div id="endIcon" class="text-4xl mb-2">💀</div>
+      <h2 id="endTitle" class="text-xl font-black text-white mb-1">VOCÊ CAIU NA FLORESTA</h2>
+      <p id="endSubtitle" class="text-xs text-slate-300 mb-4">Sobreviveu até a Noite 1.</p>
+      <button id="btnRestartGame" class="btn-touch w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 font-extrabold text-sm text-white">
+        🔄 JOGAR NOVAMENTE
+      </button>
+    </div>
+  </div>
+
+<script>
+/**
+ * ============================================================================
+ * 99 NOITES NA FLORESTA - MULTIPLAYER P2P (SINGLE FILE HTML5)
+ * Otimizado para 60 FPS no Samsung Galaxy A10s e hospedagem estática.
+ * ============================================================================
+ */
+(() => {
+  'use strict';
+
+  // --- ÁUDIO PROCEDURAL LEVE (WEB AUDIO API) ---
+  const AudioFX = {
+    ctx: null,
+    init() {
+      if (!this.ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) this.ctx = new AC();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+    },
+    play(freq, type = 'sine', duration = 0.12, gainVal = 0.08, endFreq = null) {
+      try {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+        gain.gain.setValueAtTime(gainVal, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      } catch (e) {}
+    },
+    chop() { this.play(160, 'triangle', 0.09, 0.12, 70); },
+    shoot(heavy = false) {
+      this.play(heavy ? 140 : 240, 'sawtooth', heavy ? 0.22 : 0.14, 0.14, 40);
+    },
+    coin() { this.play(780, 'sine', 0.15, 0.08, 1180); },
+    deerScreech() { this.play(420, 'sawtooth', 0.35, 0.12, 110); },
+    rescue() { this.play(520, 'triangle', 0.28, 0.1, 880); }
+  };
+
+  // --- CONSTANTES DO MUNDO ---
+  const WORLD_SIZE = 3200; // Mapa 3200x3200
+  const CAMP_X = WORLD_SIZE / 2;
+  const CAMP_Y = WORLD_SIZE / 2;
+  const BASE_FIRE_RADIUS = 230; // Raio iluminado da fogueira (animais e o Cervo não entram)
+
+  // --- ESTADO GLOBAL DO JOGO ---
+  const state = {
+    running: false,
+    mode: 'solo', // 'solo' | 'host' | 'client'
+    roomCode: '',
+    day: 1,
+    timeOfDay: 0.25, // 0.0 a 1.0 (0.20..0.72 = Dia, 0.72..1.0 e 0.0..0.20 = Noite)
+    daySpeed: 1 / 95, // ~95 segundos por ciclo completo (acelera ao dormir na cama)
+    isNight: false,
+    fireFuel: 100, // 0 a 100%
+    hasBed: false,
+    hasMap: false,
+    childrenRescued: 0,
+
+    // Jogador Local
+    player: {
+      id: 'local',
+      name: 'Sobrevivente',
+      x: CAMP_X + 40,
+      y: CAMP_Y + 40,
+      angle: 0,
+      hp: 100,
+      maxHp: 100,
+      hunger: 100,
+      wood: 18,
+      stone: 6,
+      meat: 1,
+      cookedMeat: 1,
+      ammo: 14,
+      coins: 35,
+      weapon: 'axe', // 'axe' | 'revolver' | 'rifle'
+      unlockedWeapons: { axe: true, revolver: false, rifle: false },
+      hasFlashlight: false,
+      flashlightOn: false,
+      battery: 0, // 0 a 100%
+      attackCooldown: 0,
+      swingAnim: 0,
+      // Habilidades da Lojinha (Nível 0 a 5)
+      skills: {
+        speed: 0,   // +10% velocidade por nível
+        strength: 0,// +20% dano em combate por nível
+        chop: 0     // +30% velocidade/rendimento de corte de madeira por nível
+      }
+    },
+
+    // Jogadores Remotos (Multiplayer P2P)
+    remotePlayers: {},
+
+    // Entidades do Mundo
+    trees: [],
+    rocks: [],
+    walls: [],
+    chests: [],
+    children: [],
+    rabbits: [],
+    enemies: [], // 'wolf' | 'cultist'
+    deer: {
+      active: false,
+      x: CAMP_X - 750,
+      y: CAMP_Y - 750,
+      stunTimer: 0, // Paralisado enquanto iluminado pelo feixe da lanterna
+      scaredTimer: 0, // Foge após ser iluminado por tempo suficiente
+      scareCharge: 0,
+      attackCd: 0
+    },
+    bullets: [],
+    particles: [],
+    floatingTexts: []
+  };
+
+  // --- REFERÊNCIAS DOM ---
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const minimapCanvas = document.getElementById('minimapCanvas');
+  const mctx = minimapCanvas.getContext('2d');
+
+  // --- REDIMENSIONAMENTO RESPONSIVO DO CANVAS ---
+  let viewW = window.innerWidth;
+  let viewH = window.innerHeight;
+  function resizeCanvas() {
+    viewW = window.innerWidth;
+    viewH = window.innerHeight;
+    // DPR limitado a 1.25 para garantir 60 FPS fluidos no Galaxy A10s
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+    canvas.width = Math.floor(viewW * dpr);
+    canvas.height = Math.floor(viewH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // --- NOTIFICAÇÃO RÁPIDA (TOAST) ---
+  let toastTimeout = null;
+  function showToast(msg, colorClass = 'text-amber-200') {
+    const el = document.getElementById('toastBanner');
+    el.textContent = msg;
+    el.className = `fixed top-28 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-slate-950/90 border border-amber-400/50 text-xs font-bold shadow-xl transition-opacity duration-200 pointer-events-none text-center max-w-[90vw] ${colorClass}`;
+    el.style.opacity = '1';
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { el.style.opacity = '0'; }, 2600);
+  }
+
+  // --- TEXTOS FLUTUANTES DE DANO / RECURSOS ---
+  function addFloatingText(x, y, text, color = '#fff') {
+    if (state.floatingTexts.length > 24) state.floatingTexts.shift();
+    state.floatingTexts.push({ x, y, text, color, life: 0.9 });
+  }
+
+  function addParticles(x, y, color, count = 5) {
+    for (let i = 0; i < count; i++) {
+      if (state.particles.length > 45) state.particles.shift();
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 30 + Math.random() * 80;
+      state.particles.push({
+        x, y,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd,
+        color,
+        life: 0.35 + Math.random() * 0.25
+      });
+    }
+  }
+
+  // --- GERAÇÃO DO MUNDO DA FLORESTA ---
+  function initWorld() {
+    state.day = 1;
+    state.timeOfDay = 0.25;
+    state.isNight = false;
+    state.fireFuel = 100;
+    state.hasBed = false;
+    state.hasMap = false;
+    state.childrenRescued = 0;
+
+    const p = state.player;
+    p.x = CAMP_X + 45;
+    p.y = CAMP_Y + 45;
+    p.hp = 100;
+    p.hunger = 100;
+    p.wood = 18;
+    p.stone = 6;
+    p.meat = 1;
+    p.cookedMeat = 1;
+    p.ammo = 14;
+    p.coins = 35;
+    p.weapon = 'axe';
+    p.unlockedWeapons = { axe: true, revolver: false, rifle: false };
+    p.hasFlashlight = false;
+    p.flashlightOn = false;
+    p.battery = 0;
+    p.skills = { speed: 0, strength: 0, chop: 0 };
+
+    state.trees = [];
+    state.rocks = [];
+    state.walls = [];
+    state.chests = [];
+    state.children = [];
+    state.rabbits = [];
+    state.enemies = [];
+    state.bullets = [];
+    state.particles = [];
+    state.floatingTexts = [];
+    state.deer = {
+      active: false,
+      x: CAMP_X - 850,
+      y: CAMP_Y - 850,
+      stunTimer: 0,
+      scaredTimer: 0,
+      scareCharge: 0,
+      attackCd: 0
+    };
+
+    // 1. Árvores e Pedras espalhadas fora do centro da fogueira
+    for (let i = 0; i < 135; i++) {
+      const x = 140 + Math.random() * (WORLD_SIZE - 280);
+      const y = 140 + Math.random() * (WORLD_SIZE - 280);
+      if (Math.hypot(x - CAMP_X, y - CAMP_Y) < 280) continue;
+      state.trees.push({
+        id: 't' + i,
+        x, y,
+        hp: 60,
+        maxHp: 60,
+        radius: 22 + Math.random() * 6
+      });
+    }
+
+    for (let i = 0; i < 40; i++) {
+      const x = 160 + Math.random() * (WORLD_SIZE - 320);
+      const y = 160 + Math.random() * (WORLD_SIZE - 320);
+      if (Math.hypot(x - CAMP_X, y - CAMP_Y) < 300) continue;
+      state.rocks.push({
+        id: 'r' + i,
+        x, y,
+        hp: 80,
+        radius: 18
+      });
+    }
+
+    // 2. Baús espalhados pelo mapa (contêm Lanternas, Pilhas, Revólver, Rifle, Munição e Moedas)
+    const chestSpots = [
+      { x: CAMP_X + 360, y: CAMP_Y - 220, loot: 'flashlight_starter' },
+      { x: CAMP_X - 420, y: CAMP_Y + 310, loot: 'revolver_chest' },
+      { x: CAMP_X + 680, y: CAMP_Y + 540, loot: 'rifle_chest' },
+      { x: CAMP_X - 750, y: CAMP_Y - 520, loot: 'flashlight_battery' },
+      { x: CAMP_X + 880, y: CAMP_Y - 760, loot: 'flashlight_battery' },
+      { x: CAMP_X - 920, y: CAMP_Y + 840, loot: 'coins_ammo' },
+      { x: CAMP_X + 240, y: CAMP_Y + 950, loot: 'flashlight_battery' },
+      { x: CAMP_X - 280, y: CAMP_Y - 960, loot: 'coins_ammo' }
+    ];
+    chestSpots.forEach((spot, idx) => {
+      state.chests.push({
+        id: 'c' + idx,
+        x: spot.x,
+        y: spot.y,
+        opened: false,
+        loot: spot.loot
+      });
+    });
+
+    // 3. 4 Crianças Perdidas pela floresta, cada uma guardada por uma matilha de Lobos
+    const childCoords = [
+      { name: 'Lucas', x: CAMP_X - 820, y: CAMP_Y - 740, wolves: 2 },
+      { name: 'Sofia', x: CAMP_X + 860, y: CAMP_Y - 680, wolves: 2 },
+      { name: 'Mateus', x: CAMP_X - 790, y: CAMP_Y + 820, wolves: 3 },
+      { name: 'Helena', x: CAMP_X + 910, y: CAMP_Y + 860, wolves: 3 }
+    ];
+
+    childCoords.forEach((c, idx) => {
+      const childId = 'child_' + idx;
+      state.children.push({
+        id: childId,
+        name: c.name,
+        x: c.x,
+        y: c.y,
+        status: 'lost' // 'lost' | 'following' | 'rescued'
+      });
+      // Lobos guardiões próximos à criança
+      for (let w = 0; w < c.wolves; w++) {
+        const ang = (Math.PI * 2 * w) / c.wolves;
+        state.enemies.push({
+          id: `wolf_${idx}_${w}`,
+          type: 'wolf',
+          guardChildId: childId,
+          homeX: c.x,
+          homeY: c.y,
+          x: c.x + Math.cos(ang) * 75,
+          y: c.y + Math.sin(ang) * 75,
+          hp: 65,
+          maxHp: 65,
+          speed: 135,
+          damage: 14,
+          attackCd: 0
+        });
+      }
+    });
+
+    // 4. Coelhos correndo pela floresta (alimento)
+    for (let i = 0; i < 16; i++) {
+      spawnRabbit();
+    }
+
+    updateUI();
+  }
+
+  function spawnRabbit() {
+    const x = 220 + Math.random() * (WORLD_SIZE - 440);
+    const y = 220 + Math.random() * (WORLD_SIZE - 440);
+    if (Math.hypot(x - CAMP_X, y - CAMP_Y) < 260) return;
+    state.rabbits.push({
+      x, y,
+      vx: 0,
+      vy: 0,
+      hp: 20,
+      moveTimer: Math.random() * 2
+    });
+  }
+
+  // --- VERIFICAÇÃO DE ZONA ILUMINADA DA FOGUEIRA ---
+  function getFireRadius() {
+    if (state.fireFuel <= 0) return 55;
+    return BASE_FIRE_RADIUS * (0.45 + 0.55 * (state.fireFuel / 100));
+  }
+
+  function isInsideFireSafeZone(x, y, margin = 0) {
+    return Math.hypot(x - CAMP_X, y - CAMP_Y) <= (getFireRadius() + margin);
+  }
+
+  // --- SISTEMA DE CRAFTING ---
+  const CRAFT_RECIPES = [
+    {
+      id: 'feed_fire',
+      name: '🔥 Alimentar Fogueira (+35%)',
+      desc: 'Mantém a luz forte para bloquear o Cervo e Lobos.',
+      costText: '5 🪵 Madeira',
+      canCraft: () => state.player.wood >= 5 && state.fireFuel < 98,
+      craft: () => {
+        state.player.wood -= 5;
+        state.fireFuel = Math.min(100, state.fireFuel + 35);
+        showToast('🔥 Fogueira reabastecida!', 'text-orange-300');
+      }
+    },
+    {
+      id: 'cook_meat',
+      name: '🍖 Assar Carne de Coelho',
+      desc: 'Recupera +40 Fome e +20 Vida ao comer.',
+      costText: '1 🥩 Carne Crua + 1 🪵',
+      canCraft: () => state.player.meat >= 1 && state.player.wood >= 1,
+      craft: () => {
+        state.player.meat -= 1;
+        state.player.wood -= 1;
+        state.player.cookedMeat += 1;
+        showToast('🍖 Carne assada pronta!', 'text-amber-300');
+      }
+    },
+    {
+      id: 'craft_ammo',
+      name: '🔸 Munição (x12 Balas)',
+      desc: 'Munição para Revólver (42 dano) e Rifle (95 dano).',
+      costText: '4 🪵 + 3 🪨 Pedra',
+      canCraft: () => state.player.wood >= 4 && state.player.stone >= 3,
+      craft: () => {
+        state.player.wood -= 4;
+        state.player.stone -= 3;
+        state.player.ammo += 12;
+        showToast('🔸 +12 Munições fabricadas!', 'text-yellow-300');
+      }
+    },
+    {
+      id: 'craft_map',
+      name: '🗺️ Mapa da Floresta',
+      desc: 'Libera o Mapa no HUD mostrando Baús e Crianças!',
+      costText: '10 🪵 Madeira + 4 🪨 Pedra',
+      canCraft: () => !state.hasMap && state.player.wood >= 10 && state.player.stone >= 4,
+      craft: () => {
+        state.player.wood -= 10;
+        state.player.stone -= 4;
+        state.hasMap = true;
+        document.getElementById('btnOpenMap').classList.remove('hidden');
+        showToast('🗺️ Mapa da Floresta desbloqueado no topo!', 'text-emerald-300');
+      }
+    },
+    {
+      id: 'craft_bed',
+      name: '🛏️ Cama de Acampamento',
+      desc: 'Permite dormir na base para acelerar os dias!',
+      costText: '18 🪵 Madeira + 4 🪨 Pedra',
+      canCraft: () => !state.hasBed && state.player.wood >= 18 && state.player.stone >= 4,
+      craft: () => {
+        state.player.wood -= 18;
+        state.player.stone -= 4;
+        state.hasBed = true;
+        showToast('🛏️ Cama construída! Use-a perto da fogueira para acelerar o dia.', 'text-sky-300');
+      }
+    },
+    {
+      id: 'craft_wall',
+      name: '🧱 Paliçada de Madeira',
+      desc: 'Barreira defensiva contra Cultistas invasores.',
+      costText: '8 🪵 Madeira',
+      canCraft: () => state.player.wood >= 8,
+      craft: () => {
+        state.player.wood -= 8;
+        const p = state.player;
+        state.walls.push({
+          x: p.x + Math.cos(p.angle) * 44,
+          y: p.y + Math.sin(p.angle) * 44,
+          hp: 140,
+          maxHp: 140
+        });
+        showToast('🧱 Paliçada construída!', 'text-amber-200');
+      }
+    },
+    {
+      id: 'craft_revolver',
+      name: '🔫 Revólver Artesanal (42 Dano)',
+      desc: 'Arma de médio alcance caso ainda não tenha achado em baú.',
+      costText: '15 🪵 + 12 🪨 Pedra',
+      canCraft: () => !state.player.unlockedWeapons.revolver && state.player.wood >= 15 && state.player.stone >= 12,
+      craft: () => {
+        state.player.wood -= 15;
+        state.player.stone -= 12;
+        state.player.unlockedWeapons.revolver = true;
+        equipWeapon('revolver');
+        showToast('🔫 Revólver fabricado e equipado!', 'text-amber-300');
+      }
+    }
+  ];
+
+  function renderCraftModal() {
+    const list = document.getElementById('craftList');
+    list.innerHTML = '';
+    CRAFT_RECIPES.forEach(rec => {
+      const ok = rec.canCraft();
+      const item = document.createElement('div');
+      item.className = 'flex items-center justify-between gap-2 rounded-xl bg-slate-800/90 border border-slate-700 p-2.5';
+      item.innerHTML = `
+        <div>
+          <div class="text-xs font-extrabold text-white">${rec.name}</div>
+          <div class="text-[11px] text-slate-400">${rec.desc}</div>
+          <div class="text-[11px] font-bold text-amber-300 mt-0.5">Custo: ${rec.costText}</div>
+        </div>
+        <button class="btn-touch shrink-0 rounded-xl px-3 py-2 text-xs font-black ${ok ? 'bg-amber-600 text-white' : 'bg-slate-700 text-slate-500 opacity-60'}" ${ok ? '' : 'disabled'}>
+          CRIAR
+        </button>
+      `;
+      if (ok) {
+        item.querySelector('button').onclick = () => {
+          rec.craft();
+          AudioFX.coin();
+          renderCraftModal();
+          updateUI();
         };
+      }
+      list.appendChild(item);
+    });
+  }
 
-        function logMsg(msg) {
-            const box = document.getElementById('logBox');
-            const timestamp = new Date().toLocaleTimeString();
-            box.innerHTML += `<div>[${timestamp}] ${msg}</div>`;
-            box.scrollTop = box.scrollHeight;
+  // --- LOJINHA DE HABILIDADES (SANTUÁRIO) ---
+  const SHOP_SKILLS = [
+    {
+      key: 'speed',
+      title: '⚡ Passos Ágeis (Velocidade)',
+      desc: 'Aumenta a velocidade de corrida (+10% por nível).',
+      baseCost: 25
+    },
+    {
+      key: 'strength',
+      title: '💪 Força Brutal (Dano)',
+      desc: 'Aumenta o dano do Machado, Revólver e Rifle (+20% por nível).',
+      baseCost: 30
+    },
+    {
+      key: 'chop',
+      title: '🪓 Lenhador Mestre (Madeira Rápida)',
+      desc: 'Corta árvores mais rápido e rende mais madeira (+30% por nível).',
+      baseCost: 25
+    }
+  ];
+
+  function renderShopModal() {
+    document.getElementById('shopCoinsDisplay').textContent = state.player.coins;
+    const list = document.getElementById('shopList');
+    list.innerHTML = '';
+    SHOP_SKILLS.forEach(sk => {
+      const lvl = state.player.skills[sk.key];
+      const maxed = lvl >= 5;
+      const cost = sk.baseCost + lvl * 20;
+      const canBuy = !maxed && state.player.coins >= cost;
+      const card = document.createElement('div');
+      card.className = 'flex items-center justify-between gap-2 rounded-xl bg-slate-800/90 border border-purple-500/30 p-3';
+      card.innerHTML = `
+        <div>
+          <div class="text-xs font-extrabold text-white">${sk.title} <span class="text-purple-300">[Nv. ${lvl}/5]</span></div>
+          <div class="text-[11px] text-slate-400 mt-0.5">${sk.desc}</div>
+          <div class="text-[11px] font-bold text-yellow-400 mt-1">${maxed ? 'NÍVEL MÁXIMO' : `Custo: ${cost} 🪙`}</div>
+        </div>
+        <button class="btn-touch shrink-0 rounded-xl px-3 py-2 text-xs font-black ${canBuy ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-500 opacity-60'}" ${canBuy ? '' : 'disabled'}>
+          ${maxed ? 'MAX' : 'UPAR'}
+        </button>
+      `;
+      if (canBuy) {
+        card.querySelector('button').onclick = () => {
+          state.player.coins -= cost;
+          state.player.skills[sk.key]++;
+          AudioFX.coin();
+          showToast(`⭐ ${sk.title} subiu para Nível ${state.player.skills[sk.key]}!`, 'text-purple-300');
+          renderShopModal();
+          updateUI();
+        };
+      }
+      list.appendChild(card);
+    });
+  }
+
+  // --- EQUIPAR ARMAS & COMER ---
+  function equipWeapon(w) {
+    if (!state.player.unlockedWeapons[w]) {
+      showToast('🔒 Encontre em baús ou crie no Craft!', 'text-slate-300');
+      return;
+    }
+    state.player.weapon = w;
+    document.getElementById('slotAxe').className = `btn-touch px-2.5 py-1.5 rounded-lg text-xs font-bold ${w === 'axe' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'}`;
+    document.getElementById('slotRevolver').className = `btn-touch px-2.5 py-1.5 rounded-lg text-xs font-bold ${w === 'revolver' ? 'bg-emerald-600 text-white' : (state.player.unlockedWeapons.revolver ? 'bg-slate-800 text-slate-300' : 'bg-slate-800 text-slate-500 opacity-50')}`;
+    document.getElementById('slotRifle').className = `btn-touch px-2.5 py-1.5 rounded-lg text-xs font-bold ${w === 'rifle' ? 'bg-emerald-600 text-white' : (state.player.unlockedWeapons.rifle ? 'bg-slate-800 text-slate-300' : 'bg-slate-800 text-slate-500 opacity-50')}`;
+    document.getElementById('attackIcon').textContent = w === 'axe' ? '🪓' : (w === 'revolver' ? '🔫' : '🎯');
+  }
+
+  function eatCookedMeat() {
+    const p = state.player;
+    if (p.cookedMeat <= 0) {
+      if (p.meat > 0) {
+        p.meat--;
+        p.hunger = Math.min(100, p.hunger + 18);
+        showToast('🥩 Comeu carne crua (+18 Fome). Asse no Craft para render mais!', 'text-rose-300');
+      } else {
+        showToast('❌ Sem carne! Cace coelhos na floresta.', 'text-rose-300');
+      }
+      updateUI();
+      return;
+    }
+    p.cookedMeat--;
+    p.hunger = Math.min(100, p.hunger + 40);
+    p.hp = Math.min(p.maxHp, p.hp + 20);
+    AudioFX.coin();
+    showToast('🍖 +40 Fome e +20 Vida!', 'text-emerald-300');
+    updateUI();
+  }
+
+  // --- COMBATE E COLETA ---
+  function performAttack() {
+    const p = state.player;
+    if (p.attackCooldown > 0) return;
+
+    const strMult = 1 + p.skills.strength * 0.20;
+    const chopMult = 1 + p.skills.chop * 0.30;
+
+    if (p.weapon === 'axe') {
+      p.attackCooldown = Math.max(0.22, 0.38 - p.skills.chop * 0.03);
+      p.swingAnim = 0.22;
+      AudioFX.chop();
+
+      const reach = 72;
+      const hitX = p.x + Math.cos(p.angle) * 42;
+      const hitY = p.y + Math.sin(p.angle) * 42;
+      const axeDmg = Math.round(24 * strMult);
+
+      // 1. Dano em inimigos (Lobos e Cultistas)
+      let hitTarget = false;
+      for (let i = state.enemies.length - 1; i >= 0; i--) {
+        const e = state.enemies[i];
+        if (Math.hypot(e.x - hitX, e.y - hitY) <= reach) {
+          damageEnemy(i, axeDmg);
+          hitTarget = true;
         }
+      }
 
-        async function ativarModoSegundoPlano() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    const btn = document.getElementById('btnWakeLock');
-                    btn.classList.add('btn-active');
-                    btn.innerText = "✅ Modo Fundo Ativo";
-                }
-            } catch (err) {
-                console.error(err);
+      // 2. Caçar Coelhos
+      for (let i = state.rabbits.length - 1; i >= 0; i--) {
+        const rb = state.rabbits[i];
+        if (Math.hypot(rb.x - hitX, rb.y - hitY) <= reach) {
+          rb.hp -= axeDmg;
+          addParticles(rb.x, rb.y, '#f87171', 4);
+          if (rb.hp <= 0) {
+            state.rabbits.splice(i, 1);
+            p.meat += 1;
+            p.coins += 5;
+            addFloatingText(rb.x, rb.y, '+1 🥩 +5🪙', '#fcd34d');
+            setTimeout(spawnRabbit, 12000);
+          }
+          hitTarget = true;
+        }
+      }
+
+      if (!hitTarget) {
+        // 3. Cortar Árvores
+        for (let i = state.trees.length - 1; i >= 0; i--) {
+          const t = state.trees[i];
+          if (Math.hypot(t.x - hitX, t.y - hitY) <= t.radius + 36) {
+            const woodDmg = Math.round(22 * chopMult);
+            t.hp -= woodDmg;
+            const gained = 2 + Math.floor(p.skills.chop * 0.6);
+            p.wood += gained;
+            addParticles(t.x, t.y, '#a16207', 5);
+            addFloatingText(t.x, t.y - 12, `+${gained} 🪵`, '#fde68a');
+            if (t.hp <= 0) {
+              p.wood += 4;
+              state.trees.splice(i, 1);
             }
+            break;
+          }
         }
-
-        async function coletarInfosDispositivo() {
-            let ip = "Desconhecido";
-            try {
-                const res = await fetch('https://api.ipify.org?format=json');
-                const data = await res.json();
-                ip = data.ip;
-            } catch(e) {
-                ip = "Indisponível";
+        // 4. Quebrar Pedras
+        for (let i = state.rocks.length - 1; i >= 0; i--) {
+          const r = state.rocks[i];
+          if (Math.hypot(r.x - hitX, r.y - hitY) <= r.radius + 34) {
+            r.hp -= 20;
+            p.stone += 2;
+            addParticles(r.x, r.y, '#94a3b8', 5);
+            addFloatingText(r.x, r.y - 12, '+2 🪨', '#cbd5e1');
+            if (r.hp <= 0) {
+              p.stone += 3;
+              state.rocks.splice(i, 1);
             }
-
-            let bateriaInfo = "Não suportada";
-            if ('getBattery' in navigator) {
-                try {
-                    const bat = await navigator.getBattery();
-                    bateriaInfo = `${Math.round(bat.level * 100)}% (${bat.charging ? 'Carregando' : 'Descarga'})`;
-                } catch(e) {}
-            }
-
-            return {
-                ip: ip,
-                nav: navigator.userAgent.includes("Mobile") ? "Dispositivo Móvel" : "Desktop/PC",
-                res: `${window.screen.width}x${window.screen.height}`,
-                bat: bateriaInfo,
-                plataforma: navigator.platform
-            };
+            break;
+          }
         }
+      }
+    } else if (p.weapon === 'revolver' || p.weapon === 'rifle') {
+      if (p.ammo <= 0) {
+        showToast('🔸 Sem munição! Crie balas no Craft ou abra baús.', 'text-rose-300');
+        return;
+      }
+      const isRifle = p.weapon === 'rifle';
+      p.ammo--;
+      p.attackCooldown = isRifle ? 0.68 : 0.34;
+      AudioFX.shoot(isRifle);
 
-        // --- TRANSMISSOR ---
-        async function iniciarTransmissao() {
-            // VERIFICAÇÃO DE COMPATIBILIDADE MOBILE
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                alert("Seu navegador ou dispositivo atual não suporta espelhamento de tela via web (getDisplayMedia). Tente usar um navegador atualizado como o Chrome mais recente ou execute o transmissor em um computador/notebook.");
-                return;
-            }
+      const baseDmg = isRifle ? 95 : 42;
+      const finalDmg = Math.round(baseDmg * strMult);
+      const speed = isRifle ? 820 : 620;
+      const life = isRifle ? 0.95 : 0.65;
 
-            try {
-                localStream = await navigator.mediaDevices.getDisplayMedia({ 
-                    video: { cursor: "always", frameRate: { ideal: 15, max: 30 } }, 
-                    audio: true 
-                });
-                
-                peerConnection = new RTCPeerConnection(rtcConfig);
-                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+      state.bullets.push({
+        x: p.x + Math.cos(p.angle) * 24,
+        y: p.y + Math.sin(p.angle) * 24,
+        vx: Math.cos(p.angle) * speed,
+        vy: Math.sin(p.angle) * speed,
+        damage: finalDmg,
+        isRifle,
+        life
+      });
+    }
+    updateUI();
+  }
 
-                dataChannel = peerConnection.createDataChannel("telemetriaChannel");
-                configurarDataChannelTransmissor();
+  function damageEnemy(index, dmg) {
+    const e = state.enemies[index];
+    if (!e) return;
+    e.hp -= dmg;
+    addParticles(e.x, e.y, '#ef4444', 6);
+    addFloatingText(e.x, e.y - 15, `-${dmg}`, '#fca5a5');
 
-                peerConnection.onicecandidate = event => {
-                    if (event.candidate === null) {
-                        document.getElementById('txtOferta').value = JSON.stringify(peerConnection.localDescription);
-                    }
-                };
+    if (e.hp <= 0) {
+      const rewardCoins = e.type === 'cultist' ? 18 : 14;
+      state.player.coins += rewardCoins;
+      if (e.type === 'wolf') state.player.meat += 1;
+      addFloatingText(e.x, e.y - 28, `+${rewardCoins} 🪙`, '#facc15');
+      state.enemies.splice(index, 1);
+      AudioFX.coin();
+    }
+  }
 
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                document.getElementById('statusTransmissor').innerText = "Status: Aguardando Conexão...";
-                logMsg("Transmissão iniciada. Aguardando pareamento...");
-                ativarModoSegundoPlano();
+  // --- INTERAÇÃO CONTEXTUAL (BAÚS, CRIANÇAS, CAMA, FOGUEIRA) ---
+  function performInteract() {
+    const p = state.player;
 
-            } catch (err) {
-                alert("Erro ao capturar a tela: " + err.message);
-            }
+    // 1. Abrir Baú próximo
+    for (const c of state.chests) {
+      if (!c.opened && Math.hypot(p.x - c.x, p.y - c.y) < 68) {
+        c.opened = true;
+        AudioFX.coin();
+        p.coins += 25;
+        p.ammo += 8;
+
+        if (c.loot === 'flashlight_starter' || c.loot === 'flashlight_battery') {
+          p.hasFlashlight = true;
+          p.flashlightOn = true;
+          p.battery = Math.min(100, p.battery + 85);
+          showToast('🔦 Você encontrou uma Lanterna e Pilhas (+85% Luz)!', 'text-yellow-300');
+        } else if (c.loot === 'revolver_chest') {
+          p.unlockedWeapons.revolver = true;
+          p.ammo += 12;
+          equipWeapon('revolver');
+          showToast('🔫 Baú Especial: Você encontrou um REVÓLVER (42 Dano)!', 'text-amber-300');
+        } else if (c.loot === 'rifle_chest') {
+          p.unlockedWeapons.rifle = true;
+          p.ammo += 10;
+          equipWeapon('rifle');
+          showToast('🎯 Baú Lendário: Você encontrou um RIFLE DE CAÇA (95 Dano)!', 'text-rose-300');
+        } else {
+          p.battery = Math.min(100, p.battery + 50);
+          p.coins += 20;
+          showToast('📦 Baú aberto: +45 Moedas, +8 Balas e +50% Bateria!', 'text-emerald-300');
         }
+        updateUI();
+        return;
+      }
+    }
 
-        async function conectarResposta() {
-            const respostaTxt = document.getElementById('inputResposta').value;
-            if (!respostaTxt) return alert("Insira a resposta!");
-            
-            const answer = JSON.parse(respostaTxt);
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-            document.getElementById('statusTransmissor').innerText = "Status: Conectado 🟢";
-            logMsg("Conexão P2P estabelecida com sucesso.");
+    // 2. Resgatar Criança Perdida (após derrotar os lobos guardiões próximos)
+    for (const ch of state.children) {
+      if (ch.status === 'lost' && Math.hypot(p.x - ch.x, p.y - ch.y) < 75) {
+        const wolvesAlive = state.enemies.some(e => e.guardChildId === ch.id);
+        if (wolvesAlive) {
+          showToast(`🐺 Derrote os lobos que guardam ${ch.name} primeiro!`, 'text-rose-300');
+          return;
         }
+        ch.status = 'following';
+        AudioFX.rescue();
+        showToast(`👶 ${ch.name} está seguindo você! Leve até a Fogueira!`, 'text-emerald-300');
+        return;
+      }
+    }
 
-        function configurarDataChannelTransmissor() {
-            dataChannel.onopen = async () => {
-                logMsg("Canal de dados aberto. Solicitando telemetria...");
-            };
-            
-            dataChannel.onmessage = async event => {
-                try {
-                    const dados = JSON.parse(event.data);
-                    if (dados.tipo === 'telemetria') {
-                        document.getElementById('infoIp').innerText = dados.info.ip;
-                        document.getElementById('infoNav').innerText = dados.info.nav + " (" + dados.info.plataforma + ")";
-                        document.getElementById('infoRes').innerText = dados.info.res;
-                        document.getElementById('infoBat').innerText = dados.info.bat;
-                        logMsg(`Dados do dispositivo remoto recebidos com sucesso.`);
-                    } else if (dados.tipo === 'evento') {
-                        logMsg(`[Ação Espectador] ${dados.msg}`);
-                    }
-                } catch(e) {
-                    logMsg(`Mensagem: ${event.data}`);
-                }
-            };
-        }
+    // 3. Dormir na Cama (perto da fogueira) para acelerar o tempo/dias
+    if (state.hasBed && Math.hypot(p.x - (CAMP_X - 65), p.y - (CAMP_Y + 35)) < 85) {
+      if (state.fireFuel < 15) {
+        showToast('🔥 Alimente a fogueira antes de dormir!', 'text-orange-300');
+        return;
+      }
+      // Avança meio ciclo rapidamente (pula a noite ou acelera o dia)
+      state.timeOfDay = (state.timeOfDay + 0.42) % 1.0;
+      if (state.timeOfDay < 0.42) {
+        state.day = Math.min(99, state.day + 1);
+      }
+      state.fireFuel = Math.max(10, state.fireFuel - 15);
+      p.hp = Math.min(p.maxHp, p.hp + 25);
+      AudioFX.rescue();
+      showToast(`🛏️ Você descansou! Avançou para o Dia ${state.day}.`, 'text-sky-300');
+      updateUI();
+      return;
+    }
 
-        // --- RECEPTOR ---
-        async function gerarResposta() {
-            const ofertaTxt = document.getElementById('inputOferta').value;
-            if (!ofertaTxt) return alert("Insira a oferta!");
+    // 4. Alimentar Fogueira diretamente perto dela
+    if (Math.hypot(p.x - CAMP_X, p.y - CAMP_Y) < 95 && p.wood >= 5 && state.fireFuel < 98) {
+      p.wood -= 5;
+      state.fireFuel = Math.min(100, state.fireFuel + 35);
+      AudioFX.coin();
+      showToast('🔥 +35% Combustível na Fogueira!', 'text-orange-300');
+      updateUI();
+      return;
+    }
 
-            peerConnection = new RTCPeerConnection(rtcConfig);
+    showToast('Nada para interagir aqui.', 'text-slate-400');
+  }
 
-            peerConnection.ontrack = event => {
-                const videoElement = document.getElementById('videoRemoto');
-                if (videoElement.srcObject !== event.streams[0]) {
-                    videoElement.srcObject = event.streams[0];
-                }
-            };
+  function toggleFlashlight() {
+    const p = state.player;
+    if (!p.hasFlashlight || p.battery <= 0) {
+      showToast('🔦 Sem lanterna ou bateria! Procure em Baús pelo mapa.', 'text-yellow-300');
+      return;
+    }
+    p.flashlightOn = !p.flashlightOn;
+    AudioFX.play(620, 'sine', 0.06, 0.06);
+    updateUI();
+  }
 
-            peerConnection.ondatachannel = event => {
-                dataChannel = event.channel;
-                dataChannel.onopen = async () => {
-                    document.getElementById('statusReceptor').innerText = "Status: Conectado 🟢";
-                    logMsg("Conectado ao transmissor. Enviando telemetria...");
-                    
-                    const info = await coletarInfosDispositivo();
-                    dataChannel.send(JSON.stringify({ tipo: 'telemetria', info: info }));
-                };
+  // --- CONTROLES (JOYSTICK TOUCH + TECLADO/MOUSE) ---
+  const input = {
+    moveX: 0,
+    moveY: 0,
+    keys: {}
+  };
 
-                dataChannel.onmessage = e => logMsg("Mensagem: " + e.data);
-            };
+  const joyZone = document.getElementById('joystickZone');
+  const joyKnob = document.getElementById('joystickKnob');
+  let joyTouchId = null;
 
-            peerConnection.onicecandidate = event => {
-                if (event.candidate === null) {
-                    document.getElementById('txtResposta').value = JSON.stringify(peerConnection.localDescription);
-                }
-            };
+  function updateJoystick(clientX, clientY) {
+    const rect = joyZone.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const maxR = rect.width * 0.38;
+    let dx = clientX - cx;
+    let dy = clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > maxR) {
+      dx = (dx / dist) * maxR;
+      dy = (dy / dist) * maxR;
+    }
+    joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+    input.moveX = dx / maxR;
+    input.moveY = dy / maxR;
+    if (dist > 6) {
+      state.player.angle = Math.atan2(dy, dx);
+    }
+  }
 
-            const offer = JSON.parse(ofertaTxt);
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+  joyZone.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    joyTouchId = t.identifier;
+    updateJoystick(t.clientX, t.clientY);
+  }, { passive: false });
 
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            document.getElementById('statusReceptor').innerText = "Status: Resposta Gerada 🟢";
-        }
+  joyZone.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      if (t.identifier === joyTouchId) {
+        updateJoystick(t.clientX, t.clientY);
+      }
+    }
+  }, { passive: false });
 
-        document.getElementById('videoRemoto').addEventListener('click', (e) => {
-            const rect = e.target.getBoundingClientRect();
-            const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
-            const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
+  const resetJoy = (e) => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === joyTouchId) {
+        joyTouchId = null;
+        input.moveX = 0;
+        input.moveY = 0;
+        joyKnob.style.transform = 'translate(0px, 0px)';
+      }
+    }
+  };
+  joyZone.addEventListener('touchend', resetJoy);
+  joyZone.addEventListener('touchcancel', resetJoy);
 
-            if (dataChannel && dataChannel.readyState === 'open') {
-                dataChannel.send(JSON.stringify({ 
-                    tipo: 'evento', 
-                    msg: `Clique na tela nas coordenadas X:${x}%, Y:${y}%` 
-                }));
-            }
+  // Teclado para teste em PC
+  window.addEventListener('keydown', (e) => {
+    input.keys[e.key.toLowerCase()] = true;
+    if (e.code === 'Space') performAttack();
+    if (e.key.toLowerCase() === 'e') performInteract();
+    if (e.key.toLowerCase() === 'f') toggleFlashlight();
+  });
+  window.addEventListener('keyup', (e) => {
+    input.keys[e.key.toLowerCase()] = false;
+  });
+
+  // Botões HUD e Ação
+  document.getElementById('btnAttack').addEventListener('click', performAttack);
+  document.getElementById('btnInteract').addEventListener('click', performInteract);
+  document.getElementById('btnFlashlight').addEventListener('click', toggleFlashlight);
+  document.getElementById('slotAxe').addEventListener('click', () => equipWeapon('axe'));
+  document.getElementById('slotRevolver').addEventListener('click', () => equipWeapon('revolver'));
+  document.getElementById('slotRifle').addEventListener('click', () => equipWeapon('rifle'));
+  document.getElementById('btnEatFood').addEventListener('click', eatCookedMeat);
+
+  document.getElementById('btnOpenCraft').addEventListener('click', () => {
+    renderCraftModal();
+    document.getElementById('craftModal').classList.remove('hidden');
+    document.getElementById('craftModal').classList.add('flex');
+  });
+  document.getElementById('btnCloseCraft').addEventListener('click', () => {
+    document.getElementById('craftModal').classList.add('hidden');
+    document.getElementById('craftModal').classList.remove('flex');
+  });
+
+  document.getElementById('btnOpenShop').addEventListener('click', () => {
+    renderShopModal();
+    document.getElementById('shopModal').classList.remove('hidden');
+    document.getElementById('shopModal').classList.add('flex');
+  });
+  document.getElementById('btnCloseShop').addEventListener('click', () => {
+    document.getElementById('shopModal').classList.add('hidden');
+    document.getElementById('shopModal').classList.remove('flex');
+  });
+
+  document.getElementById('btnOpenMap').addEventListener('click', () => {
+    drawMinimap();
+    document.getElementById('mapModal').classList.remove('hidden');
+    document.getElementById('mapModal').classList.add('flex');
+  });
+  document.getElementById('btnCloseMap').addEventListener('click', () => {
+    document.getElementById('mapModal').classList.add('hidden');
+    document.getElementById('mapModal').classList.remove('flex');
+  });
+
+  // --- MULTIPLAYER P2P (PEERJS) ---
+  let peer = null;
+  let connections = [];
+  let hostConn = null;
+  let netTimer = 0;
+
+  function genRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let s = '';
+    for (let i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)];
+    return s;
+  }
+
+  function setupMultiplayer(isHost, targetCode = '') {
+    const feedback = document.getElementById('lobbyFeedback');
+    feedback.classList.remove('hidden');
+    feedback.textContent = isHost ? 'Criando sala P2P...' : `Conectando à sala ${targetCode}...`;
+
+    const code = isHost ? genRoomCode() : targetCode.toUpperCase();
+    const peerId = isHost ? `99noites_${code}` : undefined;
+
+    peer = new Peer(peerId);
+    peer.on('open', (id) => {
+      state.roomCode = code;
+      if (isHost) {
+        state.mode = 'host';
+        startGameSession();
+        const badge = document.getElementById('hudRoomBadge');
+        badge.classList.remove('hidden');
+        badge.textContent = `SALA: ${code}`;
+        showToast(`🌐 Sala ${code} criada! Compartilhe o código.`, 'text-sky-300');
+      } else {
+        state.mode = 'client';
+        hostConn = peer.connect(`99noites_${code}`);
+        hostConn.on('open', () => {
+          startGameSession();
+          const badge = document.getElementById('hudRoomBadge');
+          badge.classList.remove('hidden');
+          badge.textContent = `SALA: ${code}`;
+          showToast(`🌐 Conectado à sala ${code}!`, 'text-emerald-300');
         });
+        hostConn.on('data', (data) => handleNetData(data, hostConn));
+        hostConn.on('close', () => showToast('⚠️ Host desconectou.', 'text-rose-300'));
+      }
+    });
 
-        document.addEventListener('visibilitychange', () => {
-            if (dataChannel && dataChannel.readyState === 'open') {
-                const estado = document.hidden ? "Espectador minimizou ou saiu da aba" : "Espectador retornou à aba";
-                dataChannel.send(JSON.stringify({ tipo: 'evento', msg: estado }));
+    peer.on('connection', (conn) => {
+      connections.push(conn);
+      conn.on('data', (data) => handleNetData(data, conn));
+      conn.on('close', () => {
+        connections = connections.filter(c => c !== conn);
+        delete state.remotePlayers[conn.peer];
+      });
+    });
+
+    peer.on('error', (err) => {
+      feedback.textContent = 'Erro de conexão P2P. Verifique o código ou tente Solo.';
+    });
+  }
+
+  function handleNetData(data, conn) {
+    if (!data || !data.type) return;
+    if (data.type === 'player_sync') {
+      state.remotePlayers[data.id] = data.payload;
+      // Host retransmite para os outros clientes
+      if (state.mode === 'host') {
+        connections.forEach(c => { if (c !== conn && c.open) c.send(data); });
+      }
+    } else if (data.type === 'world_sync' && state.mode === 'client') {
+      state.day = data.day;
+      state.timeOfDay = data.timeOfDay;
+      state.fireFuel = data.fireFuel;
+      state.childrenRescued = data.childrenRescued;
+      state.deer.active = data.deer.active;
+      state.deer.x = data.deer.x;
+      state.deer.y = data.deer.y;
+      state.deer.stunTimer = data.deer.stunTimer;
+    }
+  }
+
+  function broadcastNetwork(dt) {
+    if (state.mode === 'solo') return;
+    netTimer += dt;
+    if (netTimer < 0.08) return; // ~12.5 Hz leve para dados móveis
+    netTimer = 0;
+
+    const p = state.player;
+    const packet = {
+      type: 'player_sync',
+      id: peer ? peer.id : 'p2',
+      payload: {
+        name: p.name,
+        x: Math.round(p.x),
+        y: Math.round(p.y),
+        angle: Number(p.angle.toFixed(2)),
+        weapon: p.weapon,
+        flashlightOn: p.flashlightOn && p.battery > 0
+      }
+    };
+
+    if (state.mode === 'host') {
+      const worldPacket = {
+        type: 'world_sync',
+        day: state.day,
+        timeOfDay: state.timeOfDay,
+        fireFuel: state.fireFuel,
+        childrenRescued: state.childrenRescued,
+        deer: {
+          active: state.deer.active,
+          x: Math.round(state.deer.x),
+          y: Math.round(state.deer.y),
+          stunTimer: state.deer.stunTimer
+        }
+      };
+      connections.forEach(c => {
+        if (c.open) {
+          c.send(packet);
+          c.send(worldPacket);
+        }
+      });
+    } else if (state.mode === 'client' && hostConn && hostConn.open) {
+      hostConn.send(packet);
+    }
+  }
+
+  // Botões do Lobby
+  function startGameSession() {
+    AudioFX.init();
+    const rawName = document.getElementById('playerNameInput').value.trim();
+    state.player.name = rawName || 'Sobrevivente';
+    initWorld();
+    document.getElementById('lobbyScreen').classList.add('hidden');
+    document.getElementById('hudContainer').classList.remove('hidden');
+    state.running = true;
+    equipWeapon('axe');
+  }
+
+  document.getElementById('btnStartSolo').addEventListener('click', () => {
+    state.mode = 'solo';
+    startGameSession();
+  });
+
+  document.getElementById('btnHostRoom').addEventListener('click', () => {
+    AudioFX.init();
+    setupMultiplayer(true);
+  });
+
+  document.getElementById('btnJoinRoom').addEventListener('click', () => {
+    const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+    if (code.length < 4) {
+      const fb = document.getElementById('lobbyFeedback');
+      fb.classList.remove('hidden');
+      fb.textContent = 'Digite o código de 4 caracteres da sala.';
+      return;
+    }
+    AudioFX.init();
+    setupMultiplayer(false, code);
+  });
+
+  document.getElementById('btnRestartGame').addEventListener('click', () => {
+    document.getElementById('endModal').classList.add('hidden');
+    document.getElementById('endModal').classList.remove('flex');
+    initWorld();
+    state.running = true;
+  });
+
+  // --- ATUALIZAÇÃO DA LÓGICA (60 FPS) ---
+  function update(dt) {
+    if (!state.running) return;
+    const p = state.player;
+
+    // 1. Ciclo de Dia e Noite (99 Noites)
+    const prevNight = state.isNight;
+    state.timeOfDay += state.daySpeed * dt;
+    if (state.timeOfDay >= 1.0) {
+      state.timeOfDay -= 1.0;
+      state.day++;
+      if (state.day > 99) {
+        triggerEndGame(true);
+        return;
+      }
+      showToast(`☀️ Amanheceu! Dia ${state.day} de 99!`, 'text-amber-300');
+    }
+
+    // Noite ocorre entre 0.72 e 1.0 ou 0.0 e 0.20
+    state.isNight = (state.timeOfDay >= 0.72 || state.timeOfDay < 0.20);
+
+    // Transição para a Noite: Spawn do Cervo e ataque de Cultistas na fogueira
+    if (state.isNight && !prevNight) {
+      showToast('🌑 A NOITE CAIU! Fique na luz da fogueira. Cuidado com o Cervo e Cultistas!', 'text-rose-400');
+      spawnNightWave();
+    } else if (!state.isNight && prevNight) {
+      // Ao amanhecer, o Cervo recua para as sombras
+      state.deer.active = false;
+    }
+
+    // 2. Combustível da Fogueira & Fome
+    state.fireFuel = Math.max(0, state.fireFuel - (state.isNight ? 0.85 : 0.45) * dt);
+    p.hunger = Math.max(0, p.hunger - 0.65 * dt);
+    if (p.hunger <= 0) {
+      p.hp -= 2.2 * dt;
+    } else if (p.hunger > 70 && isInsideFireSafeZone(p.x, p.y)) {
+      p.hp = Math.min(p.maxHp, p.hp + 1.5 * dt);
+    }
+
+    // 3. Movimento do Jogador (Joystick + Teclado)
+    let mx = input.moveX;
+    let my = input.moveY;
+    if (input.keys['w'] || input.keys['arrowup']) my -= 1;
+    if (input.keys['s'] || input.keys['arrowdown']) my += 1;
+    if (input.keys['a'] || input.keys['arrowleft']) mx -= 1;
+    if (input.keys['d'] || input.keys['arrowright']) mx += 1;
+
+    const mag = Math.hypot(mx, my);
+    if (mag > 0.05) {
+      const nx = mx / Math.max(1, mag);
+      const ny = my / Math.max(1, mag);
+      const moveSpeed = 195 * (1 + p.skills.speed * 0.10);
+      p.x = Math.max(60, Math.min(WORLD_SIZE - 60, p.x + nx * moveSpeed * dt));
+      p.y = Math.max(60, Math.min(WORLD_SIZE - 60, p.y + ny * moveSpeed * dt));
+      p.angle = Math.atan2(ny, nx);
+    }
+
+    if (p.attackCooldown > 0) p.attackCooldown -= dt;
+    if (p.swingAnim > 0) p.swingAnim -= dt;
+
+    // 4. Bateria da Lanterna
+    if (p.flashlightOn) {
+      p.battery = Math.max(0, p.battery - 2.6 * dt);
+      if (p.battery <= 0) {
+        p.flashlightOn = false;
+        showToast('🪫 A bateria da lanterna acabou!', 'text-yellow-300');
+      }
+    }
+
+    // 5. Crianças seguindo o jogador até a Fogueira Segura
+    for (const ch of state.children) {
+      if (ch.status === 'following') {
+        const dPlayer = Math.hypot(p.x - ch.x, p.y - ch.y);
+        if (dPlayer > 48) {
+          const ang = Math.atan2(p.y - ch.y, p.x - ch.x);
+          ch.x += Math.cos(ang) * 185 * dt;
+          ch.y += Math.sin(ang) * 185 * dt;
+        }
+        // Chegou na fogueira!
+        if (isInsideFireSafeZone(ch.x, ch.y, -30)) {
+          ch.status = 'rescued';
+          state.childrenRescued++;
+          p.coins += 60;
+          AudioFX.rescue();
+          showToast(`🎉 ${ch.name} foi resgatada(o)! (${state.childrenRescued}/4) +60 🪙`, 'text-emerald-300');
+        }
+      }
+    }
+
+    // 6. Coelhos correndo pela floresta
+    for (const rb of state.rabbits) {
+      rb.moveTimer -= dt;
+      const distP = Math.hypot(p.x - rb.x, p.y - rb.y);
+      if (distP < 160) {
+        // Foge do jogador
+        const ang = Math.atan2(rb.y - p.y, rb.x - p.x);
+        rb.vx = Math.cos(ang) * 130;
+        rb.vy = Math.sin(ang) * 130;
+      } else if (rb.moveTimer <= 0) {
+        rb.moveTimer = 1.5 + Math.random() * 2;
+        const ang = Math.random() * Math.PI * 2;
+        rb.vx = Math.cos(ang) * 45;
+        rb.vy = Math.sin(ang) * 45;
+      }
+      rb.x = Math.max(100, Math.min(WORLD_SIZE - 100, rb.x + rb.vx * dt));
+      rb.y = Math.max(100, Math.min(WORLD_SIZE - 100, rb.y + rb.vy * dt));
+      // Coelhos também não entram na fogueira
+      if (isInsideFireSafeZone(rb.x, rb.y, 15)) {
+        const angOut = Math.atan2(rb.y - CAMP_Y, rb.x - CAMP_X);
+        rb.x = CAMP_X + Math.cos(angOut) * (getFireRadius() + 20);
+        rb.y = CAMP_Y + Math.sin(angOut) * (getFireRadius() + 20);
+      }
+    }
+
+    // 7. Inimigos (Lobos e Cultistas)
+    updateEnemies(dt);
+
+    // 8. O CERVO (Entidade Noturna) + Mecânica da Lanterna
+    updateDeer(dt);
+
+    // 9. Projéteis (Revólver / Rifle)
+    for (let i = state.bullets.length - 1; i >= 0; i--) {
+      const b = state.bullets[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      if (b.life <= 0) {
+        state.bullets.splice(i, 1);
+        continue;
+      }
+      // Acerta inimigos
+      let hit = false;
+      for (let j = state.enemies.length - 1; j >= 0; j--) {
+        const e = state.enemies[j];
+        if (Math.hypot(e.x - b.x, e.y - b.y) < 26) {
+          damageEnemy(j, b.damage);
+          hit = true;
+          break;
+        }
+      }
+      // Acerta coelhos
+      if (!hit) {
+        for (let j = state.rabbits.length - 1; j >= 0; j--) {
+          const rb = state.rabbits[j];
+          if (Math.hypot(rb.x - b.x, rb.y - b.y) < 22) {
+            state.rabbits.splice(j, 1);
+            p.meat += 1;
+            addFloatingText(rb.x, rb.y, '+1 🥩', '#fcd34d');
+            setTimeout(spawnRabbit, 12000);
+            hit = true;
+            break;
+          }
+        }
+      }
+      if (hit) state.bullets.splice(i, 1);
+    }
+
+    // 10. Partículas e Textos Flutuantes
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+      const pt = state.particles[i];
+      pt.x += pt.vx * dt;
+      pt.y += pt.vy * dt;
+      pt.life -= dt;
+      if (pt.life <= 0) state.particles.splice(i, 1);
+    }
+    for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+      const ft = state.floatingTexts[i];
+      ft.y -= 28 * dt;
+      ft.life -= dt;
+      if (ft.life <= 0) state.floatingTexts.splice(i, 1);
+    }
+
+    // Morte do Jogador
+    if (p.hp <= 0) {
+      p.hp = 0;
+      triggerEndGame(false);
+    }
+
+    updateDynamicInteractLabel();
+    broadcastNetwork(dt);
+  }
+
+  function spawnNightWave() {
+    // Ativa o Cervo fora da fogueira
+    const angDeer = Math.random() * Math.PI * 2;
+    state.deer.active = true;
+    state.deer.x = CAMP_X + Math.cos(angDeer) * 650;
+    state.deer.y = CAMP_Y + Math.sin(angDeer) * 650;
+    state.deer.stunTimer = 0;
+    state.deer.scaredTimer = 0;
+    state.deer.scareCharge = 0;
+
+    // Cultistas atacam a fogueira (apenas eles invadem a área da fogueira!)
+    const cultistCount = Math.min(6, 1 + Math.floor(state.day / 2));
+    for (let i = 0; i < cultistCount; i++) {
+      const ang = (Math.PI * 2 * i) / cultistCount + Math.random() * 0.4;
+      state.enemies.push({
+        id: 'cult_' + Date.now() + '_' + i,
+        type: 'cultist',
+        x: CAMP_X + Math.cos(ang) * 520,
+        y: CAMP_Y + Math.sin(ang) * 520,
+        hp: 75 + state.day * 4,
+        maxHp: 75 + state.day * 4,
+        speed: 112,
+        damage: 13,
+        attackCd: 0
+      });
+    }
+  }
+
+  function updateEnemies(dt) {
+    const p = state.player;
+    const fireR = getFireRadius();
+
+    for (let i = state.enemies.length - 1; i >= 0; i--) {
+      const e = state.enemies[i];
+      if (e.attackCd > 0) e.attackCd -= dt;
+
+      if (e.type === 'wolf') {
+        // Lobos protegem sua criança e perseguem jogadores próximos,
+        // MAS NUNCA ENTRAM NA ÁREA ILUMINADA DA FOGUEIRA!
+        const distPlayer = Math.hypot(p.x - e.x, p.y - e.y);
+        const playerSafe = isInsideFireSafeZone(p.x, p.y);
+        let tx = e.homeX;
+        let ty = e.homeY;
+
+        if (distPlayer < 320 && !playerSafe) {
+          tx = p.x;
+          ty = p.y;
+        }
+
+        const distTarget = Math.hypot(tx - e.x, ty - e.y);
+        if (distTarget > 24) {
+          const ang = Math.atan2(ty - e.y, tx - e.x);
+          const nx = e.x + Math.cos(ang) * e.speed * dt;
+          const ny = e.y + Math.sin(ang) * e.speed * dt;
+          // Bloqueia entrada na fogueira
+          if (Math.hypot(nx - CAMP_X, ny - CAMP_Y) > fireR + 18) {
+            e.x = nx;
+            e.y = ny;
+          }
+        }
+
+        if (distPlayer < 36 && !playerSafe && e.attackCd <= 0) {
+          p.hp -= e.damage;
+          e.attackCd = 1.1;
+          addFloatingText(p.x, p.y - 20, `-${e.damage} ❤️`, '#f87171');
+        }
+      } else if (e.type === 'cultist') {
+        // CULTISTAS: Únicos inimigos que invadem a fogueira!
+        const distPlayer = Math.hypot(p.x - e.x, p.y - e.y);
+        const tx = distPlayer < 450 ? p.x : CAMP_X;
+        const ty = distPlayer < 450 ? p.y : CAMP_Y;
+        const ang = Math.atan2(ty - e.y, tx - e.x);
+
+        let nx = e.x + Math.cos(ang) * e.speed * dt;
+        let ny = e.y + Math.sin(ang) * e.speed * dt;
+
+        // Colisão com Paliçadas/Muros de Madeira construídos
+        let blockedByWall = false;
+        for (let w = state.walls.length - 1; w >= 0; w--) {
+          const wall = state.walls[w];
+          if (Math.hypot(nx - wall.x, ny - wall.y) < 34) {
+            blockedByWall = true;
+            if (e.attackCd <= 0) {
+              wall.hp -= e.damage;
+              e.attackCd = 1.0;
+              if (wall.hp <= 0) state.walls.splice(w, 1);
             }
-        });
-    </script>
+            break;
+          }
+        }
+
+        if (!blockedByWall) {
+          e.x = nx;
+          e.y = ny;
+        }
+
+        if (distPlayer < 36 && e.attackCd <= 0) {
+          p.hp -= e.damage;
+          e.attackCd = 1.15;
+          addFloatingText(p.x, p.y - 20, `-${e.damage} ❤️`, '#c084fc');
+        }
+      }
+    }
+  }
+
+  function updateDeer(dt) {
+    const deer = state.deer;
+    if (!deer.active) return;
+
+    const p = state.player;
+    const fireR = getFireRadius();
+
+    // Verifica se o feixe da lanterna está atingindo o Cervo
+    let hitByBeam = false;
+    if (p.flashlightOn && p.battery > 0) {
+      const dx = deer.x - p.x;
+      const dy = deer.y - p.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 340) {
+        const angToDeer = Math.atan2(dy, dx);
+        let diff = Math.abs(angToDeer - p.angle);
+        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+        if (diff < 0.36) { // Dentro do cone de luz (~40 graus)
+          hitByBeam = true;
+        }
+      }
+    }
+
+    if (hitByBeam) {
+      // Paralisa o Cervo enquanto iluminado pelo feixe da lanterna!
+      deer.stunTimer = 0.25;
+      deer.scareCharge += dt;
+      if (deer.scareCharge >= 1.4) {
+        // Após 1.4s sob o feixe, o Cervo é espantado para longe!
+        deer.scaredTimer = 5.5;
+        deer.scareCharge = 0;
+        AudioFX.deerScreech();
+        showToast('🔦 O feixe da lanterna espantou o Cervo para longe!', 'text-yellow-300');
+      }
+    } else {
+      deer.scareCharge = Math.max(0, deer.scareCharge - dt * 0.5);
+    }
+
+    if (deer.stunTimer > 0) {
+      deer.stunTimer -= dt;
+      return; // Imóvel/paralisado pela luz
+    }
+
+    if (deer.scaredTimer > 0) {
+      // Corre para longe da fogueira e do jogador
+      deer.scaredTimer -= dt;
+      const angAway = Math.atan2(deer.y - CAMP_Y, deer.x - CAMP_X);
+      deer.x = Math.max(80, Math.min(WORLD_SIZE - 80, deer.x + Math.cos(angAway) * 260 * dt));
+      deer.y = Math.max(80, Math.min(WORLD_SIZE - 80, deer.y + Math.sin(angAway) * 260 * dt));
+      return;
+    }
+
+    // Persegue o jogador se ele estiver FORA da fogueira; se estiver dentro da fogueira, o Cervo rodeia sem poder entrar!
+    const playerInFire = isInsideFireSafeZone(p.x, p.y);
+    if (!playerInFire) {
+      const ang = Math.atan2(p.y - deer.y, p.x - deer.x);
+      const nx = deer.x + Math.cos(ang) * 168 * dt;
+      const ny = deer.y + Math.sin(ang) * 168 * dt;
+      // Garante que o Cervo nunca invada a fogueira
+      if (Math.hypot(nx - CAMP_X, ny - CAMP_Y) > fireR + 22) {
+        deer.x = nx;
+        deer.y = ny;
+      }
+
+      if (deer.attackCd > 0) deer.attackCd -= dt;
+      if (Math.hypot(p.x - deer.x, p.y - deer.y) < 40 && deer.attackCd <= 0) {
+        p.hp -= 26;
+        deer.attackCd = 1.25;
+        AudioFX.deerScreech();
+        addFloatingText(p.x, p.y - 24, '-26 🦌', '#ef4444');
+      }
+    } else {
+      // Rodeia a borda externa da luz da fogueira
+      const angAround = Math.atan2(deer.y - CAMP_Y, deer.x - CAMP_X) + 0.55 * dt;
+      const targetR = fireR + 48;
+      deer.x = CAMP_X + Math.cos(angAround) * targetR;
+      deer.y = CAMP_Y + Math.sin(angAround) * targetR;
+    }
+  }
+
+  function updateDynamicInteractLabel() {
+    const p = state.player;
+    const lbl = document.getElementById('interactLabel');
+    for (const c of state.chests) {
+      if (!c.opened && Math.hypot(p.x - c.x, p.y - c.y) < 68) {
+        lbl.textContent = 'BAÚ';
+        return;
+      }
+    }
+    for (const ch of state.children) {
+      if (ch.status === 'lost' && Math.hypot(p.x - ch.x, p.y - ch.y) < 75) {
+        lbl.textContent = 'RESGATAR';
+        return;
+      }
+    }
+    if (state.hasBed && Math.hypot(p.x - (CAMP_X - 65), p.y - (CAMP_Y + 35)) < 85) {
+      lbl.textContent = 'DORMIR';
+      return;
+    }
+    if (Math.hypot(p.x - CAMP_X, p.y - CAMP_Y) < 95) {
+      lbl.textContent = 'LENHA';
+      return;
+    }
+    lbl.textContent = 'USAR';
+  }
+
+  function triggerEndGame(victory) {
+    state.running = false;
+    const modal = document.getElementById('endModal');
+    document.getElementById('endIcon').textContent = victory ? '🏆' : '💀';
+    document.getElementById('endTitle').textContent = victory ? '99 NOITES CONCLUÍDAS!' : 'VOCÊ CAIU NA FLORESTA';
+    document.getElementById('endSubtitle').textContent = victory
+      ? `Parabéns! Você sobreviveu às 99 noites e resgatou ${state.childrenRescued}/4 crianças!`
+      : `Você sobreviveu até o Dia ${state.day} e resgatou ${state.childrenRescued}/4 crianças.`;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  // --- ATUALIZAÇÃO DO HUD HTML ---
+  let uiTick = 0;
+  function updateUI() {
+    const p = state.player;
+    document.getElementById('hudDayText').textContent = `${state.isNight ? '🌑 NOITE' : '☀️ DIA'} ${state.day} / 99`;
+    const hours = Math.floor(state.timeOfDay * 24);
+    const mins = Math.floor((state.timeOfDay * 24 - hours) * 60);
+    document.getElementById('hudTimeText').textContent = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+    document.getElementById('hudChildrenText').textContent = `👶 ${state.childrenRescued}/4`;
+
+    document.getElementById('hpVal').textContent = Math.ceil(p.hp);
+    document.getElementById('hpBar').style.width = `${Math.max(0, (p.hp / p.maxHp) * 100)}%`;
+
+    document.getElementById('hungerVal').textContent = Math.ceil(p.hunger);
+    document.getElementById('hungerBar').style.width = `${Math.max(0, p.hunger)}%`;
+
+    document.getElementById('fireVal').textContent = `${Math.ceil(state.fireFuel)}%`;
+    document.getElementById('fireBar').style.width = `${Math.max(0, state.fireFuel)}%`;
+
+    document.getElementById('batteryVal').textContent = `${Math.ceil(p.battery)}%`;
+    document.getElementById('batteryBar').style.width = `${Math.max(0, p.battery)}%`;
+
+    document.getElementById('resWood').textContent = p.wood;
+    document.getElementById('resStone').textContent = p.stone;
+    document.getElementById('resMeat').textContent = p.meat;
+    document.getElementById('resCooked').textContent = p.cookedMeat;
+    document.getElementById('resAmmo').textContent = p.ammo;
+    document.getElementById('resCoins').textContent = p.coins;
+  }
+
+  // --- RENDERIZAÇÃO 2D LEVE (60 FPS) ---
+  function render() {
+    const p = state.player;
+    const camX = p.x - viewW / 2;
+    const camY = p.y - viewH / 2;
+
+    // 1. Gramado base da floresta
+    ctx.fillStyle = state.isNight ? '#0b1512' : '#163024';
+    ctx.fillRect(0, 0, viewW, viewH);
+
+    ctx.save();
+    ctx.translate(-camX, -camY);
+
+    // Grade sutil no chão para percepção de movimento
+    ctx.strokeStyle = state.isNight ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    const gridStep = 160;
+    const startGX = Math.floor(camX / gridStep) * gridStep;
+    const startGY = Math.floor(camY / gridStep) * gridStep;
+    ctx.beginPath();
+    for (let x = startGX; x < camX + viewW + gridStep; x += gridStep) {
+      ctx.moveTo(x, camY);
+      ctx.lineTo(x, camY + viewH);
+    }
+    for (let y = startGY; y < camY + viewH + gridStep; y += gridStep) {
+      ctx.moveTo(camX, y);
+      ctx.lineTo(camX + viewW, y);
+    }
+    ctx.stroke();
+
+    // 2. Zona Segura da Fogueira (Círculo de proteção onde animais e o Cervo não entram)
+    const fireR = getFireRadius();
+    const fireGrad = ctx.createRadialGradient(CAMP_X, CAMP_Y, 15, CAMP_X, CAMP_Y, fireR);
+    fireGrad.addColorStop(0, 'rgba(251, 146, 60, 0.35)');
+    fireGrad.addColorStop(0.7, 'rgba(245, 158, 11, 0.14)');
+    fireGrad.addColorStop(1, 'rgba(245, 158, 11, 0.0)');
+    ctx.fillStyle = fireGrad;
+    ctx.beginPath();
+    ctx.arc(CAMP_X, CAMP_Y, fireR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Borda tracejada da área segura
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.32)';
+    ctx.setLineDash([8, 8]);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(CAMP_X, CAMP_Y, fireR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Cama construída (se existir)
+    if (state.hasBed) {
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(CAMP_X - 88, CAMP_Y + 18, 44, 28);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(CAMP_X - 84, CAMP_Y + 21, 30, 22);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(CAMP_X - 56, CAMP_Y + 22, 9, 20);
+    }
+
+    // Fogueira Central
+    ctx.fillStyle = '#78350f';
+    ctx.beginPath();
+    ctx.arc(CAMP_X, CAMP_Y, 18, 0, Math.PI * 2);
+    ctx.fill();
+    if (state.fireFuel > 0) {
+      const flicker = Math.sin(performance.now() * 0.015) * 3;
+      ctx.fillStyle = '#f97316';
+      ctx.beginPath();
+      ctx.arc(CAMP_X, CAMP_Y, 12 + flicker * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.arc(CAMP_X, CAMP_Y, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 3. Paliçadas / Muros
+    for (const w of state.walls) {
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(w.x - 18, w.y - 18, 36, 36);
+      ctx.strokeStyle = '#fde68a';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(w.x - 18, w.y - 18, 36, 36);
+    }
+
+    // 4. Baús
+    for (const c of state.chests) {
+      if (Math.abs(c.x - p.x) > viewW && Math.abs(c.y - p.y) > viewH) continue;
+      ctx.fillStyle = c.opened ? '#475569' : '#b45309';
+      ctx.fillRect(c.x - 16, c.y - 12, 32, 24);
+      ctx.strokeStyle = c.opened ? '#94a3b8' : '#fbbf24';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(c.x - 16, c.y - 12, 32, 24);
+    }
+
+    // 5. Pedras e Árvores (Culling fora da tela para 60 FPS)
+    for (const r of state.rocks) {
+      if (Math.abs(r.x - p.x) > viewW * 0.7 || Math.abs(r.y - p.y) > viewH * 0.7) continue;
+      ctx.fillStyle = '#64748b';
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    for (const t of state.trees) {
+      if (Math.abs(t.x - p.x) > viewW * 0.7 || Math.abs(t.y - p.y) > viewH * 0.7) continue;
+      ctx.fillStyle = '#451a03';
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = state.isNight ? '#064e3b' : '#15803d';
+      ctx.beginPath();
+      ctx.arc(t.x, t.y - 4, t.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 6. Coelhos
+    for (const rb of state.rabbits) {
+      if (Math.abs(rb.x - p.x) > viewW * 0.7 || Math.abs(rb.y - p.y) > viewH * 0.7) continue;
+      ctx.fillStyle = '#f1f5f9';
+      ctx.beginPath();
+      ctx.arc(rb.x, rb.y, 9, 0, Math.PI * 2);
+      ctx.fill();
+      // Orelhas
+      ctx.fillRect(rb.x - 4, rb.y - 15, 3, 7);
+      ctx.fillRect(rb.x + 1, rb.y - 15, 3, 7);
+    }
+
+    // 7. Crianças Perdidas / Resgatadas
+    for (const ch of state.children) {
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(ch.x, ch.y, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText(`👶 ${ch.name}`, ch.x, ch.y - 17);
+    }
+
+    // 8. Inimigos (Lobos e Cultistas)
+    for (const e of state.enemies) {
+      if (Math.abs(e.x - p.x) > viewW * 0.75 || Math.abs(e.y - p.y) > viewH * 0.75) continue;
+      if (e.type === 'wolf') {
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(e.x - 5, e.y - 4, 3, 3);
+        ctx.fillRect(e.x + 2, e.y - 4, 3, 3);
+      } else {
+        // Cultista (Manto Roxo)
+        ctx.fillStyle = '#6b21a8';
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#e879f9';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      // Barra de vida do inimigo
+      const hpRatio = Math.max(0, e.hp / e.maxHp);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(e.x - 16, e.y - 24, 32, 4);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(e.x - 16, e.y - 24, 32 * hpRatio, 4);
+    }
+
+    // 9. O CERVO (Entidade Noturna)
+    if (state.deer.active) {
+      const d = state.deer;
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      // Corpo sombrio alto
+      ctx.fillStyle = d.stunTimer > 0 ? '#fef08a' : '#18181b';
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#dc2626';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      // Galhadas do Cervo
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-10, -14); ctx.lineTo(-22, -32); ctx.lineTo(-14, -38);
+      ctx.moveTo(10, -14); ctx.lineTo(22, -32); ctx.lineTo(14, -38);
+      ctx.stroke();
+      // Olhos vermelhos brilhantes
+      ctx.fillStyle = '#ff0000';
+      ctx.beginPath();
+      ctx.arc(-6, -4, 3.5, 0, Math.PI * 2);
+      ctx.arc(6, -4, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      if (d.stunTimer > 0) {
+        ctx.fillStyle = '#fde047';
+        ctx.font = 'bold 11px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚡ PARALISADO', 0, -42);
+      }
+      ctx.restore();
+    }
+
+    // 10. Jogadores Remotos (Multiplayer)
+    for (const id in state.remotePlayers) {
+      const rp = state.remotePlayers[id];
+      drawPlayerCharacter(rp.x, rp.y, rp.angle, rp.name, '#38bdf8', rp.weapon, rp.flashlightOn, 0);
+    }
+
+    // 11. Jogador Local
+    drawPlayerCharacter(p.x, p.y, p.angle, p.name, '#10b981', p.weapon, p.flashlightOn && p.battery > 0, p.swingAnim);
+
+    // 12. Projéteis
+    ctx.fillStyle = '#fde047';
+    for (const b of state.bullets) {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.isRifle ? 4.5 : 3.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 13. Partículas e Textos Flutuantes
+    for (const pt of state.particles) {
+      ctx.fillStyle = pt.color;
+      ctx.fillRect(pt.x - 2, pt.y - 2, 4, 4);
+    }
+    ctx.font = 'bold 12px Inter';
+    ctx.textAlign = 'center';
+    for (const ft of state.floatingTexts) {
+      ctx.fillStyle = ft.color;
+      ctx.fillText(ft.text, ft.x, ft.y);
+    }
+
+    ctx.restore();
+
+    // 14. Escuridão Noturna com Recorte de Luz da Fogueira e do Feixe da Lanterna
+    if (state.isNight) {
+      drawNightLighting(camX, camY);
+    }
+  }
+
+  function drawPlayerCharacter(x, y, angle, name, color, weapon, flashOn, swingAnim) {
+    // Feixe de luz direcional da Lanterna
+    if (flashOn) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      const beamGrad = ctx.createRadialGradient(12, 0, 8, 12, 0, 340);
+      beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.45)');
+      beamGrad.addColorStop(1, 'rgba(254, 240, 138, 0.0)');
+      ctx.fillStyle = beamGrad;
+      ctx.beginPath();
+      ctx.moveTo(10, 0);
+      ctx.arc(10, 0, 340, -0.36, 0.36);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Corpo do Jogador
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle + (swingAnim > 0 ? Math.sin(swingAnim * 25) * 0.9 : 0));
+
+    // Arma na mão
+    if (weapon === 'axe') {
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(10, -2, 22, 4);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(26, -7, 7, 12);
+    } else if (weapon === 'revolver') {
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(12, -3, 16, 6);
+    } else if (weapon === 'rifle') {
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(8, -3, 28, 6);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(20, -2, 18, 4);
+    }
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(0, 0, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    // Nome acima do jogador
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 11px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText(name, x, y - 22);
+  }
+
+  function drawNightLighting(camX, camY) {
+    // Camada escura leve com "buracos" iluminados na fogueira e na lanterna
+    ctx.save();
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.72)';
+    ctx.beginPath();
+    ctx.rect(0, 0, viewW, viewH);
+
+    // Buraco iluminado da Fogueira
+    const fx = CAMP_X - camX;
+    const fy = CAMP_Y - camY;
+    const fr = getFireRadius();
+    ctx.moveTo(fx + fr, fy);
+    ctx.arc(fx, fy, fr, 0, Math.PI * 2, true);
+
+    // Pequena aura ao redor do jogador
+    const px = state.player.x - camX;
+    const py = state.player.y - camY;
+    ctx.moveTo(px + 55, py);
+    ctx.arc(px, py, 55, 0, Math.PI * 2, true);
+
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // --- DESENHO DO MAPA DA FLORESTA (APÓS FABRICADO NO CRAFT) ---
+  function drawMinimap() {
+    const size = 320;
+    minimapCanvas.width = size;
+    minimapCanvas.height = size;
+    const scale = size / WORLD_SIZE;
+
+    mctx.fillStyle = '#07130f';
+    mctx.fillRect(0, 0, size, size);
+
+    // Fogueira
+    mctx.fillStyle = '#f97316';
+    mctx.beginPath();
+    mctx.arc(CAMP_X * scale, CAMP_Y * scale, 7, 0, Math.PI * 2);
+    mctx.fill();
+
+    // Baús (Amarelo = fechado, Cinza = aberto)
+    for (const c of state.chests) {
+      mctx.fillStyle = c.opened ? '#475569' : '#facc15';
+      mctx.fillRect(c.x * scale - 4, c.y * scale - 4, 8, 8);
+    }
+
+    // Crianças Perdidas (Azul claro pulsante)
+    for (const ch of state.children) {
+      if (ch.status !== 'rescued') {
+        mctx.fillStyle = '#38bdf8';
+        mctx.beginPath();
+        mctx.arc(ch.x * scale, ch.y * scale, 6, 0, Math.PI * 2);
+        mctx.fill();
+      }
+    }
+
+    // Jogador Local (Verde)
+    mctx.fillStyle = '#10b981';
+    mctx.beginPath();
+    mctx.arc(state.player.x * scale, state.player.y * scale, 5, 0, Math.PI * 2);
+    mctx.fill();
+  }
+
+  // --- LOOP PRINCIPAL (60 FPS) ---
+  let lastTime = performance.now();
+  function gameLoop(now) {
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+
+    if (state.running) {
+      update(dt);
+      render();
+      uiTick += dt;
+      if (uiTick >= 0.15) {
+        uiTick = 0;
+        updateUI();
+      }
+    }
+    requestAnimationFrame(gameLoop);
+  }
+
+  window.onload = () => {
+    requestAnimationFrame(gameLoop);
+  };
+})();
+</script>
 </body>
 </html>
