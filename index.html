@@ -1,1386 +1,3327 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Block Fighter P2P</title>
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-<style>
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
-  body, html {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #0d0d14;
-    color: #fff;
-  }
-  canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-  /* Telas de Interface */
-  .screen {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: radial-gradient(circle at center, #1b1d36 0%, #0b0c17 100%);
-    z-index: 10;
-    padding: 15px;
-  }
-  .hidden { display: none !important; }
-  
-  h1 {
-    font-size: clamp(24px, 5vw, 44px);
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    background: linear-gradient(90deg, #ff4757, #ffa502, #2ed573, #1e90ff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 15px;
-    text-align: center;
-    font-weight: 900;
-  }
-  h2 {
-    font-size: clamp(16px, 3vw, 24px);
-    margin-bottom: 10px;
-    color: #dfe4ea;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BLOCK FIGHTER P2P - Arena Arcade</title>
+  <!-- PeerJS via CDN leve para conexão WebRTC P2P direta sem backend -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Fredoka:wght@600;700&display=swap');
 
-  .btn {
-    background: linear-gradient(180deg, #3742fa 0%, #2f3542 100%);
-    border: 2px solid #5352ed;
-    color: white;
-    padding: 12px 24px;
-    margin: 6px;
-    border-radius: 10px;
-    font-size: clamp(14px, 2.5vw, 18px);
-    font-weight: bold;
-    cursor: pointer;
-    transition: transform 0.1s;
-    min-width: 180px;
-    text-align: center;
-  }
-  .btn:active { transform: scale(0.94); }
-  .btn-gold { background: linear-gradient(180deg, #ffa502 0%, #eccc68 100%); border-color: #fff; color: #111; }
-  .btn-red { background: linear-gradient(180deg, #ff4757 0%, #b33939 100%); border-color: #ff6b81; }
-  .btn-green { background: linear-gradient(180deg, #2ed573 0%, #218c74 100%); border-color: #7bed9f; }
+    :root {
+      --bg-dark: #0b0e17;
+      --panel-bg: rgba(16, 22, 38, 0.92);
+      --border-glow: rgba(255, 255, 255, 0.15);
+      --accent: #ff3e55;
+      --accent-gold: #ffcc00;
+      --accent-cyan: #00e5ff;
+    }
 
-  /* Grid de Seleção */
-  .select-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    max-width: 850px;
-  }
-  .char-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-  .char-card {
-    width: 82px;
-    height: 95px;
-    border-radius: 12px;
-    background: #1e2030;
-    border: 3px solid #3d3f54;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    position: relative;
-  }
-  .char-card.selected-p1 { border-color: #1e90ff; box-shadow: 0 0 12px #1e90ff; }
-  .char-card.selected-p2 { border-color: #ff4757; box-shadow: 0 0 12px #ff4757; }
-  .char-card.locked { opacity: 0.45; cursor: not-allowed; }
-  .char-preview {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    margin-bottom: 6px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding: 0 6px;
-  }
-  .char-preview::before, .char-preview::after {
-    content: '';
-    width: 7px;
-    height: 9px;
-    background: #fff;
-    border-radius: 50%;
-  }
-  .char-name { font-size: 11px; font-weight: bold; }
-  .char-info {
-    background: rgba(255,255,255,0.06);
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-size: 12px;
-    text-align: center;
-    margin-bottom: 10px;
-    min-height: 48px;
-    width: 90%;
-  }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+    }
 
-  /* Seleção de Cenário */
-  .stage-grid {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-  .stage-btn {
-    padding: 8px 14px;
-    border-radius: 8px;
-    background: #2f3542;
-    border: 2px solid #57606f;
-    color: #fff;
-    font-size: 12px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-  .stage-btn.active { border-color: #ffa502; background: #3d3d29; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      font-family: 'Chakra Petch', sans-serif;
+      color: #fff;
+    }
 
-  /* P2P Box */
-  .p2p-box {
-    background: #1e2030;
-    padding: 15px;
-    border-radius: 12px;
-    border: 2px solid #3742fa;
-    text-align: center;
-    margin: 10px 0;
-    width: 90%;
-    max-width: 360px;
-  }
-  input[type="text"] {
-    padding: 10px;
-    border-radius: 8px;
-    border: 2px solid #5352ed;
-    background: #0d0d14;
-    color: #fff;
-    font-size: 18px;
-    text-align: center;
-    text-transform: uppercase;
-    width: 140px;
-    margin: 8px 0;
-  }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #07090f;
+    }
 
-  /* Controles Touch na Tela */
-  #touchControls {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 5;
-  }
-  .t-btn {
-    position: absolute;
-    pointer-events: auto;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.14);
-    border: 2px solid rgba(255, 255, 255, 0.35);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 14px;
-    touch-action: none;
-  }
-  .t-btn:active, .t-btn.pressed {
-    background: rgba(255, 255, 255, 0.38);
-    transform: scale(0.92);
-  }
-  /* Direcionais Esquerda */
-  #btnLeft  { bottom: 25px; left: 20px; width: 62px; height: 62px; font-size: 22px; }
-  #btnRight { bottom: 25px; left: 95px; width: 62px; height: 62px; font-size: 22px; }
-  #btnDash  { bottom: 100px; left: 55px; width: 54px; height: 54px; font-size: 11px; border-color: #70a1ff; }
-  
-  /* Ações Direita */
-  #btnJump  { bottom: 95px; right: 25px; width: 58px; height: 58px; font-size: 12px; border-color: #7bed9f; }
-  #btnPunch { bottom: 22px; right: 95px; width: 64px; height: 64px; font-size: 13px; border-color: #ff6b81; }
-  #btnPower { bottom: 22px; right: 20px; width: 64px; height: 64px; font-size: 12px; border-color: #ffa502; }
-  #btnSpec  { bottom: 95px; right: 98px; width: 56px; height: 56px; font-size: 11px; border-color: #eccc68; background: rgba(255,165,2,0.22); }
-  #btnPause { top: 12px; left: 50%; transform: translateX(-50%); width: 42px; height: 42px; border-radius: 10px; font-size: 14px; }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
 
-  /* Aviso de Rotação */
-  #rotateNotice {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: #0d0d14;
-    z-index: 999;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 20px;
-    font-size: 20px;
-  }
-  @media (orientation: portrait) {
-    #rotateNotice { display: flex; }
-  }
-</style>
+    /* Telas de Interface (Overlays) */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, rgba(22, 30, 52, 0.88) 0%, rgba(8, 11, 20, 0.96) 100%);
+      z-index: 20;
+      padding: 12px;
+      transition: opacity 0.2s ease;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Título Principal */
+    .game-title {
+      font-family: 'Fredoka', sans-serif;
+      font-size: clamp(2rem, 6vw, 4.2rem);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      background: linear-gradient(180deg, #ffffff 15%, #ffdd55 55%, #ff3e55 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 5px 0 #1c0812) drop-shadow(0 0 18px rgba(255, 62, 85, 0.5));
+      text-align: center;
+      line-height: 1.05;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: clamp(0.75rem, 2vw, 1rem);
+      color: #94a3b8;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 22px;
+      text-align: center;
+    }
+
+    /* Botões Estilizados */
+    .btn {
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+      padding: 12px 26px;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-radius: 14px;
+      cursor: pointer;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: transform 0.1s ease, filter 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 5px 0 rgba(0, 0, 0, 0.55);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #ff3e55, #d91b38);
+      border-color: #ff8594;
+      box-shadow: 0 5px 0 #7a091b, 0 0 20px rgba(255, 62, 85, 0.4);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #00b4d8, #0077b6);
+      border-color: #90e0ef;
+      box-shadow: 0 5px 0 #023e8a, 0 0 20px rgba(0, 180, 216, 0.35);
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #ffb703, #fb8500);
+      border-color: #ffe169;
+      color: #140c00;
+      box-shadow: 0 5px 0 #8a4200, 0 0 20px rgba(255, 183, 3, 0.45);
+    }
+
+    .btn-dark {
+      background: linear-gradient(135deg, #2b354f, #1a2133);
+      border-color: #4f5d82;
+      box-shadow: 0 4px 0 #0d111c;
+    }
+
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      border-radius: 10px;
+    }
+
+    /* Menu Inicial */
+    .menu-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+      max-width: 650px;
+    }
+
+    /* Painel P2P */
+    .card-panel {
+      background: var(--panel-bg);
+      border: 2px solid var(--border-glow);
+      border-radius: 18px;
+      padding: 18px 22px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.65);
+      text-align: center;
+    }
+
+    .room-code-box {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 2.3rem;
+      letter-spacing: 8px;
+      background: #070b14;
+      border: 2px dashed var(--accent-cyan);
+      color: var(--accent-cyan);
+      padding: 10px 18px;
+      border-radius: 12px;
+      margin: 12px 0;
+      text-shadow: 0 0 12px rgba(0, 229, 255, 0.5);
+    }
+
+    .room-input {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.6rem;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      text-align: center;
+      width: 170px;
+      padding: 10px;
+      border-radius: 12px;
+      border: 2px solid #475569;
+      background: #070b14;
+      color: #fff;
+      outline: none;
+    }
+
+    .room-input:focus {
+      border-color: var(--accent-gold);
+    }
+
+    .status-text {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      margin-top: 10px;
+      min-height: 22px;
+    }
+
+    /* Tela de Seleção de Personagem e Cenário */
+    .select-layout {
+      width: 100%;
+      max-width: 960px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 6px 0;
+      gap: 8px;
+    }
+
+    .select-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 8px;
+    }
+
+    .select-title {
+      font-family: 'Fredoka', sans-serif;
+      font-size: clamp(1.1rem, 3vw, 1.7rem);
+      color: #ffd166;
+      text-shadow: 0 2px 0 #000;
+    }
+
+    .select-body {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (max-width: 680px) and (orientation: portrait) {
+      .select-body {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+      }
+    }
+
+    .char-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      align-content: center;
+    }
+
+    .char-card {
+      background: rgba(15, 23, 42, 0.85);
+      border: 2px solid rgba(255, 255, 255, 0.14);
+      border-radius: 14px;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+      position: relative;
+    }
+
+    .char-card.selected-p1 {
+      border-color: #00e5ff;
+      box-shadow: 0 0 16px rgba(0, 229, 255, 0.55), inset 0 0 12px rgba(0, 229, 255, 0.25);
+      transform: scale(1.03);
+    }
+
+    .char-card.selected-p2 {
+      border-color: #ff3e55;
+      box-shadow: 0 0 16px rgba(255, 62, 85, 0.55), inset 0 0 12px rgba(255, 62, 85, 0.25);
+    }
+
+    .char-badge {
+      position: absolute;
+      top: 4px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 6px;
+    }
+    .badge-p1 { left: 4px; background: #00e5ff; color: #000; }
+    .badge-p2 { right: 4px; background: #ff3e55; color: #fff; }
+
+    .char-preview-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 11px;
+      margin-bottom: 5px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: idleBounce 1.4s infinite ease-in-out;
+    }
+
+    @keyframes idleBounce {
+      0%, 100% { transform: translateY(0) scale(1, 1); }
+      50% { transform: translateY(-4px) scale(0.95, 1.05); }
+    }
+
+    /* Olhinhos fofos no card HTML */
+    .mini-eyes {
+      display: flex;
+      gap: 7px;
+      margin-top: -2px;
+    }
+    .mini-eye {
+      width: 9px;
+      height: 11px;
+      background: #fff;
+      border-radius: 50%;
+      position: relative;
+      overflow: hidden;
+      border: 1.5px solid #111;
+    }
+    .mini-eye::after {
+      content: '';
+      position: absolute;
+      width: 5px;
+      height: 6px;
+      background: #111;
+      border-radius: 50%;
+      right: 1px;
+      top: 2px;
+    }
+
+    .char-name {
+      font-weight: 700;
+      font-size: 0.82rem;
+      letter-spacing: 0.5px;
+    }
+
+    .char-element {
+      font-size: 0.68rem;
+      color: #94a3b8;
+    }
+
+    /* Painel de Detalhes + Seleção de Cenário */
+    .info-stage-panel {
+      background: rgba(15, 23, 42, 0.85);
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .char-details h3 {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.15rem;
+      margin-bottom: 4px;
+    }
+
+    .skill-list {
+      font-size: 0.76rem;
+      color: #cbd5e1;
+      line-height: 1.35;
+      display: grid;
+      gap: 3px;
+    }
+
+    .skill-tag {
+      color: #ffd166;
+      font-weight: 700;
+    }
+
+    .stage-selector-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .stage-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .stage-btn {
+      background: rgba(30, 41, 59, 0.9);
+      border: 2px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      padding: 7px 8px;
+      color: #fff;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stage-btn.active {
+      border-color: #ffd166;
+      background: rgba(255, 209, 102, 0.18);
+      box-shadow: 0 0 10px rgba(255, 209, 102, 0.3);
+    }
+
+    .stage-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .select-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 8px;
+      gap: 8px;
+    }
+
+    /* Botão Especial de Criação */
+    .btn-create-char {
+      background: linear-gradient(135deg, #a855f7, #6d28d9);
+      border-color: #d8b4fe;
+      box-shadow: 0 4px 0 #4c1d95, 0 0 16px rgba(168, 85, 247, 0.4);
+    }
+
+    /* Oficina / Editor de Personagens */
+    .creator-layout {
+      width: 100%;
+      max-width: 980px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 4px 0;
+    }
+
+    .creator-body {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (max-width: 720px) and (orientation: portrait) {
+      .creator-body {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+      }
+    }
+
+    .preview-card {
+      background: rgba(15, 23, 42, 0.9);
+      border: 2px solid rgba(255, 255, 255, 0.16);
+      border-radius: 16px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    #previewCanvas {
+      width: 100%;
+      height: 155px;
+      background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%);
+      border-radius: 12px;
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .test-btns-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      width: 100%;
+    }
+
+    .test-btn {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #fff;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 6px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .test-btn:active {
+      background: #00e5ff;
+      color: #000;
+    }
+
+    .editor-tabs-panel {
+      background: rgba(15, 23, 42, 0.9);
+      border: 2px solid rgba(255, 255, 255, 0.16);
+      border-radius: 16px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      padding-bottom: 6px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: #1e293b;
+      border: 1.5px solid transparent;
+      color: #94a3b8;
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 6px 8px;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: rgba(0, 229, 255, 0.16);
+      border-color: #00e5ff;
+      color: #fff;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .text-input, .select-input {
+      background: #090d16;
+      border: 1.5px solid #334155;
+      color: #fff;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 7px 10px;
+      border-radius: 9px;
+      outline: none;
+    }
+
+    .text-input:focus, .select-input:focus {
+      border-color: #00e5ff;
+    }
+
+    .color-palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .swatch.active {
+      border-color: #fff;
+      transform: scale(1.16);
+      box-shadow: 0 0 8px #fff;
+    }
+
+    .color-picker-native {
+      width: 28px;
+      height: 26px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: rgba(9, 13, 22, 0.65);
+      padding: 6px 10px;
+      border-radius: 9px;
+    }
+
+    .stat-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-step-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      border: 1px solid #475569;
+      background: #1e293b;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .custom-card-actions {
+      position: absolute;
+      bottom: 3px;
+      right: 3px;
+      display: flex;
+      gap: 3px;
+    }
+
+    .mini-icon-btn {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      font-size: 0.6rem;
+      padding: 1px 4px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    /* HUD Durante a Luta */
+    #battle-hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 8px 14px;
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hud-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .fighter-hud {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .fighter-hud.p2 {
+      align-items: flex-end;
+    }
+
+    .hud-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: clamp(0.8rem, 2vw, 1rem);
+      text-shadow: 0 2px 3px #000;
+    }
+
+    .fighter-hud.p2 .hud-name-row {
+      flex-direction: row-reverse;
+    }
+
+    .round-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .round-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1.5px solid #fff;
+    }
+
+    .round-dot.won {
+      background: #ffd166;
+      box-shadow: 0 0 8px #ffd166;
+    }
+
+    .hp-bar-outer {
+      width: 100%;
+      height: 18px;
+      background: rgba(10, 14, 24, 0.85);
+      border: 2px solid rgba(255, 255, 255, 0.75);
+      border-radius: 9px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+    }
+
+    .hp-bar-damage {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+      background: #ff3e55;
+      transition: width 0.35s ease-out;
+    }
+
+    .hp-bar-fill {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+      background: linear-gradient(180deg, #52ffb8 0%, #00c853 100%);
+      transition: width 0.08s linear;
+    }
+
+    .fighter-hud.p2 .hp-bar-damage,
+    .fighter-hud.p2 .hp-bar-fill {
+      right: 0;
+      left: auto;
+    }
+
+    .sp-bar-outer {
+      width: 72%;
+      height: 9px;
+      background: rgba(10, 14, 24, 0.85);
+      border: 1.5px solid rgba(255, 255, 255, 0.5);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .sp-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #00b4d8, #ffd166);
+      transition: width 0.1s linear;
+    }
+
+    .sp-bar-fill.full {
+      background: linear-gradient(90deg, #ff3e55, #ffd166, #00e5ff);
+      animation: spPulse 0.5s infinite alternate;
+    }
+
+    @keyframes spPulse {
+      from { filter: brightness(1); }
+      to { filter: brightness(1.45); }
+    }
+
+    .fighter-hud.p2 .sp-bar-fill {
+      float: right;
+    }
+
+    .hud-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 68px;
+    }
+
+    .timer-box {
+      font-family: 'Fredoka', sans-serif;
+      font-size: clamp(1.3rem, 3.5vw, 1.9rem);
+      font-weight: 700;
+      color: #ffd166;
+      background: rgba(11, 15, 26, 0.88);
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-radius: 12px;
+      padding: 2px 12px;
+      text-shadow: 0 2px 0 #000;
+    }
+
+    .hud-top-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+      pointer-events: auto;
+    }
+
+    .hud-icon-btn {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1.5px solid rgba(255, 255, 255, 0.35);
+      color: #fff;
+      border-radius: 8px;
+      padding: 3px 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .music-pill {
+      position: fixed;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(11, 15, 26, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 0.7rem;
+      color: #00e5ff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 30;
+    }
+
+    .music-pill button {
+      background: rgba(255, 255, 255, 0.12);
+      border: none;
+      color: #fff;
+      border-radius: 10px;
+      padding: 2px 7px;
+      font-size: 0.68rem;
+      cursor: pointer;
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+    }
+
+    .perf-badge {
+      position: absolute;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.68rem;
+      color: rgba(255, 255, 255, 0.65);
+      background: rgba(0, 0, 0, 0.4);
+      padding: 1px 8px;
+      border-radius: 8px;
+    }
+
+    /* Controles Touch na Tela */
+    #touch-controls {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 12;
+    }
+
+    /* Direcional Esquerdo */
+    .dpad-zone {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
+      width: 156px;
+      height: 156px;
+      pointer-events: auto;
+    }
+
+    .dpad-btn {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 2px solid rgba(255, 255, 255, 0.32);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      color: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(2px);
+    }
+
+    .dpad-btn.active {
+      background: rgba(0, 229, 255, 0.42);
+      border-color: #00e5ff;
+      transform: scale(0.94);
+    }
+
+    #btn-up { top: 0; left: 52px; }
+    #btn-down { bottom: 0; left: 52px; }
+    #btn-left { top: 52px; left: 0; }
+    #btn-right { top: 52px; right: 0; }
+
+    /* Botões de Ação Direitos */
+    .action-zone {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      width: 195px;
+      height: 165px;
+      pointer-events: auto;
+    }
+
+    .act-btn {
+      position: absolute;
+      border-radius: 50%;
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+      border: 2.5px solid rgba(255, 255, 255, 0.45);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+      transition: transform 0.06s ease;
+    }
+
+    .act-btn.active {
+      transform: scale(0.9);
+      filter: brightness(1.3);
+    }
+
+    /* Botão Bater (Principal grande) */
+    #btn-hit {
+      width: 68px;
+      height: 68px;
+      right: 6px;
+      bottom: 8px;
+      background: radial-gradient(circle, rgba(255, 62, 85, 0.78), rgba(180, 20, 45, 0.88));
+      font-size: 0.85rem;
+    }
+
+    /* Botão Poder */
+    #btn-power {
+      width: 58px;
+      height: 58px;
+      right: 84px;
+      bottom: 14px;
+      background: radial-gradient(circle, rgba(0, 180, 216, 0.78), rgba(0, 100, 160, 0.88));
+      font-size: 0.75rem;
+    }
+
+    /* Botão Dash */
+    #btn-dash {
+      width: 54px;
+      height: 54px;
+      right: 14px;
+      bottom: 88px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.78), rgba(5, 110, 75, 0.88));
+      font-size: 0.72rem;
+    }
+
+    /* Botão Especial */
+    #btn-special {
+      width: 62px;
+      height: 62px;
+      right: 82px;
+      bottom: 84px;
+      background: radial-gradient(circle, rgba(100, 116, 139, 0.55), rgba(51, 65, 85, 0.75));
+      font-size: 0.72rem;
+      opacity: 0.7;
+    }
+
+    #btn-special.ready {
+      opacity: 1;
+      background: radial-gradient(circle, rgba(255, 209, 102, 0.92), rgba(247, 127, 0, 0.95));
+      border-color: #fff;
+      color: #1a0c00;
+      text-shadow: none;
+      animation: specialBtnGlow 0.6s infinite alternate;
+    }
+
+    @keyframes specialBtnGlow {
+      from { box-shadow: 0 0 10px #ffd166; transform: scale(1); }
+      to { box-shadow: 0 0 24px #ff9f1c; transform: scale(1.06); }
+    }
+
+    /* Aviso de Orientação Retrato */
+    #rotate-hint {
+      position: fixed;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 183, 3, 0.92);
+      color: #111;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 20px;
+      z-index: 50;
+      display: none;
+      pointer-events: none;
+    }
+
+    @media (orientation: portrait) {
+      #rotate-hint { display: block; }
+    }
+
+    /* Modais (Pause e Fim de Luta) */
+    .modal-box {
+      background: var(--panel-bg);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-radius: 20px;
+      padding: 24px 28px;
+      text-align: center;
+      max-width: 380px;
+      width: 90%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-title {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.9rem;
+      color: #ffd166;
+    }
+  </style>
 </head>
 <body>
 
-<div id="rotateNotice">📱 Vire o celular na horizontal para jogar!</div>
+<div id="rotate-hint">📱 Vire o celular na horizontal para melhor experiência!</div>
 
-<!-- TELA INICIAL -->
-<div id="menuScreen" class="screen">
-  <h1>BLOCK FIGHTER P2P</h1>
-  <button class="btn btn-gold" onclick="startStorySetup()">🏆 MODO HISTÓRIA</button>
-  <button class="btn btn-green" onclick="startVersusSetup()">⚔️ MODO SOLO (VS CPU)</button>
-  <button class="btn" onclick="openP2PMenu()">🌐 MULTIPLAYER P2P</button>
-  <p style="margin-top:14px; font-size:12px; color:#a4b0be;" id="unlockStatusText"></p>
-</div>
+<div id="game-container">
+  <!-- Canvas Principal Otimizado 60FPS -->
+  <canvas id="gameCanvas"></canvas>
 
-<!-- TELA MULTIPLAYER P2P -->
-<div id="p2pScreen" class="screen hidden">
-  <h2>MULTIPLAYER ONLINE (P2P)</h2>
-  <div class="p2p-box">
-    <button class="btn btn-green" onclick="createRoom()">CRIAR SALA</button>
-    <div id="hostRoomInfo" class="hidden" style="margin-top:10px;">
-      <p style="font-size:12px; color:#a4b0be;">Código da sua sala:</p>
-      <div id="roomCodeDisplay" style="font-size:28px; font-weight:900; color:#ffa502; letter-spacing:4px;">----</div>
-      <p id="p2pStatusHost" style="font-size:12px; color:#7bed9f; margin-top:5px;">Aguardando oponente entrar...</p>
+  <!-- HUD DE BATALHA -->
+  <div id="battle-hud" class="hidden">
+    <div class="hud-top-row">
+      <!-- Jogador 1 -->
+      <div class="fighter-hud p1">
+        <div class="hud-name-row">
+          <span id="hud-p1-name">RUBI</span>
+          <div class="round-dots" id="hud-p1-rounds">
+            <div class="round-dot"></div>
+            <div class="round-dot"></div>
+          </div>
+        </div>
+        <div class="hp-bar-outer">
+          <div class="hp-bar-damage" id="hud-p1-dmg"></div>
+          <div class="hp-bar-fill" id="hud-p1-hp"></div>
+        </div>
+        <div class="sp-bar-outer">
+          <div class="sp-bar-fill" id="hud-p1-sp"></div>
+        </div>
+      </div>
+
+      <!-- Centro (Timer & Pause) -->
+      <div class="hud-center">
+        <div class="timer-box" id="hud-timer">99</div>
+        <div class="hud-top-actions">
+          <button class="hud-icon-btn" id="btn-pause" title="Pausar">⏸ PAUSE</button>
+          <button class="hud-icon-btn" id="btn-next-bgm" title="Trocar Música">🎵</button>
+          <button class="hud-icon-btn" id="btn-mute" title="Som">🔊</button>
+        </div>
+      </div>
+
+      <!-- Jogador 2 / CPU -->
+      <div class="fighter-hud p2">
+        <div class="hud-name-row">
+          <span id="hud-p2-name">CIANO</span>
+          <div class="round-dots" id="hud-p2-rounds">
+            <div class="round-dot"></div>
+            <div class="round-dot"></div>
+          </div>
+        </div>
+        <div class="hp-bar-outer">
+          <div class="hp-bar-damage" id="hud-p2-dmg"></div>
+          <div class="hp-bar-fill" id="hud-p2-hp"></div>
+        </div>
+        <div class="sp-bar-outer">
+          <div class="sp-bar-fill" id="hud-p2-sp"></div>
+        </div>
+      </div>
+    </div>
+    <div class="perf-badge" id="perf-badge">60 FPS • LOCAL</div>
+  </div>
+
+  <!-- CONTROLES TOUCH MOBILE -->
+  <div id="touch-controls" class="hidden">
+    <div class="dpad-zone">
+      <div class="dpad-btn" id="btn-up">▲</div>
+      <div class="dpad-btn" id="btn-down">▼</div>
+      <div class="dpad-btn" id="btn-left">◀</div>
+      <div class="dpad-btn" id="btn-right">▶</div>
+    </div>
+
+    <div class="action-zone">
+      <div class="act-btn" id="btn-dash">DASH</div>
+      <div class="act-btn" id="btn-special">ESPECIAL</div>
+      <div class="act-btn" id="btn-power">PODER</div>
+      <div class="act-btn" id="btn-hit">BATER</div>
     </div>
   </div>
-  <div class="p2p-box">
-    <p style="font-size:13px;">Ou digite o código de um amigo:</p>
-    <input type="text" id="joinCodeInput" maxlength="4" placeholder="ABCD">
-    <br>
-    <button class="btn" onclick="joinRoom()">ENTRAR NA SALA</button>
-    <p id="p2pStatusJoin" style="font-size:12px; color:#ff6b81; margin-top:5px;"></p>
-  </div>
-  <button class="btn btn-red" onclick="backToMainMenu()">VOLTAR</button>
-</div>
 
-<!-- TELA DE SELEÇÃO DE PERSONAGEM E CENÁRIO -->
-<div id="selectScreen" class="screen hidden">
-  <h2 id="selectTitle">ESCOLHA SEU LUTADOR</h2>
-  <div class="select-container">
-    <div class="char-grid" id="charGrid"></div>
-    <div class="char-info" id="charInfo">Selecione um bloquinho para ver seus poderes!</div>
-    
-    <div id="stageSelectBox">
-      <div class="stage-grid" id="stageGrid"></div>
+  <!-- 1. TELA INICIAL -->
+  <div id="screen-menu" class="screen">
+    <h1 class="game-title">BLOCK FIGHTER</h1>
+    <p class="subtitle">Arena Arcade • 60 FPS • P2P Online</p>
+
+    <div class="menu-buttons">
+      <button class="btn btn-primary" id="btn-mode-cpu">⚔️ 1 JOGADOR (VS CPU)</button>
+      <button class="btn btn-secondary" id="btn-mode-p2p">🌐 MULTIPLAYER ONLINE (P2P)</button>
+      <button class="btn btn-create-char" id="btn-open-creator-menu">🎨 CRIAR / EDITAR LUTADOR</button>
     </div>
 
-    <div style="display:flex; gap:10px;">
-      <button class="btn btn-red" onclick="backToMainMenu()">MENU</button>
-      <button class="btn btn-gold" id="confirmSelectBtn" onclick="confirmSelection()">LUTAR!</button>
+    <p style="margin-top: 22px; font-size: 0.78rem; color: #64748b; text-align: center; max-width: 520px;">
+      PC: <b>WASD / Setas</b> mover & pular • <b>J / Z</b> Bater • <b>K / X</b> Poder • <b>L / C</b> Dash • <b>U / Espaço</b> Especial
+    </p>
+  </div>
+
+  <!-- 1.5 OFICINA / CRIADOR DE PERSONAGEM PERSONALIZADO -->
+  <div id="screen-creator" class="screen hidden">
+    <div class="creator-layout">
+      <div class="select-header">
+        <button class="btn btn-dark btn-sm" id="btn-creator-back">⬅ VOLTAR</button>
+        <div class="select-title">🎨 OFICINA DE LUTADORES</div>
+        <button class="btn btn-gold btn-sm" id="btn-save-custom">💾 SALVAR LUTADOR</button>
+      </div>
+
+      <div class="creator-body">
+        <!-- Pré-visualização Animada -->
+        <div class="preview-card">
+          <canvas id="previewCanvas" width="240" height="155"></canvas>
+          <div style="font-size: 0.74rem; color: #94a3b8; text-align: center;">Teste as animações e sons do seu lutador:</div>
+          <div class="test-btns-row">
+            <button class="test-btn" id="btn-test-melee">👊 GOLPE</button>
+            <button class="test-btn" id="btn-test-power">⚡ PODER</button>
+            <button class="test-btn" id="btn-test-special">🔥 ESPECIAL</button>
+          </div>
+          <button class="test-btn" id="btn-test-jump" style="width: 100%;">🌀 TESTAR PULO DUPLO GIRATÓRIO</button>
+        </div>
+
+        <!-- Abas de Customização -->
+        <div class="editor-tabs-panel">
+          <div class="tab-bar">
+            <button class="tab-btn active" data-tab="tab-look">1. CORES & OLHOS</button>
+            <button class="tab-btn" data-tab="tab-outfit">2. ROUPAS & COR</button>
+            <button class="tab-btn" data-tab="tab-skills">3. PODERES & STATUS</button>
+          </div>
+
+          <!-- ABA 1: CORPO, AURA E OLHOS -->
+          <div id="tab-look" class="tab-content" style="display: flex; flex-direction: column; gap: 9px;">
+            <div class="form-group">
+              <label class="form-label">Nome do Lutador</label>
+              <input type="text" id="cust-name" class="text-input" maxlength="12" value="TITÃ">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Cor do Bloquinho</label>
+              <div class="color-palette" id="palette-body">
+                <input type="color" id="cust-body-color" class="color-picker-native" value="#ff3e55">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Cor da Aura de Energia</label>
+              <div class="color-palette" id="palette-aura">
+                <input type="color" id="cust-aura-color" class="color-picker-native" value="#00e5ff">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Estilo dos Olhos</label>
+              <select id="cust-eyes" class="select-input">
+                <option value="cute">Fofinho Padrão (Brilhante)</option>
+                <option value="fierce">Determinado / Bravo</option>
+                <option value="ninja">Visor Ninja / Cibernético</option>
+                <option value="star">Olhos de Estrela</option>
+                <option value="cyclops">Ciclope Robótico</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ABA 2: ROUPAS E ACESSÓRIOS + COR DA ROUPA -->
+          <div id="tab-outfit" class="tab-content hidden" style="display: flex; flex-direction: column; gap: 9px;">
+            <div class="form-group">
+              <label class="form-label">Chapéu / Acessório de Cabeça</label>
+              <select id="cust-hat" class="select-input">
+                <option value="none">Nenhum</option>
+                <option value="headband">Faixa Ninja de Luta</option>
+                <option value="crown">Coroa Real Dourada</option>
+                <option value="wizard">Chapéu de Mago</option>
+                <option value="horns">Chifres Oni</option>
+                <option value="headphones">Fone Gamer</option>
+                <option value="hood">Capuz Misterioso</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Traje / Roupa do Corpo</label>
+              <select id="cust-suit" class="select-input">
+                <option value="none">Nenhum (Padrão)</option>
+                <option value="kimono">Kimono de Artes Marciais</option>
+                <option value="armor">Armadura Peitoral</option>
+                <option value="cape">Capa de Super-Herói</option>
+                <option value="vest">Colete Urbano</option>
+                <option value="robe">Manto Místico</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Cor da Roupa & Acessórios</label>
+              <div class="color-palette" id="palette-outfit">
+                <input type="color" id="cust-outfit-color" class="color-picker-native" value="#ffd166">
+              </div>
+            </div>
+          </div>
+
+          <!-- ABA 3: PODERES, ESPECIAL E ATRIBUTOS -->
+          <div id="tab-skills" class="tab-content hidden" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="form-group">
+              <label class="form-label">Estilo de Ataque Corpo-a-Corpo (Botão Bater)</label>
+              <select id="cust-melee" class="select-input">
+                <option value="punch">Soco Flamejante (Equilibrado)</option>
+                <option value="sword">Corte de Espada de Energia (Alcance Maior)</option>
+                <option value="seismic">Impacto Sísmico (Dano Pesado)</option>
+                <option value="claws">Garras Relâmpago (Super Rápido)</option>
+              </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div class="form-group">
+                <label class="form-label">Poder Simples (Projétil)</label>
+                <select id="cust-power" class="select-input">
+                  <option value="fireball">Bola de Energia</option>
+                  <option value="shuriken">Shuriken Tripla</option>
+                  <option value="laser">Raio Laser Veloz</option>
+                  <option value="homing">Esfera Teleguiada</option>
+                  <option value="shockwave">Onda de Choque</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Efeito do Poder</label>
+                <select id="cust-effect" class="select-input">
+                  <option value="burn">Queimadura (+Dano)</option>
+                  <option value="freeze">Gelo (Lentidão no Rival)</option>
+                  <option value="knockback">Empurrão Gigante</option>
+                  <option value="stun">Choque (Atordoa Rápido)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Ataque Especial (Barra 100%)</label>
+              <select id="cust-special" class="select-input">
+                <option value="meteor">Meteoro Devastador (Chuva de Impacto)</option>
+                <option value="beam">Feixe Kamehameha Gigante</option>
+                <option value="blades">Chuva de Lâminas Cortantes</option>
+                <option value="nova">Explosão Nova Suprema</option>
+                <option value="teleport">Teleporte + Combo Relâmpago</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <span>Atributos Balanceados</span>
+                <span id="stat-points-left" style="color: #ffd166;">Pontos livres: 0</span>
+              </label>
+              <div class="stat-row">
+                <span style="font-size: 0.78rem;">⚔️ Força: <b id="val-atk">5</b>/8</span>
+                <div class="stat-controls">
+                  <button class="stat-step-btn" data-stat="atk" data-delta="-1">-</button>
+                  <button class="stat-step-btn" data-stat="atk" data-delta="1">+</button>
+                </div>
+              </div>
+              <div class="stat-row">
+                <span style="font-size: 0.78rem;">⚡ Velocidade: <b id="val-spd">5</b>/8</span>
+                <div class="stat-controls">
+                  <button class="stat-step-btn" data-stat="spd" data-delta="-1">-</button>
+                  <button class="stat-step-btn" data-stat="spd" data-delta="1">+</button>
+                </div>
+              </div>
+              <div class="stat-row">
+                <span style="font-size: 0.78rem;">🛡️ Resistência: <b id="val-def">5</b>/8</span>
+                <div class="stat-controls">
+                  <button class="stat-step-btn" data-stat="def" data-delta="-1">-</button>
+                  <button class="stat-step-btn" data-stat="def" data-delta="1">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- TELA DE PAUSE -->
-<div id="pauseScreen" class="screen hidden" style="background: rgba(10,10,18,0.85);">
-  <h2>JOGO PAUSADO</h2>
-  <button class="btn btn-green" onclick="togglePause()">CONTINUAR</button>
-  <button class="btn" onclick="returnToSelectFromMatch()">TROCAR PERSONAGEM</button>
-  <button class="btn btn-red" onclick="backToMainMenu()">MENU PRINCIPAL</button>
-</div>
+  <!-- 2. TELA DE SALA MULTIPLAYER P2P -->
+  <div id="screen-p2p" class="screen hidden">
+    <div class="card-panel">
+      <h2 style="font-family: 'Fredoka', sans-serif; color: #00e5ff; margin-bottom: 6px;">MULTIPLAYER ONLINE P2P</h2>
+      <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 14px;">Jogue direto com um amigo usando um código de 4 letras!</p>
 
-<!-- TELA DE FIM DE LUTA -->
-<div id="endScreen" class="screen hidden" style="background: rgba(10,10,18,0.88);">
-  <h1 id="endTitle">VITÓRIA!</h1>
-  <p id="endSubtitle" style="margin-bottom:15px; font-size:16px; color:#dfe4ea;"></p>
-  <button class="btn btn-gold" id="nextStoryBtn" onclick="nextStoryStage()">PRÓXIMO DESAFIO</button>
-  <button class="btn" onclick="returnToSelectFromMatch()">SELEÇÃO DE LUTADORES</button>
-  <button class="btn btn-red" onclick="backToMainMenu()">MENU PRINCIPAL</button>
-</div>
+      <div id="p2p-choice-area">
+        <button class="btn btn-secondary" id="btn-create-room" style="width: 100%; margin-bottom: 14px;">➕ CRIAR NOVA SALA</button>
 
-<!-- CANVAS DO JOGO -->
-<canvas id="gameCanvas"></canvas>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px;">
+          <input type="text" id="input-room-code" class="room-input" maxlength="4" placeholder="ABCD">
+          <button class="btn btn-gold" id="btn-join-room">ENTRAR</button>
+        </div>
+      </div>
 
-<!-- CONTROLES TOUCH -->
-<div id="touchControls" class="hidden">
-  <div class="t-btn" id="btnLeft">◀</div>
-  <div class="t-btn" id="btnRight">▶</div>
-  <div class="t-btn" id="btnDash">DASH</div>
+      <div id="p2p-host-area" class="hidden">
+        <p style="font-size: 0.85rem; color: #cbd5e1;">Passe este código para seu amigo:</p>
+        <div class="room-code-box" id="display-room-code">----</div>
+        <p style="font-size: 0.8rem; color: #ffd166;">⏳ Aguardando oponente entrar na sala...</p>
+      </div>
 
-  <div class="t-btn" id="btnJump">PULO</div>
-  <div class="t-btn" id="btnPunch">SOCO</div>
-  <div class="t-btn" id="btnPower">PODER</div>
-  <div class="t-btn" id="btnSpec">ESP</div>
-  <div class="t-btn" id="btnPause">❚❚</div>
+      <div class="status-text" id="p2p-status"></div>
+
+      <button class="btn btn-dark btn-sm" id="btn-p2p-back" style="margin-top: 14px;">⬅ VOLTAR</button>
+    </div>
+  </div>
+
+  <!-- 3. TELA DE SELEÇÃO DE PERSONAGENS E CENÁRIOS -->
+  <div id="screen-select" class="screen hidden">
+    <div class="select-layout">
+      <div class="select-header">
+        <button class="btn btn-dark btn-sm" id="btn-select-back">⬅ MENU</button>
+        <div class="select-title" id="select-header-title">ESCOLHA SEU LUTADOR</div>
+        <div style="font-size: 0.8rem; color: #00e5ff; font-weight: 700;" id="select-mode-label">MODO: VS CPU</div>
+      </div>
+
+      <div class="select-body">
+        <!-- Grade de 6 Bloquinhos -->
+        <div class="char-grid" id="char-grid"></div>
+
+        <!-- Detalhes + Cenários -->
+        <div class="info-stage-panel">
+          <div class="char-details" id="char-details">
+            <h3 id="detail-name" style="color: #ff3e55;">RUBI (Fogo)</h3>
+            <div class="skill-list" id="detail-skills"></div>
+          </div>
+
+          <div>
+            <div class="stage-selector-title">🌍 CENÁRIO DE BATALHA</div>
+            <div class="stage-grid" id="stage-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="select-footer">
+        <div style="font-size: 0.82rem; color: #cbd5e1;" id="select-sync-msg">Pronto para batalhar!</div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-create-char btn-sm" id="btn-open-creator-select">🎨 CRIAR LUTADOR</button>
+          <button class="btn btn-gold" id="btn-start-fight">🔥 LUTAR AGORA!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. MENU DE PAUSE -->
+  <div id="screen-pause" class="screen hidden" style="background: rgba(6, 9, 18, 0.82);">
+    <div class="modal-box">
+      <div class="modal-title">JOGO PAUSADO</div>
+      <div style="background: rgba(9,13,22,0.7); padding: 8px; border-radius: 12px; display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 0.78rem; color: #00e5ff; font-weight: 700;" id="pause-track-name">🎵 Música: Arena Spirit</div>
+        <div style="display: flex; gap: 6px; justify-content: center;">
+          <button class="btn btn-dark btn-sm" id="btn-pause-next-bgm">⏭ Próxima Música</button>
+          <button class="btn btn-dark btn-sm" id="btn-pause-toggle-bgm">🎶 Música: ON</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-resume">▶ CONTINUAR</button>
+      <button class="btn btn-secondary" id="btn-restart-fight">🔄 REINICIAR LUTA</button>
+      <button class="btn btn-gold" id="btn-change-char">🎭 TROCAR PERSONAGEM / CENÁRIO</button>
+      <button class="btn btn-dark" id="btn-quit-menu">🏠 SAIR PARA O MENU</button>
+    </div>
+  </div>
+
+  <!-- 5. TELA DE RESULTADO (VITÓRIA / DERROTA) -->
+  <div id="screen-result" class="screen hidden" style="background: rgba(6, 9, 18, 0.78);">
+    <div class="modal-box">
+      <div class="modal-title" id="result-title">VITÓRIA!</div>
+      <p id="result-subtitle" style="color: #cbd5e1; font-size: 0.95rem;">RUBI venceu a batalha!</p>
+      <button class="btn btn-gold" id="btn-rematch">🔥 REVANCHE</button>
+      <button class="btn btn-secondary" id="btn-result-select">🎭 TELA DE SELEÇÃO</button>
+      <button class="btn btn-dark" id="btn-result-menu">🏠 MENU PRINCIPAL</button>
+    </div>
+  </div>
+
+  <!-- Barra Flutuante de Trilha Sonora nos Menus -->
+  <div class="music-pill" id="menu-music-bar">
+    <span id="bgm-label">🎵 Arena Spirit</span>
+    <button id="btn-bar-next-bgm">⏭ Trocar</button>
+    <button id="btn-bar-mute-bgm">🔊</button>
+  </div>
 </div>
 
 <script>
-// ================= CONFIGURAÇÃO DE PERSONAGENS =================
-const CHARACTERS = [
+/**
+ * ============================================================================
+ * BLOCK FIGHTER P2P - ENGINE COMPLETA EM ARQUIVO ÚNICO
+ * Otimizado para 60 FPS no Samsung Galaxy A10s (Canvas 2D leve, Web Audio API
+ * sintetizada com 5 trilhas musicais e SFX únicos, Editor de Personagem e P2P).
+ * ============================================================================
+ */
+
+// ----------------------------------------------------------------------------
+// 1. SINTETIZADOR DE ÁUDIO E TRILHA SONORA DINÂMICA (WEB AUDIO API)
+// ----------------------------------------------------------------------------
+const SoundFX = (() => {
+  let ctx = null;
+  let sfxMuted = false;
+  let bgmMuted = false;
+  let bgmTimer = null;
+  let stepIndex = 0;
+  let currentTrackIdx = 0;
+  let tempoBoost = false;
+
+  const TRACKS = [
+    {
+      name: 'Arena Spirit',
+      bpm: 132,
+      wave: 'triangle',
+      bassWave: 'sawtooth',
+      lead: [330, 0, 392, 440, 494, 0, 440, 392, 330, 0, 294, 330, 392, 330, 294, 247],
+      bass: [110, 110, 130.8, 130.8, 146.8, 146.8, 164.8, 146.8, 110, 110, 98, 98, 130.8, 130.8, 146.8, 164.8]
+    },
+    {
+      name: 'Dragon Fist',
+      bpm: 152,
+      wave: 'square',
+      bassWave: 'sawtooth',
+      lead: [440, 440, 523.2, 587.3, 659.2, 587.3, 523.2, 440, 392, 440, 523.2, 659.2, 784, 659.2, 587.3, 523.2],
+      bass: [110, 110, 110, 110, 146.8, 146.8, 130.8, 130.8, 98, 98, 98, 98, 130.8, 146.8, 164.8, 196]
+    },
+    {
+      name: 'Cyber Dojo',
+      bpm: 140,
+      wave: 'sawtooth',
+      bassWave: 'square',
+      lead: [293.6, 440, 349.2, 440, 392, 440, 523.2, 440, 293.6, 440, 349.2, 440, 587.3, 523.2, 440, 392],
+      bass: [73.4, 73.4, 87.3, 87.3, 98, 98, 110, 110, 73.4, 73.4, 87.3, 87.3, 116.5, 110, 98, 87.3]
+    },
+    {
+      name: 'Final Boss Fury',
+      bpm: 162,
+      wave: 'sawtooth',
+      bassWave: 'sawtooth',
+      lead: [329.6, 349.2, 329.6, 392, 329.6, 440, 392, 349.2, 329.6, 493.8, 440, 392, 349.2, 329.6, 293.6, 246.9],
+      bass: [82.4, 82.4, 87.3, 87.3, 82.4, 82.4, 98, 98, 82.4, 82.4, 110, 110, 98, 87.3, 82.4, 73.4]
+    },
+    {
+      name: 'Zen Master',
+      bpm: 118,
+      wave: 'sine',
+      bassWave: 'triangle',
+      lead: [392, 0, 440, 523.2, 587.3, 0, 523.2, 440, 392, 329.6, 293.6, 0, 329.6, 392, 440, 0],
+      bass: [130.8, 0, 130.8, 0, 146.8, 0, 146.8, 0, 164.8, 0, 146.8, 0, 130.8, 0, 98, 0]
+    }
+  ];
+
+  function init() {
+    if (!ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) ctx = new AudioCtx();
+    }
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    if (!bgmTimer) startMusicLoop();
+  }
+
+  function playTone(freq, endFreq, duration, type = 'sine', vol = 0.14, delay = 0) {
+    if (sfxMuted || !freq) return;
+    if (!ctx) init();
+    if (!ctx) return;
+
+    const now = ctx.currentTime + delay;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    if (endFreq && endFreq !== freq) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+    }
+
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  function playMusicNote(freq, duration, type, vol) {
+    if (bgmMuted || !freq || !ctx || ctx.state !== 'running') return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  function startMusicLoop() {
+    if (bgmTimer) clearTimeout(bgmTimer);
+    const tick = () => {
+      const tr = TRACKS[currentTrackIdx];
+      const effectiveBpm = tempoBoost ? tr.bpm * 1.16 : tr.bpm;
+      const stepMs = (60 / effectiveBpm / 2) * 1000;
+
+      if (!bgmMuted && ctx && ctx.state === 'running') {
+        const idx = stepIndex % tr.lead.length;
+        const leadNote = tr.lead[idx];
+        const bassNote = tr.bass[idx];
+        if (leadNote > 0) playMusicNote(leadNote, (stepMs / 1000) * 0.85, tr.wave, 0.042);
+        if (bassNote > 0) playMusicNote(bassNote, (stepMs / 1000) * 0.9, tr.bassWave, 0.052);
+        stepIndex++;
+      }
+      bgmTimer = setTimeout(tick, stepMs);
+    };
+    tick();
+  }
+
+  function updateTrackLabels() {
+    const name = TRACKS[currentTrackIdx].name;
+    const el1 = document.getElementById('bgm-label');
+    const el2 = document.getElementById('pause-track-name');
+    if (el1) el1.textContent = '🎵 ' + name;
+    if (el2) el2.textContent = '🎵 Música: ' + name;
+  }
+
+  return {
+    init,
+    setTrack(idx) {
+      currentTrackIdx = ((idx % TRACKS.length) + TRACKS.length) % TRACKS.length;
+      stepIndex = 0;
+      updateTrackLabels();
+    },
+    nextTrack() {
+      this.init();
+      this.setTrack(currentTrackIdx + 1);
+      this.uiClick();
+    },
+    setTempoBoost(active) {
+      tempoBoost = active;
+    },
+    toggleBgm() {
+      this.init();
+      bgmMuted = !bgmMuted;
+      return bgmMuted;
+    },
+    toggleMute() {
+      this.init();
+      sfxMuted = !sfxMuted;
+      bgmMuted = sfxMuted;
+      return sfxMuted;
+    },
+    // Sons de Interface Variados
+    uiClick() { playTone(660, 880, 0.06, 'sine', 0.11); },
+    uiBack() { playTone(420, 260, 0.08, 'triangle', 0.11); },
+    uiSelect(pitchOffset = 0) { playTone(520 + pitchOffset * 35, 720 + pitchOffset * 35, 0.07, 'triangle', 0.12); },
+    uiEquip() { playTone(480, 620, 0.05, 'sine', 0.1); playTone(760, 920, 0.06, 'triangle', 0.09, 0.04); },
+    uiSave() {
+      playTone(523.2, 523.2, 0.08, 'triangle', 0.14, 0);
+      playTone(659.2, 659.2, 0.08, 'triangle', 0.14, 0.08);
+      playTone(784.0, 1046.5, 0.18, 'triangle', 0.16, 0.16);
+    },
+    // Movimentos
+    jump() { playTone(210, 520, 0.13, 'square', 0.09); },
+    doubleJump() {
+      playTone(390, 780, 0.12, 'triangle', 0.13);
+      playTone(580, 980, 0.14, 'sine', 0.11, 0.05);
+    },
+    dash() { playTone(520, 120, 0.13, 'sawtooth', 0.11); },
+    land() { playTone(130, 55, 0.06, 'sine', 0.09); },
+    // Combos e Estilos de Ataque
+    swingCombo(step = 1, style = 'punch') {
+      if (style === 'sword') {
+        playTone(620 + step * 90, 240, 0.09, 'sawtooth', 0.1);
+      } else if (style === 'claws') {
+        playTone(740 + step * 110, 320, 0.07, 'triangle', 0.1);
+      } else if (style === 'seismic') {
+        playTone(190 + step * 30, 75, 0.12, 'square', 0.12);
+      } else {
+        playTone(260 + step * 55, 110, 0.08, 'triangle', 0.1);
+      }
+    },
+    airAttack() { playTone(480, 190, 0.11, 'sawtooth', 0.11); },
+    hitLight() { playTone(170, 55, 0.09, 'square', 0.17); },
+    hitHeavy() {
+      playTone(125, 32, 0.22, 'sawtooth', 0.24);
+      playTone(220, 60, 0.14, 'square', 0.14);
+    },
+    block() { playTone(560, 440, 0.08, 'sine', 0.14); },
+    // Poderes Específicos
+    powerByType(type) {
+      if (type === 'laser') {
+        playTone(980, 280, 0.16, 'sawtooth', 0.13);
+      } else if (type === 'shuriken' || type === 'leaf') {
+        playTone(640, 880, 0.07, 'triangle', 0.11);
+        playTone(720, 960, 0.07, 'triangle', 0.11, 0.05);
+      } else if (type === 'homing') {
+        playTone(300, 620, 0.22, 'sine', 0.14);
+      } else if (type === 'shockwave' || type === 'rock') {
+        playTone(180, 60, 0.2, 'square', 0.16);
+      } else {
+        playTone(320, 680, 0.18, 'sawtooth', 0.13);
+      }
+    },
+    // Especiais Cinematográficos
+    specialByType(type) {
+      playTone(190, 760, 0.32, 'sawtooth', 0.18);
+      if (type === 'beam' || type === 'laser') {
+        playTone(440, 960, 0.45, 'square', 0.16, 0.1);
+      } else if (type === 'teleport') {
+        playTone(880, 220, 0.14, 'sine', 0.16, 0.08);
+        playTone(240, 980, 0.25, 'triangle', 0.16, 0.18);
+      } else {
+        playTone(260, 920, 0.4, 'square', 0.16, 0.09);
+      }
+    },
+    roundStart() {
+      playTone(440, 440, 0.09, 'square', 0.12, 0);
+      playTone(587.3, 587.3, 0.18, 'square', 0.14, 0.11);
+    },
+    ko() {
+      playTone(240, 42, 0.65, 'sawtooth', 0.25);
+    },
+    victory() {
+      playTone(523.2, 523.2, 0.11, 'square', 0.14, 0);
+      playTone(659.2, 659.2, 0.11, 'square', 0.14, 0.12);
+      playTone(784.0, 784.0, 0.11, 'square', 0.14, 0.24);
+      playTone(1046.5, 1046.5, 0.32, 'square', 0.16, 0.36);
+    }
+  };
+})();
+
+// ----------------------------------------------------------------------------
+// 2. PERSONAGENS PADRÃO + SISTEMA DE PERSONAGENS CUSTOMIZADOS (LOCALSTORAGE)
+// ----------------------------------------------------------------------------
+function hexToRgba(hex, alpha) {
+  const clean = (hex || '#ffffff').replace('#', '');
+  const num = parseInt(clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean, 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+const DEFAULT_CHARACTERS = [
   {
-    id: 0, name: "RUBI", color: "#ff4757", aura: "rgba(255, 71, 87, 0.45)",
-    speed: 5.5, jump: -13.5, hp: 100, dmg: 8,
-    powerName: "Bola de Fogo", specName: "Meteoro Rubi",
-    desc: "Equilibrado. Poder: Bola de Fogo rápida | Especial: Explosão Ascendente.",
-    unlocked: true, boss: false
+    id: 'rubi',
+    name: 'RUBI',
+    element: 'Fogo',
+    color: '#ff3e55',
+    auraHex: '#ff3e55',
+    auraColor: 'rgba(255, 62, 85, 0.45)',
+    coreColor: '#ff9ebb',
+    eyeStyle: 'cute',
+    hat: 'headband',
+    suit: 'none',
+    outfitColor: '#ffd166',
+    meleeStyle: 'punch',
+    powerEffect: 'burn',
+    specialType: 'meteor',
+    speed: 5.4,
+    jumpForce: 13.8,
+    weight: 0.68,
+    atkMult: 1.05,
+    defMult: 1.0,
+    powerName: 'Bola de Fogo',
+    comboName: 'Uppercut Flamejante',
+    specialName: 'Meteoro Devastador',
+    projType: 'fireball',
+    projSpeed: 10.5,
+    projColor: '#ff5400'
   },
   {
-    id: 1, name: "CIANO", color: "#1e90ff", aura: "rgba(30, 144, 255, 0.45)",
-    speed: 7.2, jump: -14.5, hp: 90, dmg: 7,
-    powerName: "Corte Relâmpago", specName: "Tempestade Azul",
-    desc: "Velocista. Poder: Avanço elétrico cortante | Especial: Rajada múltipla de raios.",
-    unlocked: true, boss: false
+    id: 'ciano',
+    name: 'CIANO',
+    element: 'Gelo',
+    color: '#00d4ff',
+    auraHex: '#00d4ff',
+    auraColor: 'rgba(0, 212, 255, 0.45)',
+    coreColor: '#ccf7ff',
+    eyeStyle: 'cute',
+    hat: 'none',
+    suit: 'vest',
+    outfitColor: '#e0fbfc',
+    meleeStyle: 'sword',
+    powerEffect: 'freeze',
+    specialType: 'icespike',
+    speed: 6.0,
+    jumpForce: 14.0,
+    weight: 0.66,
+    atkMult: 0.96,
+    defMult: 1.0,
+    powerName: 'Estaca de Gelo',
+    comboName: 'Investida Glacial',
+    specialName: 'Tempestade Glacial',
+    projType: 'icespike',
+    projSpeed: 13.5,
+    projColor: '#72efdd'
   },
   {
-    id: 2, name: "ESMERALDA", color: "#2ed573", aura: "rgba(46, 213, 115, 0.45)",
-    speed: 4.4, jump: -12.5, hp: 125, dmg: 11,
-    powerName: "Onda Sísmica", specName: "Terremoto Total",
-    desc: "Tanque pesado. Poder: Onda terrestre | Especial: Impacto colossal que atordoa.",
-    unlocked: true, boss: false
+    id: 'verde',
+    name: 'VERDE',
+    element: 'Natureza',
+    color: '#10b981',
+    auraHex: '#10b981',
+    auraColor: 'rgba(16, 185, 129, 0.45)',
+    coreColor: '#a7f3d0',
+    eyeStyle: 'cute',
+    hat: 'hood',
+    suit: 'cape',
+    outfitColor: '#064e3b',
+    meleeStyle: 'claws',
+    powerEffect: 'knockback',
+    specialType: 'tornado',
+    speed: 6.3,
+    jumpForce: 14.6,
+    weight: 0.64,
+    atkMult: 0.95,
+    defMult: 0.98,
+    powerName: 'Lâmina de Folha',
+    comboName: 'Tornado Giratório',
+    specialName: 'Fúria da Floresta',
+    projType: 'leaf',
+    projSpeed: 11.5,
+    projColor: '#38b000'
   },
   {
-    id: 3, name: "SOLARIS", color: "#ffa502", aura: "rgba(255, 165, 2, 0.55)",
-    speed: 6.5, jump: -14.5, hp: 130, dmg: 12,
-    powerName: "Feixe Solar", specName: "Supernova",
-    desc: "CHEFE DESBLOQUEÁVEL! Poder: Laser perfurante | Especial: Explosão solar gigante.",
-    unlocked: false, boss: true
+    id: 'solar',
+    name: 'SOLAR',
+    element: 'Raio',
+    color: '#ffbe0b',
+    auraHex: '#ffbe0b',
+    auraColor: 'rgba(255, 190, 11, 0.48)',
+    coreColor: '#fff3b0',
+    eyeStyle: 'star',
+    hat: 'crown',
+    suit: 'none',
+    outfitColor: '#ffffff',
+    meleeStyle: 'claws',
+    powerEffect: 'stun',
+    specialType: 'beam',
+    speed: 6.6,
+    jumpForce: 14.2,
+    weight: 0.65,
+    atkMult: 1.0,
+    defMult: 0.96,
+    powerName: 'Esfera Elétrica',
+    comboName: 'Relâmpago Veloz',
+    specialName: 'Supernova',
+    projType: 'laser',
+    projSpeed: 15.0,
+    projColor: '#ffd60a'
   },
   {
-    id: 4, name: "SOMBRA", color: "#9c88ff", aura: "rgba(156, 136, 255, 0.6)",
-    speed: 7.8, jump: -15.5, hp: 145, dmg: 14,
-    powerName: "Esfera Gravitacional", specName: "Juízo Sombrio",
-    desc: "CHEFE FINAL APELÃO! Poder: Orbe que puxa o inimigo | Especial: Chuva de lâminas.",
-    unlocked: false, boss: true
+    id: 'sombra',
+    name: 'SOMBRA',
+    element: 'Vazio',
+    color: '#9b5de5',
+    auraHex: '#9b5de5',
+    auraColor: 'rgba(155, 93, 229, 0.48)',
+    coreColor: '#e0aaff',
+    eyeStyle: 'ninja',
+    hat: 'wizard',
+    suit: 'robe',
+    outfitColor: '#240046',
+    meleeStyle: 'sword',
+    powerEffect: 'stun',
+    specialType: 'blackhole',
+    speed: 5.8,
+    jumpForce: 14.2,
+    weight: 0.65,
+    atkMult: 1.02,
+    defMult: 1.0,
+    powerName: 'Orbe Teleguiado',
+    comboName: 'Corte Sombrio',
+    specialName: 'Buraco Negro',
+    projType: 'homing',
+    projSpeed: 8.5,
+    projColor: '#7b2cbf'
+  },
+  {
+    id: 'magma',
+    name: 'MAGMA',
+    element: 'Rocha',
+    color: '#f77f00',
+    auraHex: '#f77f00',
+    auraColor: 'rgba(247, 127, 0, 0.48)',
+    coreColor: '#ffd166',
+    eyeStyle: 'fierce',
+    hat: 'horns',
+    suit: 'armor',
+    outfitColor: '#7f1d1d',
+    meleeStyle: 'seismic',
+    powerEffect: 'knockback',
+    specialType: 'eruption',
+    speed: 4.8,
+    jumpForce: 13.2,
+    weight: 0.72,
+    atkMult: 1.18,
+    defMult: 1.15,
+    powerName: 'Rocha Pesada',
+    comboName: 'Abalo Sísmico',
+    specialName: 'Erupção Vulcânica',
+    projType: 'shockwave',
+    projSpeed: 8.8,
+    projColor: '#d62828'
   }
 ];
+
+let CHARACTERS = [...DEFAULT_CHARACTERS];
+
+const CustomStorage = {
+  KEY: 'bfp2p_custom_fighters_v1',
+
+  loadAll() {
+    try {
+      const raw = localStorage.getItem(this.KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      CHARACTERS = [...DEFAULT_CHARACTERS, ...list];
+    } catch (e) {
+      CHARACTERS = [...DEFAULT_CHARACTERS];
+    }
+  },
+
+  saveList(customList) {
+    try {
+      localStorage.setItem(this.KEY, JSON.stringify(customList));
+    } catch (e) {}
+    this.loadAll();
+  },
+
+  getCustomOnly() {
+    return CHARACTERS.filter(c => c.isCustom);
+  },
+
+  upsert(fighterObj) {
+    const list = this.getCustomOnly();
+    const idx = list.findIndex(c => c.id === fighterObj.id);
+    if (idx >= 0) list[idx] = fighterObj;
+    else list.push(fighterObj);
+    this.saveList(list);
+  },
+
+  remove(id) {
+    const list = this.getCustomOnly().filter(c => c.id !== id);
+    this.saveList(list);
+  }
+};
+
+CustomStorage.loadAll();
 
 const STAGES = [
-  { id: 0, name: "Templo Celeste", sky1: "#1e272e", sky2: "#485460", ground: "#808e9b", accent: "#0fbcf9" },
-  { id: 1, name: "Cidade Neon", sky1: "#0f0c29", sky2: "#302b63", ground: "#191654", accent: "#ff007f" },
-  { id: 2, name: "Núcleo Vulcânico", sky1: "#2c0404", sky2: "#6b0f1a", ground: "#1e1e1e", accent: "#ff5e00" }
+  { id: 'dojo', name: 'Dojô Pôr do Sol', dot: '#ff758f' },
+  { id: 'cyber', name: 'Templo Neon', dot: '#00f5d4' },
+  { id: 'volcano', name: 'Vulcão Carmesim', dot: '#ff5400' },
+  { id: 'forest', name: 'Floresta Mística', dot: '#52b788' }
 ];
 
-// Carregar progresso salvo
-function loadUnlocks() {
-  const saved = JSON.parse(localStorage.getItem("bf_unlocks") || "[]");
-  saved.forEach(id => {
-    if (CHARACTERS[id]) CHARACTERS[id].unlocked = true;
-  });
-  updateUnlockText();
-}
-function saveUnlock(id) {
-  CHARACTERS[id].unlocked = true;
-  const unlockedIds = CHARACTERS.filter(c => c.unlocked).map(c => c.id);
-  localStorage.setItem("bf_unlocks", JSON.stringify(unlockedIds));
-  updateUnlockText();
-}
-function updateUnlockText() {
-  const count = CHARACTERS.filter(c => c.unlocked).length;
-  document.getElementById("unlockStatusText").innerText = `Lutadores desbloqueados: ${count}/${CHARACTERS.length}`;
-}
+// ----------------------------------------------------------------------------
+// 3. ESTADO GLOBAL DO JOGO E SISTEMA DE MULTIPLAYER P2P (PEERJS)
+// ----------------------------------------------------------------------------
+const GameState = {
+  screen: 'MENU', // MENU, CREATOR, P2P, SELECT, PLAYING, PAUSED, RESULT
+  mode: 'CPU',    // CPU ou P2P
+  isHost: true,
+  roomCode: '',
+  peer: null,
+  conn: null,
+  ping: 0,
 
-// ================= VARIÁVEIS GLOBAIS DO JOGO =================
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+  p1CharIdx: 0,
+  p2CharIdx: 1,
+  remoteCustomChar: null, // Dados completos caso o oponente P2P use personagem customizado
+  stageIdx: 0,
 
-let gameMode = "versus"; // "story", "versus", "p2p"
-let gameState = "menu";  // "menu", "select", "playing", "paused", "ended"
-let selectedP1 = 0;
-let selectedP2 = 1;
-let selectStep = 1; // 1 = escolhendo P1, 2 = escolhendo CPU (no modo versus)
-let selectedStage = 0;
-let storyStageIndex = 0;
-const STORY_ORDER = [1, 2, 3, 4]; // Ordem dos oponentes no Modo História
+  round: 1,
+  p1Wins: 0,
+  p2Wins: 0,
+  timer: 99,
+  timerAccum: 0,
+  roundOver: false,
+  bannerText: '',
+  bannerTimer: 0,
 
-let fighters = [];
-let projectiles = [];
-let particles = [];
-let screenShake = 0;
-let bgAnimTime = 0;
+  screenShake: 0,
+  hitStop: 0,
+  flashAlpha: 0,
+  flashColor: '#ffffff'
+};
 
-// Controles locais
-const keys = { left: false, right: false, jump: false, dash: false, punch: false, power: false, spec: false };
-let prevKeys = { ...keys };
+// Sistema P2P com suporte completo a personagens customizados
+const NetP2P = {
+  generateCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  },
 
-// P2P Networking (PeerJS)
-let peer = null;
-let conn = null;
-let isHost = false;
-let remoteInputs = { left: false, right: false, jump: false, dash: false, punch: false, power: false, spec: false };
-let prevRemoteInputs = { ...remoteInputs };
-
-// ================= INICIALIZAÇÃO E RESIZE =================
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
-loadUnlocks();
-
-// ================= NAVEGAÇÃO DE TELAS =================
-function hideAllScreens() {
-  document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
-  document.getElementById("touchControls").classList.add("hidden");
-}
-
-function backToMainMenu() {
-  if (peer) { peer.destroy(); peer = null; conn = null; }
-  gameState = "menu";
-  hideAllScreens();
-  document.getElementById("menuScreen").classList.remove("hidden");
-}
-
-function startStorySetup() {
-  gameMode = "story";
-  storyStageIndex = 0;
-  selectStep = 1;
-  openSelectScreen("MODO HISTÓRIA: ESCOLHA SEU HERÓI", true);
-}
-
-function startVersusSetup() {
-  gameMode = "versus";
-  selectStep = 1;
-  openSelectScreen("MODO SOLO: ESCOLHA SEU LUTADOR", true);
-}
-
-function openSelectScreen(title, showStages) {
-  gameState = "select";
-  hideAllScreens();
-  document.getElementById("selectScreen").classList.remove("hidden");
-  document.getElementById("selectTitle").innerText = title;
-  document.getElementById("stageSelectBox").style.display = showStages ? "block" : "none";
-  renderCharGrid();
-  renderStageGrid();
-}
-
-function renderCharGrid() {
-  const grid = document.getElementById("charGrid");
-  grid.innerHTML = "";
-  CHARACTERS.forEach(c => {
-    const card = document.createElement("div");
-    card.className = "char-card" + (!c.unlocked ? " locked" : "");
-    if (c.id === selectedP1) card.classList.add("selected-p1");
-    if (gameMode === "versus" && selectStep === 2 && c.id === selectedP2) card.classList.add("selected-p2");
-
-    card.innerHTML = `
-      <div class="char-preview" style="background:${c.color}; box-shadow: 0 0 10px ${c.color};"></div>
-      <div class="char-name">${c.unlocked ? c.name : "🔒 ???"}</div>
-    `;
-    card.onclick = () => {
-      if (!c.unlocked) return;
-      if (selectStep === 1) {
-        selectedP1 = c.id;
-        document.getElementById("charInfo").innerHTML = `<strong>${c.name}</strong>: ${c.desc}`;
-      } else {
-        selectedP2 = c.id;
-        document.getElementById("charInfo").innerHTML = `<strong>OPONENTE - ${c.name}</strong>: ${c.desc}`;
-      }
-      renderCharGrid();
-    };
-    grid.appendChild(card);
-  });
-  const activeChar = CHARACTERS[selectStep === 1 ? selectedP1 : selectedP2];
-  document.getElementById("charInfo").innerHTML = `<strong>${activeChar.name}</strong>: ${activeChar.desc}`;
-}
-
-function renderStageGrid() {
-  const grid = document.getElementById("stageGrid");
-  grid.innerHTML = "";
-  STAGES.forEach(s => {
-    const btn = document.createElement("button");
-    btn.className = "stage-btn" + (selectedStage === s.id ? " active" : "");
-    btn.innerText = s.name;
-    btn.onclick = () => {
-      selectedStage = s.id;
-      renderStageGrid();
-    };
-    grid.appendChild(btn);
-  });
-}
-
-function confirmSelection() {
-  if (gameMode === "versus" && selectStep === 1) {
-    selectStep = 2;
-    document.getElementById("selectTitle").innerText = "ESCOLHA SEU ADVERSÁRIO (CPU)";
-    renderCharGrid();
-    return;
-  }
-  if (gameMode === "story") {
-    selectedP2 = STORY_ORDER[storyStageIndex];
-    selectedStage = storyStageIndex % STAGES.length;
-  }
-  if (gameMode === "p2p") {
-    if (conn && conn.open) {
-      conn.send({ type: "charSelect", charId: selectedP1, stageId: selectedStage });
+  cleanup() {
+    if (GameState.conn) {
+      try { GameState.conn.close(); } catch (e) {}
+      GameState.conn = null;
     }
-    document.getElementById("selectTitle").innerText = "AGUARDANDO OPONENTE...";
-    checkP2PReady();
-    return;
-  }
-  startMatch();
-}
-
-// ================= MULTIPLAYER P2P (PEERJS) =================
-let p1ReadyP2P = false;
-let p2ReadyP2P = false;
-
-function openP2PMenu() {
-  gameMode = "p2p";
-  hideAllScreens();
-  document.getElementById("p2pScreen").classList.remove("hidden");
-  document.getElementById("hostRoomInfo").classList.add("hidden");
-  document.getElementById("p2pStatusJoin").innerText = "";
-}
-
-function generateRoomCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
-}
-
-function createRoom() {
-  const code = generateRoomCode();
-  isHost = true;
-  document.getElementById("hostRoomInfo").classList.remove("hidden");
-  document.getElementById("roomCodeDisplay").innerText = code;
-  document.getElementById("p2pStatusHost").innerText = "Conectando servidor...";
-
-  if (peer) peer.destroy();
-  peer = new Peer("BF-" + code);
-
-  peer.on("open", () => {
-    document.getElementById("p2pStatusHost").innerText = "Sala aberta! Passe o código para seu amigo.";
-  });
-
-  peer.on("connection", connection => {
-    conn = connection;
-    setupP2PConnection();
-    p1ReadyP2P = false;
-    p2ReadyP2P = false;
-    openSelectScreen("P2P: ESCOLHA SEU LUTADOR E CENÁRIO", true);
-  });
-
-  peer.on("error", err => {
-    document.getElementById("p2pStatusHost").innerText = "Erro ao criar sala. Tente novamente.";
-  });
-}
-
-function joinRoom() {
-  const code = document.getElementById("joinCodeInput").value.trim().toUpperCase();
-  if (code.length !== 4) {
-    document.getElementById("p2pStatusJoin").innerText = "Digite um código de 4 caracteres!";
-    return;
-  }
-  isHost = false;
-  document.getElementById("p2pStatusJoin").innerText = "Conectando à sala " + code + "...";
-
-  if (peer) peer.destroy();
-  peer = new Peer();
-
-  peer.on("open", () => {
-    conn = peer.connect("BF-" + code);
-    setupP2PConnection();
-  });
-
-  peer.on("error", () => {
-    document.getElementById("p2pStatusJoin").innerText = "Sala não encontrada!";
-  });
-}
-
-function setupP2PConnection() {
-  conn.on("open", () => {
-    if (!isHost) {
-      p1ReadyP2P = false;
-      p2ReadyP2P = false;
-      openSelectScreen("P2P: ESCOLHA SEU LUTADOR", false);
+    if (GameState.peer) {
+      try { GameState.peer.destroy(); } catch (e) {}
+      GameState.peer = null;
     }
-  });
+    GameState.remoteCustomChar = null;
+  },
 
-  conn.on("data", data => {
-    if (data.type === "charSelect") {
-      if (isHost) {
-        selectedP2 = data.charId;
-        p2ReadyP2P = true;
-      } else {
-        selectedP1 = data.charId;
-        selectedStage = data.stageId;
-        p1ReadyP2P = true;
-      }
-      checkP2PReady();
-    } else if (data.type === "startMatch") {
-      selectedP1 = data.p1;
-      selectedP2 = data.p2;
-      selectedStage = data.stage;
-      startMatch();
-    } else if (data.type === "inputs") {
-      remoteInputs = data.keys;
-    } else if (data.type === "state") {
-      applyHostState(data);
-    }
-  });
+  createRoom() {
+    this.cleanup();
+    const statusEl = document.getElementById('p2p-status');
+    statusEl.textContent = 'Criando sala segura...';
 
-  conn.on("close", () => {
-    alert("Oponente desconectou!");
-    backToMainMenu();
-  });
-}
+    const code = this.generateCode();
+    GameState.roomCode = code;
+    GameState.isHost = true;
 
-function checkP2PReady() {
-  if (isHost) p1ReadyP2P = true;
-  else p2ReadyP2P = true;
+    const peer = new Peer('bfp2p-' + code, { debug: 0 });
+    GameState.peer = peer;
 
-  if (isHost && p1ReadyP2P && p2ReadyP2P) {
-    conn.send({ type: "startMatch", p1: selectedP1, p2: selectedP2, stage: selectedStage });
-    startMatch();
-  }
-}
+    peer.on('open', () => {
+      document.getElementById('p2p-choice-area').classList.add('hidden');
+      document.getElementById('p2p-host-area').classList.remove('hidden');
+      document.getElementById('display-room-code').textContent = code;
+      statusEl.textContent = 'Sala ativa! Compartilhe o código.';
+    });
 
-// ================= CLASSE DO LUTADOR (BLOQUINHO) =================
-class Fighter {
-  constructor(x, y, charId, isPlayer1) {
-    const data = CHARACTERS[charId];
-    this.charId = charId;
-    this.name = data.name;
-    this.color = data.color;
-    this.auraColor = data.aura;
-    this.speed = data.speed;
-    this.jumpForce = data.jump;
-    this.maxHp = data.hp;
-    this.hp = data.hp;
-    this.baseDmg = data.dmg;
-    this.isP1 = isPlayer1;
+    peer.on('connection', (conn) => {
+      GameState.conn = conn;
+      this.setupConnection(conn);
+    });
 
-    this.w = 48;
-    this.h = 48;
-    this.x = x;
-    this.y = y;
-    this.vx = 0;
-    this.vy = 0;
-    this.facing = isPlayer1 ? 1 : -1;
+    peer.on('error', (err) => {
+      statusEl.textContent = 'Erro ao criar sala (' + err.type + '). Tente novamente.';
+    });
+  },
 
-    // Estados de Pulo e Giro
-    this.onGround = false;
-    this.jumpsLeft = 2;
-    this.spinAngle = 0;
-    this.isSpinning = false;
-
-    // Dash e Aura
-    this.dashCooldown = 0;
-    this.dashTimer = 0;
-    this.afterimages = [];
-
-    // Combate e Combos
-    this.attackCooldown = 0;
-    this.attackTimer = 0;
-    this.attackType = ""; // "punch", "air", "power", "spec"
-    this.comboStep = 0;
-    this.comboResetTimer = 0;
-    this.hasHitThisSwing = false;
-
-    // Barra de Especial (0 a 100)
-    this.special = 0;
-    this.hitstun = 0;
-    this.squashX = 1;
-    this.squashY = 1;
-  }
-
-  get groundY() {
-    return canvas.height - 65;
-  }
-
-  update(inputs, prevInp, opponent) {
-    if (this.hitstun > 0) {
-      this.hitstun--;
-      this.applyPhysics();
+  joinRoom(codeInput) {
+    const code = codeInput.trim().toUpperCase();
+    const statusEl = document.getElementById('p2p-status');
+    if (code.length !== 4) {
+      statusEl.textContent = 'Digite um código válido de 4 letras!';
       return;
     }
 
-    // Atualiza cooldowns
-    if (this.dashCooldown > 0) this.dashCooldown--;
-    if (this.attackCooldown > 0) this.attackCooldown--;
-    if (this.comboResetTimer > 0) this.comboResetTimer--;
-    else this.comboStep = 0;
+    this.cleanup();
+    statusEl.textContent = 'Conectando à sala ' + code + '...';
+    GameState.roomCode = code;
+    GameState.isHost = false;
 
-    // Virar automaticamente na direção do oponente quando parado no chão
-    if (this.onGround && this.attackTimer === 0 && this.dashTimer === 0) {
-      this.facing = opponent.x >= this.x ? 1 : -1;
-    }
+    const peer = new Peer({ debug: 0 });
+    GameState.peer = peer;
 
-    // Movimento Horizontal
-    if (this.dashTimer > 0) {
-      this.dashTimer--;
-      this.vx = this.facing * (this.speed * 2.6);
-      this.vy = 0;
-      if (this.dashTimer % 2 === 0) {
-        this.afterimages.push({ x: this.x, y: this.y, alpha: 0.7, angle: this.spinAngle });
-      }
-    } else {
-      if (inputs.left) {
-        this.vx = -this.speed;
-        if (!this.onGround) this.facing = -1;
-      } else if (inputs.right) {
-        this.vx = this.speed;
-        if (!this.onGround) this.facing = 1;
-      } else {
-        this.vx *= 0.75;
-      }
-    }
-
-    // Pulo e Pulo Duplo Giratório
-    if (inputs.jump && !prevInp.jump && this.jumpsLeft > 0) {
-      this.vy = this.jumpForce;
-      this.onGround = false;
-      this.squashX = 0.75;
-      this.squashY = 1.25;
-      if (this.jumpsLeft === 1) {
-        // Segundo pulo ativa o giro da esquerda para direita (ou vice-versa)
-        this.isSpinning = true;
-        this.spinAngle = 0;
-      }
-      this.jumpsLeft--;
-      spawnParticles(this.x + this.w / 2, this.y + this.h, this.color, 8);
-    }
-
-    // Dash
-    if (inputs.dash && !prevInp.dash && this.dashCooldown === 0) {
-      this.dashTimer = 9;
-      this.dashCooldown = 38;
-      this.squashX = 1.35;
-      this.squashY = 0.7;
-      spawnParticles(this.x + this.w / 2, this.y + this.h / 2, this.color, 10);
-    }
-
-    // Ataque Normal / Combo / Aéreo
-    if (inputs.punch && !prevInp.punch && this.attackCooldown === 0) {
-      this.attackTimer = 12;
-      this.attackCooldown = 16;
-      this.hasHitThisSwing = false;
-      if (!this.onGround) {
-        this.attackType = "air";
-        this.isSpinning = true;
-      } else {
-        this.attackType = "punch";
-        this.comboStep = (this.comboStep % 3) + 1;
-        this.comboResetTimer = 45;
-        this.vx = this.facing * (this.comboStep === 3 ? 9 : 4);
-      }
-    }
-
-    // Poder Simples Único de cada personagem
-    if (inputs.power && !prevInp.power && this.attackCooldown === 0) {
-      this.attackTimer = 16;
-      this.attackCooldown = 36;
-      this.attackType = "power";
-      this.hasHitThisSwing = false;
-      this.useCharacterPower(opponent);
-    }
-
-    // Especial (Quando barra = 100)
-    if (inputs.spec && !prevInp.spec && this.special >= 100 && this.attackCooldown === 0) {
-      this.special = 0;
-      this.attackTimer = 24;
-      this.attackCooldown = 45;
-      this.attackType = "spec";
-      this.hasHitThisSwing = false;
-      this.useCharacterSpecial(opponent);
-    }
-
-    // Processa Hitbox de Ataques Corpo a Corpo
-    if (this.attackTimer > 0) {
-      this.attackTimer--;
-      if (!this.hasHitThisSwing && (this.attackType === "punch" || this.attackType === "air")) {
-        const reach = this.attackType === "air" ? 56 : 52 + (this.comboStep * 6);
-        const hitX = this.facing === 1 ? this.x + this.w : this.x - reach;
-        const hitBox = { x: hitX, y: this.y - 5, w: reach, h: this.h + 10 };
-
-        if (rectIntersect(hitBox, opponent)) {
-          this.hasHitThisSwing = true;
-          const isFinisher = this.comboStep === 3 || this.attackType === "air";
-          const dmg = this.baseDmg + (this.comboStep * 2);
-          const kbX = this.facing * (isFinisher ? 11 : 4.5);
-          const kbY = isFinisher ? -7 : -2;
-          opponent.takeDamage(dmg, kbX, kbY, this);
-        }
-      }
-    }
-
-    this.applyPhysics();
-  }
-
-  useCharacterPower(opponent) {
-    const cx = this.x + this.w / 2;
-    const cy = this.y + this.h / 2;
-    spawnParticles(cx, cy, this.color, 12);
-
-    if (this.charId === 0) { // RUBI: Bola de Fogo
-      projectiles.push(new Projectile(cx + this.facing * 25, cy - 8, this.facing * 9.5, 0, 18, "#ff4757", 11, this, "fireball"));
-    } else if (this.charId === 1) { // CIANO: Corte Relâmpago (Avanço rápido)
-      this.vx = this.facing * 18;
-      this.dashTimer = 10;
-      projectiles.push(new Projectile(cx, cy - 15, this.facing * 12, 0, 26, "#1e90ff", 10, this, "slash"));
-    } else if (this.charId === 2) { // ESMERALDA: Onda Sísmica rasteira
-      projectiles.push(new Projectile(cx + this.facing * 20, this.groundY - 18, this.facing * 7.5, 0, 24, "#2ed573", 14, this, "wave"));
-    } else if (this.charId === 3) { // SOLARIS: Feixe Solar rápido
-      projectiles.push(new Projectile(cx + this.facing * 30, cy - 10, this.facing * 14, 0, 32, "#ffa502", 15, this, "beam"));
-    } else if (this.charId === 4) { // SOMBRA: Esfera Gravitacional que puxa
-      projectiles.push(new Projectile(cx + this.facing * 25, cy - 12, this.facing * 6, 0, 28, "#9c88ff", 16, this, "gravity"));
-    }
-  }
-
-  useCharacterSpecial(opponent) {
-    screenShake = 14;
-    const cx = this.x + this.w / 2;
-    const cy = this.y + this.h / 2;
-    spawnParticles(cx, cy, "#fff", 25);
-
-    if (this.charId === 0) { // RUBI: 3 Meteoros de Fogo
-      for (let i = -1; i <= 1; i++) {
-        projectiles.push(new Projectile(cx + this.facing * 30, cy - 20 + i * 25, this.facing * 11, i * 1.5, 28, "#ff4757", 14, this, "fireball"));
-      }
-    } else if (this.charId === 1) { // CIANO: Tempestade de Raios no oponente
-      for (let i = 0; i < 4; i++) {
-        projectiles.push(new Projectile(opponent.x + (i - 1.5) * 35, 20, 0, 14, 24, "#1e90ff", 10, this, "beam"));
-      }
-    } else if (this.charId === 2) { // ESMERALDA: Terremoto duplo
-      projectiles.push(new Projectile(cx, this.groundY - 30, 10, 0, 36, "#2ed573", 28, this, "wave"));
-      projectiles.push(new Projectile(cx, this.groundY - 30, -10, 0, 36, "#2ed573", 28, this, "wave"));
-    } else if (this.charId === 3) { // SOLARIS: Supernova gigante
-      projectiles.push(new Projectile(cx + this.facing * 40, cy - 35, this.facing * 9, 0, 65, "#ffa502", 34, this, "fireball"));
-    } else if (this.charId === 4) { // SOMBRA: Chuva de lâminas sombrias
-      for (let i = 0; i < 6; i++) {
-        projectiles.push(new Projectile(100 + i * (canvas.width / 6), 10, this.facing * 3, 13, 22, "#9c88ff", 11, this, "slash"));
-      }
-    }
-  }
-
-  takeDamage(amount, kbX, kbY, attacker) {
-    if (this.dashTimer > 0) return; // Esquiva durante o dash!
-    this.hp = Math.max(0, this.hp - amount);
-    this.vx = kbX;
-    this.vy = kbY;
-    this.hitstun = 10;
-    this.squashX = 1.3;
-    this.squashY = 0.7;
-    screenShake = Math.min(12, amount * 0.7);
-
-    // Enche barra de especial
-    this.special = Math.min(100, this.special + amount * 1.1);
-    if (attacker) attacker.special = Math.min(100, attacker.special + amount * 1.5);
-
-    spawnParticles(this.x + this.w / 2, this.y + this.h / 2, "#fff", 12);
-    spawnParticles(this.x + this.w / 2, this.y + this.h / 2, this.color, 10);
-  }
-
-  applyPhysics() {
-    this.vy += 0.68; // Gravidade
-    this.x += this.vx;
-    this.y += this.vy;
-
-    // Rotação no pulo duplo
-    if (this.isSpinning) {
-      this.spinAngle += 0.32 * this.facing;
-      if (Math.abs(this.spinAngle) >= Math.PI * 2) {
-        this.isSpinning = false;
-        this.spinAngle = 0;
-      }
-    }
-
-    // Colisão com o chão
-    if (this.y + this.h >= this.groundY) {
-      if (!this.onGround && this.vy > 4) {
-        this.squashX = 1.25;
-        this.squashY = 0.78;
-      }
-      this.y = this.groundY - this.h;
-      this.vy = 0;
-      this.onGround = true;
-      this.jumpsLeft = 2;
-      this.isSpinning = false;
-      this.spinAngle = 0;
-    } else {
-      this.onGround = false;
-    }
-
-    // Limites da arena
-    if (this.x < 15) this.x = 15;
-    if (this.x + this.w > canvas.width - 15) this.x = canvas.width - 15 - this.w;
-
-    // Retorno suave do efeito squash & stretch
-    this.squashX += (1 - this.squashX) * 0.2;
-    this.squashY += (1 - this.squashY) * 0.2;
-
-    // Rastro de aura em movimento rápido
-    if ((Math.abs(this.vx) > 4.5 || !this.onGround) && Math.random() < 0.45) {
-      this.afterimages.push({ x: this.x, y: this.y, alpha: 0.35, angle: this.spinAngle });
-    }
-    this.afterimages.forEach(a => a.alpha -= 0.05);
-    this.afterimages = this.afterimages.filter(a => a.alpha > 0);
-  }
-
-  draw(ctx) {
-    // 1. Desenha rastros da aura
-    this.afterimages.forEach(a => {
-      ctx.save();
-      ctx.translate(a.x + this.w / 2, a.y + this.h / 2);
-      ctx.rotate(a.angle);
-      ctx.fillStyle = this.auraColor;
-      ctx.globalAlpha = a.alpha;
-      ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
-      ctx.restore();
+    peer.on('open', () => {
+      const conn = peer.connect('bfp2p-' + code, { reliable: false });
+      GameState.conn = conn;
+      this.setupConnection(conn);
     });
 
-    ctx.save();
-    ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
-    ctx.rotate(this.spinAngle);
-    ctx.scale(this.squashX, this.squashY);
+    peer.on('error', () => {
+      statusEl.textContent = 'Sala não encontrada ou indisponível.';
+    });
+  },
 
-    // 2. Aura pulsante em volta do personagem
-    const pulse = Math.sin(bgAnimTime * 0.15) * 4;
-    ctx.fillStyle = this.auraColor;
-    ctx.beginPath();
-    ctx.roundRect(-this.w / 2 - 6 - pulse / 2, -this.h / 2 - 6 - pulse / 2, this.w + 12 + pulse, this.h + 12 + pulse, 14);
-    ctx.fill();
+  setupConnection(conn) {
+    conn.on('open', () => {
+      SoundFX.uiSave();
+      GameState.mode = 'P2P';
+      UI.openSelectScreen();
+      const myIdx = GameState.isHost ? GameState.p1CharIdx : GameState.p2CharIdx;
+      const myChar = CHARACTERS[myIdx];
+      this.send({
+        type: 'HELLO',
+        charIdx: myIdx,
+        customChar: myChar && myChar.isCustom ? myChar : null
+      });
+    });
 
-    // 3. Corpo quadrado arredondado do bloquinho
-    ctx.fillStyle = this.hitstun > 0 ? "#ffffff" : this.color;
-    ctx.beginPath();
-    ctx.roundRect(-this.w / 2, -this.h / 2, this.w, this.h, 10);
-    ctx.fill();
+    conn.on('data', (data) => {
+      this.handleMessage(data);
+    });
+
+    conn.on('close', () => {
+      if (GameState.mode === 'P2P' && GameState.screen !== 'MENU') {
+        alertDisconnect();
+      }
+    });
+  },
+
+  send(payload) {
+    if (GameState.conn && GameState.conn.open) {
+      try { GameState.conn.send(payload); } catch (e) {}
+    }
+  },
+
+  handleMessage(msg) {
+    if (!msg || !msg.type) return;
+
+    switch (msg.type) {
+      case 'HELLO':
+      case 'SELECT_UPDATE':
+        if (GameState.isHost) {
+          GameState.p2CharIdx = Math.min(msg.charIdx, CHARACTERS.length - 1);
+          GameState.remoteCustomChar = msg.customChar || null;
+        } else {
+          GameState.p1CharIdx = Math.min(msg.charIdx, CHARACTERS.length - 1);
+          GameState.remoteCustomChar = msg.customChar || null;
+          if (typeof msg.stageIdx === 'number') GameState.stageIdx = msg.stageIdx;
+        }
+        UI.refreshSelectUI();
+        break;
+
+      case 'START_MATCH':
+        GameState.p1CharIdx = Math.min(msg.p1CharIdx, CHARACTERS.length - 1);
+        GameState.p2CharIdx = Math.min(msg.p2CharIdx, CHARACTERS.length - 1);
+        GameState.stageIdx = msg.stageIdx;
+        if (GameState.isHost && msg.p2Custom) GameState.remoteCustomChar = msg.p2Custom;
+        if (!GameState.isHost && msg.p1Custom) GameState.remoteCustomChar = msg.p1Custom;
+        Battle.startNewMatch();
+        break;
+
+      case 'INPUT':
+        if (GameState.isHost && Battle.p2) {
+          Battle.p2.remoteInput = msg.input;
+        }
+        break;
+
+      case 'STATE':
+        if (!GameState.isHost && Battle.p1 && Battle.p2) {
+          Battle.applyRemoteState(msg.state);
+        }
+        break;
+
+      case 'REMATCH':
+        Battle.startNewMatch();
+        break;
+
+      case 'BACK_SELECT':
+        UI.openSelectScreen();
+        break;
+
+      case 'PING':
+        this.send({ type: 'PONG', t: msg.t });
+        break;
+
+      case 'PONG':
+        GameState.ping = Math.max(1, Math.round(performance.now() - msg.t));
+        break;
+    }
+  }
+};
+
+function alertDisconnect() {
+  GameState.mode = 'CPU';
+  NetP2P.cleanup();
+  UI.showScreen('MENU');
+  document.getElementById('p2p-status').textContent = 'Oponente desconectou.';
+}
+
+// ----------------------------------------------------------------------------
+// 4. CONTROLES (TECLADO + TOUCH RESPONSIVO)
+// ----------------------------------------------------------------------------
+const Input = {
+  local: { left: false, right: false, up: false, down: false, hit: false, power: false, dash: false, special: false },
+  justPressed: { up: false, hit: false, power: false, dash: false, special: false },
+
+  setKey(action, pressed) {
+    if (pressed && !this.local[action]) {
+      if (action in this.justPressed) this.justPressed[action] = true;
+    }
+    this.local[action] = pressed;
+  },
+
+  clearJustPressed() {
+    this.justPressed.up = false;
+    this.justPressed.hit = false;
+    this.justPressed.power = false;
+    this.justPressed.dash = false;
+    this.justPressed.special = false;
+  }
+};
+
+window.addEventListener('keydown', (e) => {
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  const k = e.key.toLowerCase();
+  if (k === 'a' || k === 'arrowleft') Input.setKey('left', true);
+  if (k === 'd' || k === 'arrowright') Input.setKey('right', true);
+  if (k === 'w' || k === 'arrowup') Input.setKey('up', true);
+  if (k === 's' || k === 'arrowdown') Input.setKey('down', true);
+  if (k === 'j' || k === 'z') Input.setKey('hit', true);
+  if (k === 'k' || k === 'x') Input.setKey('power', true);
+  if (k === 'l' || k === 'c' || k === 'shift') Input.setKey('dash', true);
+  if (k === 'u' || k === ' ') Input.setKey('special', true);
+  if (k === 'escape' || k === 'p') {
+    if (GameState.screen === 'PLAYING') Battle.togglePause();
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  const k = e.key.toLowerCase();
+  if (k === 'a' || k === 'arrowleft') Input.setKey('left', false);
+  if (k === 'd' || k === 'arrowright') Input.setKey('right', false);
+  if (k === 'w' || k === 'arrowup') Input.setKey('up', false);
+  if (k === 's' || k === 'arrowdown') Input.setKey('down', false);
+  if (k === 'j' || k === 'z') Input.setKey('hit', false);
+  if (k === 'k' || k === 'x') Input.setKey('power', false);
+  if (k === 'l' || k === 'c' || k === 'shift') Input.setKey('dash', false);
+  if (k === 'u' || k === ' ') Input.setKey('special', false);
+});
+
+function bindTouchButton(id, action) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  const start = (e) => {
+    e.preventDefault();
+    SoundFX.init();
+    el.classList.add('active');
+    Input.setKey(action, true);
+  };
+  const end = (e) => {
+    e.preventDefault();
+    el.classList.remove('active');
+    Input.setKey(action, false);
+  };
+
+  el.addEventListener('touchstart', start, { passive: false });
+  el.addEventListener('touchend', end, { passive: false });
+  el.addEventListener('touchcancel', end, { passive: false });
+  el.addEventListener('mousedown', start);
+  el.addEventListener('mouseup', end);
+  el.addEventListener('mouseleave', end);
+}
+
+bindTouchButton('btn-up', 'up');
+bindTouchButton('btn-down', 'down');
+bindTouchButton('btn-left', 'left');
+bindTouchButton('btn-right', 'right');
+bindTouchButton('btn-hit', 'hit');
+bindTouchButton('btn-power', 'power');
+bindTouchButton('btn-dash', 'dash');
+bindTouchButton('btn-special', 'special');
+
+// ----------------------------------------------------------------------------
+// 5. PARTÍCULAS E RENDERIZADOR COMPARTILHADO DE ROUPAS / OLHOS DO BLOQUINHO
+// ----------------------------------------------------------------------------
+const Particles = [];
+const Projectiles = [];
+const AfterImages = [];
+
+function spawnParticle(x, y, vx, vy, color, size, life, gravity = 0) {
+  if (Particles.length > 140) Particles.shift();
+  Particles.push({ x, y, vx, vy, color, size, life, maxLife: life, gravity });
+}
+
+function spawnBurst(x, y, color, count = 10, speed = 5) {
+  for (let i = 0; i < count; i++) {
+    const ang = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+    const spd = speed * (0.4 + Math.random() * 0.8);
+    spawnParticle(x, y, Math.cos(ang) * spd, Math.sin(ang) * spd, color, 3 + Math.random() * 4, 16 + Math.random() * 12, 0.12);
+  }
+}
+
+/**
+ * Desenha o bloquinho completo (aura, corpo, traje/roupas, olhos e chapéu/acessórios).
+ * Usado tanto na batalha quanto na pré-visualização da Oficina!
+ */
+function drawBlockCharacter(ctx, data, opts) {
+  const { w, h, facing, lookDir, state, comboStep, isBlinking, auraPhase, rotation, slowTimer } = opts;
+
+  ctx.save();
+  ctx.rotate(rotation || 0);
+
+  // 1. Aura Energética Constante
+  const pulse = 1 + Math.sin(auraPhase) * 0.08;
+  const auraW = (w + 18) * pulse;
+  const auraH = (h + 18) * pulse;
+  ctx.fillStyle = slowTimer > 0 ? 'rgba(0, 212, 255, 0.5)' : data.auraColor;
+  ctx.beginPath();
+  ctx.roundRect(-auraW / 2, -auraH / 2, auraW, auraH, 16);
+  ctx.fill();
+
+  if (opts.spFull) {
+    ctx.strokeStyle = 'rgba(255, 215, 0, 0.9)';
     ctx.lineWidth = 2.5;
-    ctx.strokeStyle = "#ffffff";
     ctx.stroke();
+  }
 
-    // 4. Olhinhos fofinhos e expressivos
-    const eyeOffsetX = this.facing * 7;
-    const eyeY = -4;
-    ctx.fillStyle = "#fff";
+  // Capa atrás do corpo (se equipado)
+  const outfitCol = data.outfitColor || '#ffd166';
+  if (data.suit === 'cape') {
+    ctx.fillStyle = outfitCol;
+    ctx.strokeStyle = '#111827';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(eyeOffsetX - 7, eyeY, 6.5, 0, Math.PI * 2);
-    ctx.arc(eyeOffsetX + 7, eyeY, 6.5, 0, Math.PI * 2);
+    ctx.moveTo(-facing * (w * 0.25), -h * 0.15);
+    ctx.lineTo(-facing * (w * 0.72), h * 0.48);
+    ctx.lineTo(-facing * (w * 0.15), h * 0.45);
+    ctx.closePath();
     ctx.fill();
+    ctx.stroke();
+  }
 
-    // Pupilas
-    ctx.fillStyle = "#111";
-    ctx.beginPath();
-    ctx.arc(eyeOffsetX - 7 + this.facing * 2, eyeY, 3.2, 0, Math.PI * 2);
-    ctx.arc(eyeOffsetX + 7 + this.facing * 2, eyeY, 3.2, 0, Math.PI * 2);
-    ctx.fill();
+  // 2. Corpo do Bloquinho Quadrado
+  ctx.fillStyle = state === 'HURT' ? '#ffffff' : (slowTimer > 0 ? '#72efdd' : data.color);
+  ctx.strokeStyle = '#111827';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(-w / 2, -h / 2, w, h, 11);
+  ctx.fill();
+  ctx.stroke();
 
-    // Brilho nos olhos
-    ctx.fillStyle = "#fff";
-    ctx.beginPath();
-    ctx.arc(eyeOffsetX - 8 + this.facing * 2, eyeY - 1.5, 1.3, 0, Math.PI * 2);
-    ctx.arc(eyeOffsetX + 6 + this.facing * 2, eyeY - 1.5, 1.3, 0, Math.PI * 2);
-    ctx.fill();
+  // Brilho superior fofo
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+  ctx.beginPath();
+  ctx.roundRect(-w * 0.36, -h * 0.4, w * 0.72, h * 0.2, 6);
+  ctx.fill();
 
-    // 5. Animação de Soco / Ataque visual
-    if (this.attackTimer > 0 && (this.attackType === "punch" || this.attackType === "air")) {
-      ctx.fillStyle = "#fff";
-      ctx.strokeStyle = this.color;
-      ctx.lineWidth = 3;
-      const punchReach = 24 + (this.comboStep * 6);
+  // 3. Traje / Roupa sobre a parte inferior do bloquinho
+  if (data.suit && data.suit !== 'none') {
+    ctx.fillStyle = outfitCol;
+    ctx.strokeStyle = '#111827';
+    ctx.lineWidth = 2;
+
+    if (data.suit === 'kimono') {
       ctx.beginPath();
-      ctx.arc(this.facing * (this.w / 2 + punchReach * 0.6), 2, 12 + this.comboStep * 2, 0, Math.PI * 2);
+      ctx.roundRect(-w / 2 + 1, h * 0.08, w - 2, h * 0.42 - 1, [0, 0, 9, 9]);
+      ctx.fill();
+      ctx.stroke();
+      // Gola cruzada e faixa preta
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.25, h * 0.08);
+      ctx.lineTo(w * 0.12, h * 0.34);
+      ctx.moveTo(w * 0.25, h * 0.08);
+      ctx.lineTo(-w * 0.12, h * 0.34);
+      ctx.stroke();
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(-w / 2 + 2, h * 0.28, w - 4, 5);
+    } else if (data.suit === 'armor') {
+      ctx.beginPath();
+      ctx.roundRect(-w / 2 + 2, h * 0.05, w - 4, h * 0.38, 5);
+      ctx.fill();
+      ctx.stroke();
+      // Placa central metálica
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillRect(-w * 0.2, h * 0.12, w * 0.4, h * 0.2);
+    } else if (data.suit === 'vest') {
+      ctx.fillRect(-w / 2 + 2, h * 0.06, w * 0.28, h * 0.42);
+      ctx.fillRect(w / 2 - w * 0.28 - 2, h * 0.06, w * 0.28, h * 0.42);
+      ctx.strokeRect(-w / 2 + 2, h * 0.06, w * 0.28, h * 0.42);
+      ctx.strokeRect(w / 2 - w * 0.28 - 2, h * 0.06, w * 0.28, h * 0.42);
+    } else if (data.suit === 'robe') {
+      ctx.beginPath();
+      ctx.roundRect(-w / 2 + 1, h * 0.04, w - 2, h * 0.46 - 1, [2, 2, 9, 9]);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffd166';
+      ctx.fillRect(-3, h * 0.04, 6, h * 0.45);
+    }
+  }
+
+  // 4. Olhinhos Expressivos
+  const eyeStyle = data.eyeStyle || 'cute';
+  const eyeOffsetX = lookDir * 5;
+  const eyeY = -4;
+  const eyeSpacing = 10;
+
+  if (eyeStyle === 'cyclops') {
+    // Olho único robótico
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.roundRect(eyeOffsetX - 15, eyeY - 6, 30, 12, 6);
+    ctx.fill();
+    ctx.fillStyle = state === 'HURT' ? '#ffffff' : '#ff3e55';
+    ctx.beginPath();
+    ctx.arc(eyeOffsetX + lookDir * 5, eyeY, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (eyeStyle === 'ninja') {
+    // Visor Ninja brilhante
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.roundRect(eyeOffsetX - 17, eyeY - 6, 34, 11, 5);
+    ctx.fill();
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillRect(eyeOffsetX - 12, eyeY - 2, 9, 4);
+    ctx.fillRect(eyeOffsetX + 3, eyeY - 2, 9, 4);
+  } else {
+    [-1, 1].forEach((side) => {
+      const ex = eyeOffsetX + side * eyeSpacing;
+      if (state === 'KO' || state === 'HURT') {
+        ctx.strokeStyle = '#111827';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(ex - 4, eyeY - 4);
+        ctx.lineTo(ex + 4, eyeY + 4);
+        ctx.moveTo(ex + 4, eyeY - 4);
+        ctx.lineTo(ex - 4, eyeY + 4);
+        ctx.stroke();
+      } else if (isBlinking) {
+        ctx.strokeStyle = '#111827';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(ex - 5, eyeY);
+        ctx.lineTo(ex + 5, eyeY);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#111827';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.ellipse(ex, eyeY, 5.4, 6.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = eyeStyle === 'star' ? '#ff9f1c' : '#0f172a';
+        ctx.beginPath();
+        ctx.arc(ex + lookDir * 1.8, eyeY + 0.5, 2.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(ex + lookDir * 1.2 - 1, eyeY - 1.5, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        const isAngry = eyeStyle === 'fierce' || state === 'ATTACK' || state === 'AIR_ATTACK' || state === 'POWER' || state === 'SPECIAL';
+        if (isAngry) {
+          ctx.strokeStyle = '#111827';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(ex - side * 5, eyeY - 8);
+          ctx.lineTo(ex + side * 5, eyeY - 4);
+          ctx.stroke();
+        }
+      }
+    });
+  }
+
+  // 5. Chapéu / Acessório de Cabeça
+  const hat = data.hat || 'none';
+  if (hat !== 'none') {
+    ctx.fillStyle = outfitCol;
+    ctx.strokeStyle = '#111827';
+    ctx.lineWidth = 2;
+
+    if (hat === 'headband') {
+      ctx.fillRect(-w / 2 - 1, -h * 0.34, w + 2, 7);
+      ctx.strokeRect(-w / 2 - 1, -h * 0.34, w + 2, 7);
+      // Pontas da faixa voando atrás
+      ctx.beginPath();
+      ctx.moveTo(-facing * (w / 2), -h * 0.3);
+      ctx.lineTo(-facing * (w / 2 + 12), -h * 0.38);
+      ctx.lineTo(-facing * (w / 2 + 10), -h * 0.2);
+      ctx.fill();
+    } else if (hat === 'crown') {
+      ctx.beginPath();
+      ctx.moveTo(-14, -h / 2);
+      ctx.lineTo(-16, -h / 2 - 12);
+      ctx.lineTo(-6, -h / 2 - 5);
+      ctx.lineTo(0, -h / 2 - 14);
+      ctx.lineTo(6, -h / 2 - 5);
+      ctx.lineTo(16, -h / 2 - 12);
+      ctx.lineTo(14, -h / 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else if (hat === 'wizard') {
+      ctx.beginPath();
+      ctx.moveTo(-22, -h / 2 + 2);
+      ctx.lineTo(22, -h / 2 + 2);
+      ctx.lineTo(0, -h / 2 - 22);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else if (hat === 'horns') {
+      [-1, 1].forEach(s => {
+        ctx.beginPath();
+        ctx.moveTo(s * 10, -h / 2 + 2);
+        ctx.lineTo(s * 18, -h / 2 - 13);
+        ctx.lineTo(s * 4, -h / 2 + 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      });
+    } else if (hat === 'headphones') {
+      ctx.beginPath();
+      ctx.arc(0, -4, w * 0.54, Math.PI, 0);
+      ctx.stroke();
+      ctx.fillRect(-w / 2 - 5, -10, 6, 14);
+      ctx.fillRect(w / 2 - 1, -10, 6, 14);
+    } else if (hat === 'hood') {
+      ctx.beginPath();
+      ctx.roundRect(-w / 2 - 2, -h / 2 - 3, w + 4, h * 0.34, [12, 12, 2, 2]);
       ctx.fill();
       ctx.stroke();
     }
-
-    ctx.restore();
   }
+
+  // 6. Efeito visual de ataque corpo-a-corpo (varia conforme o estilo escolhido!)
+  if (state === 'ATTACK' || state === 'AIR_ATTACK') {
+    const mStyle = data.meleeStyle || 'punch';
+    const fistX = facing * (w * 0.72);
+    ctx.fillStyle = data.coreColor;
+    ctx.strokeStyle = data.color;
+    ctx.lineWidth = 2.5;
+
+    if (mStyle === 'sword') {
+      // Lâmina de Energia
+      ctx.beginPath();
+      ctx.moveTo(facing * (w * 0.45), -6);
+      ctx.lineTo(facing * (w * 1.35), -2);
+      ctx.lineTo(facing * (w * 0.45), 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else if (mStyle === 'claws') {
+      // 3 Riscos de Garra
+      for (let c = -1; c <= 1; c++) {
+        ctx.beginPath();
+        ctx.moveTo(fistX - facing * 6, c * 7 - 3);
+        ctx.lineTo(fistX + facing * 14, c * 7 + 3);
+        ctx.stroke();
+      }
+    } else {
+      // Punho ou Impacto Sísmico
+      const rad = mStyle === 'seismic' ? 17 : (comboStep === 3 ? 15 : 11);
+      ctx.beginPath();
+      ctx.arc(fistX, 0, rad, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
+  // 7. Escudo de Defesa
+  if (state === 'BLOCK') {
+    ctx.strokeStyle = '#00e5ff';
+    ctx.fillStyle = 'rgba(0, 229, 255, 0.25)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(facing * 12, 0, 32, -Math.PI * 0.45, Math.PI * 0.45);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }
 
-// ================= CLASSE DE PROJÉTEIS E PODERES =================
-class Projectile {
-  constructor(x, y, vx, vy, radius, color, dmg, owner, style) {
+// ----------------------------------------------------------------------------
+// 6. CLASSE DO LUTADOR (COM SUPORTE A HABILIDADES CUSTOMIZADAS E EFEITOS)
+// ----------------------------------------------------------------------------
+class Fighter {
+  constructor(slot, charData, x) {
+    this.slot = slot;
+    this.data = charData;
     this.x = x;
-    this.y = y;
-    this.vx = vx;
-    this.vy = vy;
-    this.r = radius;
-    this.color = color;
-    this.dmg = dmg;
-    this.owner = owner;
-    this.style = style;
-    this.life = 90;
+    this.y = 0;
+    this.vx = 0;
+    this.vy = 0;
+
+    this.baseW = 48;
+    this.baseH = 48;
+    this.scaleX = 1;
+    this.scaleY = 1;
+    this.rotation = 0;
+
+    this.facing = slot === 1 ? 1 : -1;
+    this.onGround = true;
+    this.jumpsLeft = 2;
+    this.isDoubleJumping = false;
+
+    this.hp = 100;
+    this.maxHp = 100;
+    this.sp = 0;
+
+    this.state = 'IDLE';
+    this.stateTimer = 0;
+    this.comboStep = 0;
+    this.comboWindow = 0;
+    this.hasHitThisSwing = false;
+
+    this.dashCooldown = 0;
+    this.powerCooldown = 0;
+    this.invulnTimer = 0;
+    this.slowTimer = 0; // Efeito de congelamento/lentidão
+    this.burnTimer = 0; // Efeito de queimadura contínua
+    this.crouching = false;
+
+    this.blinkTimer = 90 + Math.random() * 120;
+    this.isBlinking = false;
+    this.auraPhase = Math.random() * Math.PI * 2;
+
+    this.input = { left: false, right: false, up: false, down: false, hit: false, power: false, dash: false, special: false };
+    this.prevInput = { up: false, hit: false, power: false, dash: false, special: false };
+    this.remoteInput = null;
+  }
+
+  reset(x, facing) {
+    this.x = x;
+    this.y = Battle.groundY;
+    this.vx = 0;
+    this.vy = 0;
+    this.facing = facing;
+    this.hp = 100;
+    this.onGround = true;
+    this.jumpsLeft = 2;
+    this.isDoubleJumping = false;
+    this.rotation = 0;
+    this.scaleX = 1;
+    this.scaleY = 1;
+    this.state = 'IDLE';
+    this.stateTimer = 0;
+    this.comboStep = 0;
+    this.comboWindow = 0;
+    this.dashCooldown = 0;
+    this.powerCooldown = 0;
+    this.invulnTimer = 0;
+    this.slowTimer = 0;
+    this.burnTimer = 0;
+  }
+
+  getInput() {
+    if (GameState.mode === 'CPU') {
+      if (this.slot === 1) return Input.local;
+      return CPUBrain.think(this, Battle.p1);
+    } else {
+      if (GameState.isHost) {
+        return this.slot === 1 ? Input.local : (this.remoteInput || this.input);
+      } else {
+        return this.slot === 2 ? Input.local : this.input;
+      }
+    }
   }
 
   update(opponent) {
+    const inp = this.getInput();
+    const justUp = inp.up && !this.prevInput.up;
+    const justHit = inp.hit && !this.prevInput.hit;
+    const justPower = inp.power && !this.prevInput.power;
+    const justDash = inp.dash && !this.prevInput.dash;
+    const justSpecial = inp.special && !this.prevInput.special;
+
+    this.prevInput = { up: inp.up, hit: inp.hit, power: inp.power, dash: inp.dash, special: inp.special };
+
+    this.auraPhase += 0.14;
+    if (this.dashCooldown > 0) this.dashCooldown--;
+    if (this.powerCooldown > 0) this.powerCooldown--;
+    if (this.invulnTimer > 0) this.invulnTimer--;
+    if (this.slowTimer > 0) this.slowTimer--;
+    if (this.burnTimer > 0) {
+      this.burnTimer--;
+      if (this.burnTimer % 25 === 0 && this.hp > 1 && this.state !== 'KO') {
+        this.hp = Math.max(1, this.hp - 1);
+        spawnParticle(this.x, this.y - 24, 0, -2, '#ff5400', 4, 14);
+      }
+    }
+
+    if (this.comboWindow > 0) {
+      this.comboWindow--;
+      if (this.comboWindow === 0) this.comboStep = 0;
+    }
+
+    this.blinkTimer--;
+    if (this.blinkTimer <= 0) {
+      this.isBlinking = true;
+      if (this.blinkTimer <= -7) {
+        this.isBlinking = false;
+        this.blinkTimer = 110 + Math.random() * 140;
+      }
+    }
+
+    this.scaleX += (1 - this.scaleX) * 0.22;
+    this.scaleY += (1 - this.scaleY) * 0.22;
+
+    if (this.state === 'KO') {
+      this.vy += this.data.weight;
+      this.y += this.vy;
+      this.rotation += 0.12 * -this.facing;
+      if (this.y >= Battle.groundY) {
+        this.y = Battle.groundY;
+        this.vy = 0;
+        this.rotation = (Math.PI / 2) * -this.facing;
+      }
+      return;
+    }
+
+    if (this.onGround && (this.state === 'IDLE' || this.state === 'RUN' || this.state === 'BLOCK')) {
+      if (opponent.x > this.x + 8) this.facing = 1;
+      else if (opponent.x < this.x - 8) this.facing = -1;
+    }
+
+    if (this.stateTimer > 0) {
+      this.stateTimer--;
+
+      if (this.state === 'DASH' || this.state === 'SPECIAL') {
+        AfterImages.push({
+          x: this.x,
+          y: this.y,
+          w: this.baseW * this.scaleX,
+          h: this.baseH * this.scaleY,
+          color: this.data.color,
+          alpha: 0.55,
+          rotation: this.rotation
+        });
+      }
+
+      if (this.state === 'ATTACK') {
+        this.x += this.vx;
+        this.vx *= 0.8;
+        this.checkMeleeHit(opponent);
+      } else if (this.state === 'AIR_ATTACK') {
+        this.rotation += 0.35 * this.facing;
+        this.checkMeleeHit(opponent);
+      }
+
+      if (this.stateTimer === 0) {
+        this.state = this.onGround ? 'IDLE' : 'JUMP';
+        if (!this.isDoubleJumping) this.rotation = 0;
+      }
+    }
+
+    const canAct = (this.state === 'IDLE' || this.state === 'RUN' || this.state === 'JUMP' || this.state === 'BLOCK');
+    const speedFactor = this.slowTimer > 0 ? 0.58 : 1.0;
+
+    if (canAct) {
+      this.crouching = this.onGround && inp.down;
+      if (this.crouching) {
+        this.scaleX = 1.18;
+        this.scaleY = 0.78;
+      }
+
+      if (justSpecial && this.sp >= 100) {
+        this.triggerSpecial(opponent);
+      } else if (justDash && this.dashCooldown === 0) {
+        const dashDir = inp.left ? -1 : (inp.right ? 1 : this.facing);
+        this.facing = dashDir;
+        this.state = 'DASH';
+        this.stateTimer = 11;
+        this.dashCooldown = 34;
+        this.invulnTimer = 10;
+        this.vx = dashDir * 14.5 * speedFactor;
+        this.vy = 0;
+        this.scaleX = 1.32;
+        this.scaleY = 0.72;
+        SoundFX.dash();
+        spawnBurst(this.x, this.y - 24, this.data.color, 8, 4);
+      } else if (justPower && this.powerCooldown === 0) {
+        this.triggerPower(opponent);
+      } else if (justHit) {
+        const mStyle = this.data.meleeStyle || 'punch';
+        if (!this.onGround) {
+          this.state = 'AIR_ATTACK';
+          this.stateTimer = 16;
+          this.hasHitThisSwing = false;
+          this.vy = Math.min(this.vy, 2);
+          this.scaleX = 1.2;
+          this.scaleY = 1.2;
+          SoundFX.airAttack();
+        } else {
+          this.comboStep = (this.comboStep % 3) + 1;
+          this.comboWindow = 32;
+          this.state = 'ATTACK';
+          this.hasHitThisSwing = false;
+
+          const spdBonus = mStyle === 'claws' ? 0.75 : (mStyle === 'seismic' ? 1.2 : 1.0);
+          if (this.comboStep === 1) {
+            this.stateTimer = Math.round(11 * spdBonus);
+            this.vx = this.facing * 4.5;
+            this.scaleX = 1.26;
+            this.scaleY = 0.85;
+          } else if (this.comboStep === 2) {
+            this.stateTimer = Math.round(13 * spdBonus);
+            this.vx = this.facing * 6.0;
+            this.scaleX = 1.32;
+            this.scaleY = 0.82;
+          } else {
+            this.stateTimer = Math.round(17 * spdBonus);
+            this.vx = this.facing * 8.5;
+            this.scaleX = 1.38;
+            this.scaleY = 0.78;
+            if (mStyle === 'punch' || mStyle === 'claws') {
+              this.vy = -6.0;
+              this.onGround = false;
+            }
+            spawnBurst(this.x + this.facing * 26, this.y - 24, this.data.color, 8, 5);
+          }
+          SoundFX.swingCombo(this.comboStep, mStyle);
+        }
+      } else if (justUp && this.jumpsLeft > 0) {
+        if (this.onGround) {
+          this.vy = -this.data.jumpForce;
+          this.onGround = false;
+          this.jumpsLeft = 1;
+          this.isDoubleJumping = false;
+          this.scaleX = 0.75;
+          this.scaleY = 1.3;
+          SoundFX.jump();
+          spawnBurst(this.x, this.y, this.data.color, 6, 3);
+        } else {
+          this.vy = -this.data.jumpForce * 0.94;
+          this.jumpsLeft = 0;
+          this.isDoubleJumping = true;
+          const moveDir = inp.left ? -1 : (inp.right ? 1 : this.facing);
+          this.facing = moveDir;
+          this.vx = moveDir * (this.data.speed * 1.25 * speedFactor);
+          this.rotation = 0.01;
+          this.scaleX = 0.88;
+          this.scaleY = 1.15;
+          SoundFX.doubleJump();
+          spawnBurst(this.x, this.y - 20, this.data.coreColor, 10, 4.5);
+        }
+        this.state = 'JUMP';
+      }
+
+      if (this.state !== 'DASH') {
+        let move = 0;
+        if (inp.left) move -= 1;
+        if (inp.right) move += 1;
+
+        if (move !== 0 && !this.crouching) {
+          this.vx = move * this.data.speed * speedFactor;
+          if (this.onGround && this.state !== 'BLOCK') this.state = 'RUN';
+          if (Math.random() < 0.35) {
+            spawnParticle(this.x - move * 14, this.y - 6 - Math.random() * 16, -move * 1.5, -0.5, this.data.color, 3.5, 14);
+          }
+        } else {
+          this.vx *= 0.72;
+          if (this.onGround && Math.abs(this.vx) < 0.4) {
+            this.state = 'IDLE';
+          }
+        }
+
+        const holdingBack = (this.facing === 1 && inp.left) || (this.facing === -1 && inp.right);
+        const oppAttacking = (opponent.state === 'ATTACK' || opponent.state === 'AIR_ATTACK' || opponent.state === 'POWER' || opponent.state === 'SPECIAL');
+        if (this.onGround && holdingBack && oppAttacking && Math.abs(opponent.x - this.x) < 165) {
+          this.state = 'BLOCK';
+        }
+      }
+    }
+
+    if (this.state !== 'DASH') {
+      this.vy += this.data.weight;
+    }
+
     this.x += this.vx;
     this.y += this.vy;
-    this.life--;
 
-    if (Math.random() < 0.5) {
-      spawnParticles(this.x, this.y, this.color, 1);
+    if (this.isDoubleJumping && !this.onGround) {
+      this.rotation += 0.28 * this.facing;
+      spawnParticle(this.x, this.y - 24, (Math.random() - 0.5) * 2, 1, this.data.color, 4, 12);
     }
 
-    // Colisão com oponente
-    const box = { x: this.x - this.r, y: this.y - this.r, w: this.r * 2, h: this.r * 2 };
-    if (rectIntersect(box, opponent)) {
-      const pullDir = this.style === "gravity" ? -this.owner.facing * 9 : this.owner.facing * 7;
-      opponent.takeDamage(this.dmg, pullDir, -4, this.owner);
-      this.life = 0;
-    }
-  }
-
-  draw(ctx) {
-    ctx.save();
-    ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "#fff";
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-}
-
-// ================= PARTÍCULAS =================
-function spawnParticles(x, y, color, count) {
-  if (particles.length > 90) return; // Limite leve para manter 60 FPS no A10s
-  for (let i = 0; i < count; i++) {
-    particles.push({
-      x, y,
-      vx: (Math.random() - 0.5) * 9,
-      vy: (Math.random() - 0.5) * 9,
-      size: Math.random() * 5 + 2,
-      color,
-      life: 18 + Math.random() * 10
-    });
-  }
-}
-
-function rectIntersect(r1, r2) {
-  return !(r2.x > r1.x + r1.w || r2.x + r2.w < r1.x || r2.y > r1.y + r1.h || r2.y + r2.h < r1.y);
-}
-
-// ================= IA DO MODO SOLO / HISTÓRIA =================
-function getCPUInputs(cpu, player) {
-  const inp = { left: false, right: false, jump: false, dash: false, punch: false, power: false, spec: false };
-  const dist = player.x - cpu.x;
-  const absDist = Math.abs(dist);
-  const aggro = CHARACTERS[cpu.charId].boss ? 0.08 : 0.04;
-
-  if (absDist > 65) {
-    if (dist > 0) inp.right = true;
-    else inp.left = true;
-    if (absDist > 220 && Math.random() < aggro) inp.power = true;
-    if (absDist > 180 && Math.random() < aggro * 0.7) inp.dash = true;
-  } else {
-    if (Math.random() < aggro * 2.5) inp.punch = true;
-    if (Math.random() < aggro * 0.8) inp.jump = true;
-  }
-
-  if (cpu.special >= 100 && Math.random() < 0.05) inp.spec = true;
-  if (player.y < cpu.y - 40 && Math.random() < 0.04) inp.jump = true;
-
-  return inp;
-}
-let prevCpuInputs = {};
-
-// ================= INICIAR E GERENCIAR PARTIDA =================
-function startMatch() {
-  gameState = "playing";
-  hideAllScreens();
-  document.getElementById("touchControls").classList.remove("hidden");
-
-  fighters = [
-    new Fighter(100, canvas.height - 150, selectedP1, true),
-    new Fighter(canvas.width - 150, canvas.height - 150, selectedP2, false)
-  ];
-  projectiles = [];
-  particles = [];
-}
-
-function togglePause() {
-  if (gameMode === "p2p") return; // Sem pause em P2P online
-  if (gameState === "playing") {
-    gameState = "paused";
-    document.getElementById("pauseScreen").classList.remove("hidden");
-  } else if (gameState === "paused") {
-    gameState = "playing";
-    document.getElementById("pauseScreen").classList.add("hidden");
-  }
-}
-
-function returnToSelectFromMatch() {
-  if (gameMode === "p2p") {
-    backToMainMenu();
-    return;
-  }
-  selectStep = 1;
-  openSelectScreen("ESCOLHA SEU LUTADOR", true);
-}
-
-function checkMatchEnd() {
-  const p1 = fighters[0];
-  const p2 = fighters[1];
-  if (p1.hp <= 0 || p2.hp <= 0) {
-    gameState = "ended";
-    document.getElementById("touchControls").classList.add("hidden");
-    const endScreen = document.getElementById("endScreen");
-    endScreen.classList.remove("hidden");
-
-    const p1Won = p2.hp <= 0;
-    const nextBtn = document.getElementById("nextStoryBtn");
-    nextBtn.classList.add("hidden");
-
-    if (gameMode === "story") {
-      if (p1Won) {
-        const defeatedChar = CHARACTERS[selectedP2];
-        let msg = `Você derrotou ${defeatedChar.name}!`;
-        if (!defeatedChar.unlocked) {
-          saveUnlock(defeatedChar.id);
-          msg += ` 🎉 NOVO PERSONAGEM DESBLOQUEADO: ${defeatedChar.name}!`;
-        }
-        if (storyStageIndex + 1 < STORY_ORDER.length) {
-          document.getElementById("endTitle").innerText = "VITÓRIA!";
-          document.getElementById("endSubtitle").innerText = msg;
-          nextBtn.classList.remove("hidden");
-        } else {
-          document.getElementById("endTitle").innerText = "CAMPEÃO SUPREMO!";
-          document.getElementById("endSubtitle").innerText = "Você zerou o Modo História e desbloqueou todos os lutadores!";
-        }
-      } else {
-        document.getElementById("endTitle").innerText = "DERROTA!";
-        document.getElementById("endSubtitle").innerText = `${p2.name} venceu esta batalha.`;
+    if (this.y >= Battle.groundY) {
+      if (!this.onGround) {
+        this.scaleX = 1.24;
+        this.scaleY = 0.78;
+        SoundFX.land();
+        spawnBurst(this.x, Battle.groundY, this.data.color, 5, 2.5);
       }
-    } else if (gameMode === "p2p") {
-      const iWon = (isHost && p1Won) || (!isHost && !p1Won);
-      document.getElementById("endTitle").innerText = iWon ? "VITÓRIA ONLINE!" : "DERROTA ONLINE!";
-      document.getElementById("endSubtitle").innerText = p1Won ? `${p1.name} venceu!` : `${p2.name} venceu!`;
-    } else {
-      document.getElementById("endTitle").innerText = p1Won ? "VITÓRIA!" : "DERROTA!";
-      document.getElementById("endSubtitle").innerText = p1Won ? `${p1.name} dominou a arena!` : `${p2.name} venceu!`;
-    }
-  }
-}
-
-function nextStoryStage() {
-  storyStageIndex++;
-  selectedP2 = STORY_ORDER[storyStageIndex];
-  selectedStage = storyStageIndex % STAGES.length;
-  startMatch();
-}
-
-// ================= DESENHO DO CENÁRIO E HUD =================
-function drawBackground() {
-  const st = STAGES[selectedStage];
-  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  grad.addColorStop(0, st.sky1);
-  grad.addColorStop(1, st.sky2);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Elementos animados leves de fundo
-  ctx.fillStyle = st.accent;
-  ctx.globalAlpha = 0.14;
-  for (let i = 0; i < 6; i++) {
-    const bx = ((i * 190 + bgAnimTime * 0.4) % (canvas.width + 100)) - 50;
-    const by = 80 + Math.sin(bgAnimTime * 0.03 + i) * 25 + (i % 3) * 45;
-    ctx.beginPath();
-    ctx.arc(bx, by, 22 + (i % 3) * 10, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-
-  // Chão da Arena
-  const groundY = canvas.height - 65;
-  ctx.fillStyle = st.ground;
-  ctx.fillRect(0, groundY, canvas.width, 65);
-  ctx.fillStyle = st.accent;
-  ctx.fillRect(0, groundY, canvas.width, 5);
-}
-
-function drawHUD() {
-  const p1 = fighters[0];
-  const p2 = fighters[1];
-  const barW = Math.min(260, canvas.width * 0.34);
-
-  // Barra P1 (Esquerda)
-  ctx.fillStyle = "rgba(0,0,0,0.6)";
-  ctx.fillRect(20, 16, barW, 20);
-  ctx.fillStyle = p1.color;
-  ctx.fillRect(20, 16, barW * (p1.hp / p1.maxHp), 20);
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(20, 16, barW, 20);
-
-  // Barra Especial P1
-  ctx.fillStyle = "rgba(0,0,0,0.6)";
-  ctx.fillRect(20, 40, barW * 0.7, 9);
-  ctx.fillStyle = p1.special >= 100 ? "#ffa502" : "#70a1ff";
-  ctx.fillRect(20, 40, (barW * 0.7) * (p1.special / 100), 9);
-
-  ctx.fillStyle = "#fff";
-  ctx.font = "bold 13px sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText(p1.name + (p1.special >= 100 ? " [ESPECIAL PRONTO!]" : ""), 20, 64);
-
-  // Barra P2 (Direita)
-  const p2X = canvas.width - 20 - barW;
-  ctx.fillStyle = "rgba(0,0,0,0.6)";
-  ctx.fillRect(p2X, 16, barW, 20);
-  const p2FillW = barW * (p2.hp / p2.maxHp);
-  ctx.fillStyle = p2.color;
-  ctx.fillRect(p2X + (barW - p2FillW), 16, p2FillW, 20);
-  ctx.strokeStyle = "#fff";
-  ctx.strokeRect(p2X, 16, barW, 20);
-
-  // Barra Especial P2
-  const specW = barW * 0.7;
-  ctx.fillStyle = "rgba(0,0,0,0.6)";
-  ctx.fillRect(canvas.width - 20 - specW, 40, specW, 9);
-  const specFill = specW * (p2.special / 100);
-  ctx.fillStyle = p2.special >= 100 ? "#ffa502" : "#70a1ff";
-  ctx.fillRect(canvas.width - 20 - specFill, 40, specFill, 9);
-
-  ctx.textAlign = "right";
-  ctx.fillText(p2.name, canvas.width - 20, 64);
-}
-
-// ================= SINCRONIZAÇÃO DE ESTADO P2P =================
-function applyHostState(state) {
-  if (!fighters[0] || !fighters[1]) return;
-  [0, 1].forEach(i => {
-    const s = state.f[i];
-    const f = fighters[i];
-    f.x = s.x; f.y = s.y; f.hp = s.hp; f.special = s.sp;
-    f.facing = s.fc; f.spinAngle = s.sa; f.attackTimer = s.at;
-    f.attackType = s.aty; f.comboStep = s.cs; f.hitstun = s.hs;
-  });
-  projectiles = state.pr.map(p => new Projectile(p.x, p.y, 0, 0, p.r, p.c, 0, null, p.st));
-}
-
-// ================= LOOP PRINCIPAL (60 FPS) =================
-function gameLoop() {
-  bgAnimTime++;
-
-  if (gameState === "playing") {
-    ctx.save();
-    if (screenShake > 0) {
-      ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
-      screenShake *= 0.82;
-      if (screenShake < 0.5) screenShake = 0;
+      this.y = Battle.groundY;
+      this.vy = 0;
+      this.onGround = true;
+      this.jumpsLeft = 2;
+      this.isDoubleJumping = false;
+      if (this.state !== 'AIR_ATTACK') this.rotation = 0;
     }
 
-    drawBackground();
+    const margin = 36;
+    if (this.x < margin) this.x = margin;
+    if (this.x > Battle.width - margin) this.x = Battle.width - margin;
 
-    if (gameMode === "p2p" && !isHost) {
-      // Cliente envia apenas seus botões e renderiza o estado recebido
-      if (conn && conn.open) conn.send({ type: "inputs", keys });
+    const dist = Math.abs(this.x - opponent.x);
+    if (dist < 38 && Math.abs(this.y - opponent.y) < 38 && this.state !== 'DASH') {
+      const push = (38 - dist) * 0.5;
+      if (this.x < opponent.x) this.x -= push;
+      else this.x += push;
+    }
+  }
+
+  triggerPower(opponent) {
+    this.state = 'POWER';
+    this.stateTimer = 14;
+    this.powerCooldown = 36;
+    this.scaleX = 1.25;
+    this.scaleY = 0.85;
+    this.sp = Math.min(100, this.sp + 8);
+
+    const pType = this.data.projType || 'fireball';
+    const effect = this.data.powerEffect || 'burn';
+    SoundFX.powerByType(pType);
+
+    const spawnX = this.x + this.facing * 32;
+    const spawnY = this.y - 24;
+    const baseDmg = Math.round(9 * this.data.atkMult);
+
+    if (pType === 'shuriken' || pType === 'leaf') {
+      // Dispara 3 lâminas em leque
+      [-2.2, 0, 2.2].forEach(vySpread => {
+        Projectiles.push({
+          owner: this.slot,
+          type: pType,
+          effect,
+          x: spawnX,
+          y: spawnY,
+          vx: this.facing * (this.data.projSpeed || 12),
+          vy: vySpread,
+          radius: 9,
+          damage: Math.max(4, Math.round(baseDmg * 0.55)),
+          color: this.data.projColor || this.data.color,
+          core: this.data.coreColor,
+          life: 90,
+          target: opponent
+        });
+      });
     } else {
-      // Host ou Modo Solo processa a física
-      fighters[0].update(keys, prevKeys, fighters[1]);
+      Projectiles.push({
+        owner: this.slot,
+        type: pType,
+        effect,
+        x: spawnX,
+        y: spawnY,
+        vx: this.facing * (this.data.projSpeed || 11),
+        vy: pType === 'shockwave' ? -2.2 : 0,
+        radius: pType === 'shockwave' ? 16 : 12,
+        damage: baseDmg,
+        color: this.data.projColor || this.data.color,
+        core: this.data.coreColor,
+        life: 110,
+        target: opponent
+      });
+    }
 
-      if (gameMode === "p2p" && isHost) {
-        fighters[1].update(remoteInputs, prevRemoteInputs, fighters[0]);
-        prevRemoteInputs = { ...remoteInputs };
-      } else {
-        const cpuInp = getCPUInputs(fighters[1], fighters[0]);
-        fighters[1].update(cpuInp, prevCpuInputs, fighters[0]);
-        prevCpuInputs = { ...cpuInp };
+    spawnBurst(spawnX, spawnY, this.data.color, 8, 4);
+  }
+
+  triggerSpecial(opponent) {
+    this.sp = 0;
+    this.state = 'SPECIAL';
+    this.stateTimer = 26;
+    this.invulnTimer = 28;
+    this.scaleX = 1.4;
+    this.scaleY = 1.4;
+
+    const spType = this.data.specialType || 'meteor';
+    SoundFX.specialByType(spType);
+
+    GameState.flashAlpha = 0.45;
+    GameState.flashColor = this.data.color;
+    GameState.screenShake = 12;
+    GameState.hitStop = 5;
+
+    const dir = this.facing;
+    const col = this.data.color;
+    const core = this.data.coreColor;
+
+    if (spType === 'beam') {
+      // Feixe Kamehameha Gigante
+      for (let i = 0; i < 4; i++) {
+        Projectiles.push({
+          owner: this.slot,
+          type: 'laser',
+          x: this.x + dir * (35 + i * 25),
+          y: this.y - 26,
+          vx: dir * 22,
+          vy: 0,
+          radius: 26,
+          damage: 10,
+          color: col,
+          core: '#ffffff',
+          life: 48,
+          isSpecial: true
+        });
       }
-
-      projectiles.forEach(p => p.update(p.owner === fighters[0] ? fighters[1] : fighters[0]));
-      projectiles = projectiles.filter(p => p.life > 0 && p.x > -50 && p.x < canvas.width + 50);
-
-      if (gameMode === "p2p" && isHost && conn && conn.open) {
-        conn.send({
-          type: "state",
-          f: fighters.map(f => ({
-            x: f.x, y: f.y, hp: f.hp, sp: f.special, fc: f.facing,
-            sa: f.spinAngle, at: f.attackTimer, aty: f.attackType, cs: f.comboStep, hs: f.hitstun
-          })),
-          pr: projectiles.map(p => ({ x: p.x, y: p.y, r: p.r, c: p.color, st: p.style }))
+    } else if (spType === 'blades' || spType === 'icespike') {
+      // Chuva de Lâminas / Estacas
+      for (let i = 0; i < 6; i++) {
+        Projectiles.push({
+          owner: this.slot,
+          type: 'shuriken',
+          x: this.x + dir * 28,
+          y: this.y - 10 - i * 11,
+          vx: dir * (13 + i * 1.1),
+          vy: 0,
+          radius: 14,
+          damage: 7,
+          color: col,
+          core: '#ffffff',
+          life: 90,
+          isSpecial: true
+        });
+      }
+    } else if (spType === 'nova' || spType === 'tornado') {
+      // Explosão Nova / Tornado Gigante
+      Projectiles.push({
+        owner: this.slot,
+        type: 'tornado',
+        x: this.x + dir * 42,
+        y: Battle.groundY - 45,
+        vx: dir * 9.5,
+        vy: 0,
+        radius: 38,
+        damage: Math.round(33 * this.data.atkMult),
+        color: col,
+        core,
+        life: 110,
+        isSpecial: true
+      });
+    } else if (spType === 'teleport') {
+      // Teleporte atrás do rival + Golpe Relâmpago
+      spawnBurst(this.x, this.y - 24, col, 16, 7);
+      this.x = Math.max(45, Math.min(Battle.width - 45, opponent.x - dir * 55));
+      this.y = opponent.y;
+      this.facing = Math.sign(opponent.x - this.x) || 1;
+      spawnBurst(this.x, this.y - 24, '#ffffff', 16, 7);
+      opponent.takeDamage(Math.round(32 * this.data.atkMult), this.facing * 14, -7, col);
+    } else if (spType === 'blackhole') {
+      Projectiles.push({
+        owner: this.slot,
+        type: 'homing',
+        x: this.x + dir * 70,
+        y: this.y - 34,
+        vx: dir * 5.5,
+        vy: 0,
+        radius: 34,
+        damage: Math.round(34 * this.data.atkMult),
+        color: col,
+        core: '#090d16',
+        life: 110,
+        target: opponent,
+        isSpecial: true
+      });
+    } else if (spType === 'eruption') {
+      for (let i = 1; i <= 4; i++) {
+        Projectiles.push({
+          owner: this.slot,
+          type: 'eruption',
+          x: this.x + dir * (i * 75),
+          y: Battle.groundY - 10,
+          vx: 0,
+          vy: -9 - i * 1.2,
+          radius: 22,
+          damage: 11,
+          color: col,
+          core: '#ffd166',
+          life: 65,
+          isSpecial: true
+        });
+      }
+    } else {
+      // Meteoro Devastador Padrão
+      for (let i = 0; i < 3; i++) {
+        Projectiles.push({
+          owner: this.slot,
+          type: 'meteor',
+          x: this.x + dir * (40 + i * 75),
+          y: Battle.groundY - 260 - i * 50,
+          vx: dir * 6.5,
+          vy: 11.5,
+          radius: 24,
+          damage: 13,
+          color: col,
+          core: '#ffd166',
+          life: 90,
+          isSpecial: true
         });
       }
     }
 
-    // Atualiza e desenha partículas
-    particles.forEach(pt => {
-      pt.x += pt.vx;
-      pt.y += pt.vy;
-      pt.life--;
-      ctx.fillStyle = pt.color;
-      ctx.globalAlpha = Math.max(0, pt.life / 25);
-      ctx.fillRect(pt.x, pt.y, pt.size, pt.size);
-    });
-    ctx.globalAlpha = 1;
-    particles = particles.filter(pt => pt.life > 0);
-
-    // Desenha projéteis, lutadores e HUD
-    projectiles.forEach(p => p.draw(ctx));
-    fighters[0].draw(ctx);
-    fighters[1].draw(ctx);
-    drawHUD();
-
-    ctx.restore();
-
-    prevKeys = { ...keys };
-    checkMatchEnd();
+    spawnBurst(this.x, this.y - 24, this.data.color, 20, 8);
   }
 
-  requestAnimationFrame(gameLoop);
+  checkMeleeHit(opponent) {
+    if (this.hasHitThisSwing) return;
+
+    const mStyle = this.data.meleeStyle || 'punch';
+    const reachBonus = mStyle === 'sword' ? 18 : (mStyle === 'seismic' ? 10 : 0);
+    const reach = (this.state === 'AIR_ATTACK' ? 56 : (this.comboStep === 3 ? 66 : 54)) + reachBonus;
+    const hitX = this.x + this.facing * (reach * 0.65);
+    const hitY = this.y - 24;
+
+    if (Math.abs(hitX - opponent.x) < reach && Math.abs(hitY - (opponent.y - 24)) < 46) {
+      this.hasHitThisSwing = true;
+      let dmg = 6;
+      let knockX = this.facing * 5;
+      let knockY = 0;
+
+      if (this.state === 'AIR_ATTACK') {
+        dmg = 8;
+        knockX = this.facing * 7;
+      } else if (this.comboStep === 2) {
+        dmg = 7;
+        knockX = this.facing * 6;
+      } else if (this.comboStep === 3) {
+        dmg = mStyle === 'seismic' ? 15 : 12;
+        knockX = this.facing * (mStyle === 'seismic' ? 16 : 13);
+        knockY = -5.5;
+      }
+
+      dmg = Math.round(dmg * this.data.atkMult);
+      this.sp = Math.min(100, this.sp + 14);
+      opponent.takeDamage(dmg, knockX, knockY, this.data.color);
+    }
+  }
+
+  takeDamage(amount, knockX, knockY, hitColor, effect = null) {
+    if (this.invulnTimer > 0 || this.state === 'KO' || GameState.roundOver) return;
+
+    const defFactor = this.data.defMult || 1.0;
+    const finalDmg = Math.max(1, Math.round(amount / defFactor));
+
+    if (this.state === 'BLOCK') {
+      const reduced = Math.max(1, Math.round(finalDmg * 0.25));
+      this.hp = Math.max(0, this.hp - reduced);
+      this.sp = Math.min(100, this.sp + 6);
+      this.vx = knockX * 0.45;
+      SoundFX.block();
+      spawnBurst(this.x + this.facing * 18, this.y - 24, '#00e5ff', 6, 3);
+      if (this.hp <= 0) this.die();
+      return;
+    }
+
+    this.hp = Math.max(0, this.hp - finalDmg);
+    this.sp = Math.min(100, this.sp + 10);
+    this.state = 'HURT';
+    this.stateTimer = effect === 'stun' ? 22 : 12;
+    this.vx = effect === 'knockback' ? knockX * 1.65 : knockX;
+    if (knockY !== 0) {
+      this.vy = knockY;
+      this.onGround = false;
+    }
+    this.scaleX = 0.72;
+    this.scaleY = 1.28;
+
+    if (effect === 'freeze') this.slowTimer = 150;
+    if (effect === 'burn') this.burnTimer = 80;
+
+    GameState.hitStop = finalDmg >= 11 ? 4 : 2;
+    GameState.screenShake = finalDmg >= 11 ? 9 : 4;
+
+    if (finalDmg >= 11) SoundFX.hitHeavy();
+    else SoundFX.hitLight();
+
+    spawnBurst(this.x, this.y - 24, hitColor || '#ffffff', 12, 6);
+
+    if (this.hp <= 0) {
+      this.die();
+    }
+  }
+
+  die() {
+    this.hp = 0;
+    this.state = 'KO';
+    this.vy = -9;
+    this.onGround = false;
+    SoundFX.ko();
+    GameState.screenShake = 14;
+    spawnBurst(this.x, this.y - 24, this.data.color, 24, 8);
+    Battle.onFighterKO(this.slot);
+  }
+
+  draw(ctx, opponent) {
+    ctx.save();
+    ctx.translate(this.x, this.y - (this.baseH * this.scaleY) / 2);
+
+    const lookDir = opponent ? Math.sign(opponent.x - this.x) || this.facing : this.facing;
+    drawBlockCharacter(ctx, this.data, {
+      w: this.baseW * this.scaleX,
+      h: this.baseH * this.scaleY,
+      facing: this.facing,
+      lookDir,
+      state: this.state,
+      comboStep: this.comboStep,
+      isBlinking: this.isBlinking,
+      auraPhase: this.auraPhase,
+      rotation: this.rotation,
+      slowTimer: this.slowTimer,
+      spFull: this.sp >= 100
+    });
+
+    ctx.restore();
+  }
 }
 
-// ================= EVENTOS TOUCH E TECLADO =================
-function bindTouchButton(id, keyName) {
-  const el = document.getElementById(id);
-  const start = (e) => { e.preventDefault(); keys[keyName] = true; el.classList.add("pressed"); };
-  const end = (e) => { e.preventDefault(); keys[keyName] = false; el.classList.remove("pressed"); };
-  el.addEventListener("touchstart", start, { passive: false });
-  el.addEventListener("touchend", end, { passive: false });
-  el.addEventListener("touchcancel", end, { passive: false });
-  el.addEventListener("mousedown", start);
-  el.addEventListener("mouseup", end);
-  el.addEventListener("mouseleave", end);
-}
+// ----------------------------------------------------------------------------
+// 7. INTELIGÊNCIA ARTIFICIAL (CPU RESPONSIVA E DIVERTIDA)
+// ----------------------------------------------------------------------------
+const CPUBrain = {
+  timer: 0,
+  currentAction: { left: false, right: false, up: false, down: false, hit: false, power: false, dash: false, special: false },
 
-bindTouchButton("btnLeft", "left");
-bindTouchButton("btnRight", "right");
-bindTouchButton("btnJump", "jump");
-bindTouchButton("btnDash", "dash");
-bindTouchButton("btnPunch", "punch");
-bindTouchButton("btnPower", "power");
-bindTouchButton("btnSpec", "spec");
+  think(cpu, player) {
+    this.timer--;
+    if (this.timer > 0) return this.currentAction;
 
-document.getElementById("btnPause").addEventListener("touchstart", (e) => { e.preventDefault(); togglePause(); });
-document.getElementById("btnPause").addEventListener("click", togglePause);
+    this.timer = 7 + Math.floor(Math.random() * 6);
+    const act = { left: false, right: false, up: false, down: false, hit: false, power: false, dash: false, special: false };
 
-// Suporte a teclado caso teste no PC
-window.addEventListener("keydown", e => {
-  if (e.code === "ArrowLeft" || e.code === "KeyA") keys.left = true;
-  if (e.code === "ArrowRight" || e.code === "KeyD") keys.right = true;
-  if (e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Space") keys.jump = true;
-  if (e.code === "ShiftLeft" || e.code === "KeyL") keys.dash = true;
-  if (e.code === "KeyJ" || e.code === "KeyZ") keys.punch = true;
-  if (e.code === "KeyK" || e.code === "KeyX") keys.power = true;
-  if (e.code === "KeyI" || e.code === "KeyC") keys.spec = true;
-  if (e.code === "Escape") togglePause();
-});
-window.addEventListener("keyup", e => {
-  if (e.code === "ArrowLeft" || e.code === "KeyA") keys.left = false;
-  if (e.code === "ArrowRight" || e.code === "KeyD") keys.right = false;
-  if (e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Space") keys.jump = false;
-  if (e.code === "ShiftLeft" || e.code === "KeyL") keys.dash = false;
-  if (e.code === "KeyJ" || e.code === "KeyZ") keys.punch = false;
-  if (e.code === "KeyK" || e.code === "KeyX") keys.power = false;
-  if (e.code === "KeyI" || e.code === "KeyC") keys.spec = false;
-});
+    const dx = player.x - cpu.x;
+    const dist = Math.abs(dx);
+    const dir = Math.sign(dx);
 
-// Inicia o loop do jogo
-requestAnimationFrame(gameLoop);
-</script>
-</body>
-</html>
+    if (cpu.sp >= 100 && dist < 340 && Math.random() < 0.65) {
+      act.special = true;
+      this.currentAction = act;
+      return act;
+    }
+
+    if ((player.state === 'ATTACK' || player.state === 'SPECIAL') && dist < 110 && Math.random() < 0.55) {
+      if (dir === 1) act.left = true;
+      else act.right = true;
+      this.currentAction = act;
+      return act;
+    }
+
+    if (dist < 72) {
+      if (Math.random() < 0.72) act.hit = true;
+      else if (Math.random() < 0.35) { act.up = true; act.hit = true; }
+      else act.dash = true;
+    } else if (dist < 260) {
+      const r = Math.random();
+      if (r < 0.25 && cpu.powerCooldown === 0) act.power = true;
+      else if (r < 0.42 && cpu.dashCooldown === 0) act.dash = true;
+      else {
+        if (dir === 1) act.right = true;
+        else act.left = true;
+        if (Math.random() < 0.16) act.up = true;
+      }
+    } else {
+      if (Math.random() < 0.32 && cpu.powerCooldown === 0) act.power = true;
+      else {
+        if (dir === 1) act.right = true;
+        else act.left = true;
+        if (Math.random() < 0.15) act.up = true;
+      }
+    }
+
+    this.currentAction = act;
+    return act;
+  }
+};
+
+// ----------------------------------------------------------------------------
+// 8. RENDERIZAÇÃO DOS 4 CENÁRIOS ANIMADOS (OTIMIZADOS PARA CANVAS 2D)
+// ----------------------------------------------------------------------------
+const StageRenderer = {
+  ambience: [],
+
+  initStage(stageId, w, h) {
+    this.ambience = [];
+    const count = 24;
+    for (let i = 0; i < count; i++) {
+      this.ambience.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: 2 + Math.random() * 4,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: 0.5 + Math.random() * 1.5,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  },
+
+  draw(ctx, stageId, w, h, groundY, time) {
+    if (stageId === 'dojo') {
+      const grad = ctx.createLinearGradient(0, 0, 0, groundY);
+      grad.addColorStop(0, '#1d1135');
+      grad.addColorStop(0.55, '#8a2352');
+      grad.addColorStop(1, '#ff7547');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, groundY);
+
+      ctx.fillStyle = '#ffd166';
+      ctx.beginPath();
+      ctx.arc(w * 0.5, groundY * 0.52, Math.min(w, h) * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#2b1338';
+      ctx.beginPath();
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(w * 0.22, groundY * 0.45);
+      ctx.lineTo(w * 0.48, groundY);
+      ctx.lineTo(w * 0.78, groundY * 0.4);
+      ctx.lineTo(w, groundY);
+      ctx.fill();
+
+      ctx.fillStyle = '#180c24';
+      ctx.fillRect(w * 0.08, 0, 22, groundY);
+      ctx.fillRect(w * 0.92 - 22, 0, 22, groundY);
+
+      ctx.fillStyle = '#ffb3c6';
+      for (const p of this.ambience) {
+        p.x += Math.sin(time * 0.002 + p.phase) * 0.8 - 0.4;
+        p.y += p.vy * 0.7;
+        if (p.y > groundY) { p.y = -5; p.x = Math.random() * w; }
+        if (p.x < 0) p.x = w;
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, p.r + 1, p.r * 0.6, p.phase, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = '#2d142c';
+      ctx.fillRect(0, groundY, w, h - groundY);
+      ctx.fillStyle = '#ff9e7d';
+      ctx.fillRect(0, groundY, w, 4);
+
+    } else if (stageId === 'cyber') {
+      const grad = ctx.createLinearGradient(0, 0, 0, groundY);
+      grad.addColorStop(0, '#050814');
+      grad.addColorStop(1, '#101d42');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, groundY);
+
+      ctx.fillStyle = '#091128';
+      for (let i = 0; i < 8; i++) {
+        const bw = w / 7;
+        const bh = 90 + ((i * 53) % 130);
+        ctx.fillRect(i * bw, groundY - bh, bw - 8, bh);
+      }
+
+      const pulse = 0.25 + Math.sin(time * 0.004) * 0.1;
+      ctx.strokeStyle = `rgba(0, 245, 212, ${pulse})`;
+      ctx.lineWidth = 1.5;
+      for (let gx = 0; gx < w; gx += 60) {
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, groundY);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.4)';
+      ctx.lineWidth = 1.5;
+      for (const p of this.ambience) {
+        p.y += p.vy * 4.5;
+        if (p.y > groundY) { p.y = -10; p.x = Math.random() * w; }
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - 2, p.y + 12);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#070d1f';
+      ctx.fillRect(0, groundY, w, h - groundY);
+      ctx.fillStyle = '#00f5d4';
+      ctx.fillRect(0, groundY, w, 4);
+
+    } else if (stageId === 'volcano') {
+      const grad = ctx.createLinearGradient(0, 0, 0, groundY);
+      grad.addColorStop(0, '#1a0505');
+      grad.addColorStop(0.6, '#5c1010');
+      grad.addColorStop(1, '#b8290f');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, groundY);
+
+      ctx.fillStyle = '#240808';
+      ctx.beginPath();
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(w * 0.35, groundY * 0.32);
+      ctx.lineTo(w * 0.65, groundY * 0.32);
+      ctx.lineTo(w, groundY);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffbe0b';
+      for (const p of this.ambience) {
+        p.y -= p.vy * 1.2;
+        p.x += Math.sin(time * 0.003 + p.phase) * 0.6;
+        if (p.y < 0) { p.y = groundY; p.x = Math.random() * w; }
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = '#1f0909';
+      ctx.fillRect(0, groundY, w, h - groundY);
+      ctx.fillStyle = '#ff5400';
+      ctx.fillRect(0, groundY, w, 5);
+
+    } else {
+      const grad = ctx.createLinearGradient(0, 0, 0, groundY);
+      grad.addColorStop(0, '#071418');
+      grad.addColorStop(1, '#12352c');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, groundY);
+
+      ctx.fillStyle = '#e9f5db';
+      ctx.beginPath();
+      ctx.arc(w * 0.78, groundY * 0.28, 36, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#091f1a';
+      for (let i = 0; i < 7; i++) {
+        const tx = i * (w / 6);
+        ctx.fillRect(tx, groundY * 0.2, 26, groundY * 0.8);
+      }
+
+      for (const p of this.ambience) {
+        p.x += Math.cos(time * 0.002 + p.phase) * 0.7;
+        p.y += Math.sin(time * 0.0025 + p.phase) * 0.7;
+        const glow = 0.4 + Math.sin(time * 0.006 + p.phase) * 0.4;
+        ctx.fillStyle = `rgba(181, 228, 140, ${glow})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fil
