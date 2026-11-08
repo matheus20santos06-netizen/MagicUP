@@ -1,0 +1,3155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Block Fighter P2P - Ultimate Edition</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PeerJS para Multiplayer P2P Online -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <!-- Fonte Google -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #070b14;
+      font-family: 'Fredoka', sans-serif;
+      color: #f8fafc;
+    }
+    /* Container raiz com proporção configurável LARGURAxALTURA */
+    #app-viewport {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #111827 0%, #030712 100%);
+      overflow: hidden;
+    }
+    #game-frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #0f172a;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    /* Scrollbars customizadas suaves para modais */
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.6);
+      border-radius: 8px;
+    }
+    /* Botões estilizados estilo arcade */
+    .arcade-btn {
+      transition: transform 0.1s ease, filter 0.15s ease, box-shadow 0.15s ease;
+    }
+    .arcade-btn:active {
+      transform: scale(0.95);
+    }
+    /* Moldura quadrada no editor individual de controles */
+    .touch-edit-box {
+      border: 2px dashed #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+      border-radius: 12px;
+    }
+    .touch-edit-box.selected-ctrl {
+      border: 2.5px solid #facc15;
+      background: rgba(250, 204, 21, 0.25);
+      box-shadow: 0 0 18px rgba(250, 204, 21, 0.7);
+    }
+    /* Animação suave */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    .animate-float {
+      animation: floatSlow 3s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+<div id="app-viewport">
+  <div id="game-frame">
+    
+    <!-- ==================== NOTIFICAÇÃO / TOAST ==================== -->
+    <div id="toast-banner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-slate-900/95 border-2 border-amber-400 text-amber-200 px-5 py-2.5 rounded-2xl shadow-2xl font-bold text-sm sm:text-base text-center max-w-[90vw]">
+    </div>
+
+    <!-- ==================== TELA 1: MENU PRINCIPAL ==================== -->
+    <div id="screen-menu" class="absolute inset-0 z-20 flex flex-col items-center justify-between p-4 sm:p-6 bg-gradient-to-b from-slate-900 via-indigo-950/90 to-slate-950 overflow-y-auto custom-scroll">
+      <!-- Top Bar: Áudio e Tela -->
+      <div class="w-full flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2 bg-slate-900/80 border border-slate-700/80 px-3 py-1.5 rounded-xl">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-xs sm:text-sm font-semibold text-slate-300">Block Fighter P2P</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="AudioEngine.cycleMusic()" id="btn-music-toggle" class="arcade-btn bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-500/50 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-indigo-200 flex items-center gap-1.5">
+            🎵 <span id="music-label">Música 1</span>
+          </button>
+          <button onclick="AudioEngine.toggleMute()" id="btn-mute" class="arcade-btn bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold">
+            🔊 Som ON
+          </button>
+          <button onclick="openAspectModal()" class="arcade-btn bg-slate-800 hover:bg-slate-700 border border-cyan-500/50 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-cyan-300">
+            📐 Tela
+          </button>
+        </div>
+      </div>
+
+      <!-- Título Central -->
+      <div class="text-center my-2 animate-float">
+        <div class="inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold tracking-wider uppercase mb-1">
+          Edição Combos, Clones &amp; História
+        </div>
+        <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-amber-300 drop-shadow-[0_4px_16px_rgba(56,189,248,0.45)]">
+          BLOCK FIGHTER
+        </h1>
+        <p class="text-slate-300 text-xs sm:text-sm mt-1">Batalhas de bloquinhos com poderes desenhados, combos direcionais e P2P!</p>
+      </div>
+
+      <!-- Grid de Botões Principais -->
+      <div class="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-3 my-auto">
+        <button onclick="startStoryMenu()" class="arcade-btn col-span-1 sm:col-span-2 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:brightness-110 p-4 rounded-2xl shadow-lg shadow-orange-600/30 border-2 border-amber-300/70 flex items-center justify-between">
+          <div class="text-left">
+            <div class="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2">📖 MODO HISTÓRIA <span class="text-xs bg-black/30 px-2 py-0.5 rounded-lg">5 CAPÍTULOS + BOSSES</span></div>
+            <div class="text-xs text-amber-100">Cutscenes, chefes épicos e desbloqueio de personagens!</div>
+          </div>
+          <span class="text-3xl">👑</span>
+        </button>
+
+        <button onclick="openCharSelect('solo')" class="arcade-btn bg-gradient-to-br from-cyan-500 to-blue-600 hover:brightness-110 p-4 rounded-2xl shadow-lg shadow-blue-600/30 border border-cyan-300/50 flex items-center justify-between">
+          <div class="text-left">
+            <div class="text-base sm:text-lg font-extrabold text-white">⚔️ MODO SOLO (P1 vs CPU)</div>
+            <div class="text-xs text-cyan-100">Escolha seu lutador e o inimigo</div>
+          </div>
+          <span class="text-2xl">🤖</span>
+        </button>
+
+        <button onclick="openP2PModal()" class="arcade-btn bg-gradient-to-br from-emerald-500 to-teal-700 hover:brightness-110 p-4 rounded-2xl shadow-lg shadow-emerald-600/30 border border-emerald-300/50 flex items-center justify-between">
+          <div class="text-left">
+            <div class="text-base sm:text-lg font-extrabold text-white">🌐 MULTIPLAYER P2P</div>
+            <div class="text-xs text-emerald-100">Jogue online com sala ou código</div>
+          </div>
+          <span class="text-2xl">🔗</span>
+        </button>
+
+        <button onclick="openWorkshop()" class="arcade-btn bg-gradient-to-br from-purple-600 to-indigo-700 hover:brightness-110 p-3.5 rounded-2xl shadow-lg border border-purple-300/40 flex items-center justify-between">
+          <div class="text-left">
+            <div class="text-sm sm:text-base font-extrabold text-white">🎨 OFICINA &amp; PODERES</div>
+            <div class="text-xs text-purple-200">Crie lutadores e desenhe poderes</div>
+          </div>
+          <span class="text-2xl">✨</span>
+        </button>
+
+        <button onclick="openControlsGuide()" class="arcade-btn bg-slate-800/90 hover:bg-slate-700 p-3.5 rounded-2xl border border-slate-600 flex items-center justify-between">
+          <div class="text-left">
+            <div class="text-sm sm:text-base font-extrabold text-slate-100">🕹️ COMBOS &amp; CONTROLES</div>
+            <div class="text-xs text-slate-400">Lista de golpes, clones e editor touch</div>
+          </div>
+          <span class="text-2xl">📜</span>
+        </button>
+      </div>
+
+      <!-- Rodapé -->
+      <div class="w-full flex items-center justify-between text-[11px] sm:text-xs text-slate-400 pt-2">
+        <span>Desbloqueados: <strong id="footer-unlocked-count" class="text-amber-300">4/6</strong></span>
+        <span>Controles: Setas/WASD + J/K/L/U ou Touch</span>
+      </div>
+    </div>
+
+    <!-- ==================== TELA 2: MODO HISTÓRIA (CAPÍTULOS) ==================== -->
+    <div id="screen-story" class="hidden absolute inset-0 z-20 flex flex-col p-4 sm:p-6 bg-slate-950/95 overflow-y-auto custom-scroll">
+      <div class="flex items-center justify-between mb-4">
+        <button onclick="showScreen('menu')" class="arcade-btn bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl font-bold text-sm border border-slate-600">⬅ Voltar</button>
+        <h2 class="text-xl sm:text-2xl font-extrabold text-amber-300">📖 MODO HISTÓRIA</h2>
+        <div class="text-xs sm:text-sm bg-amber-500/20 border border-amber-400/40 px-3 py-1 rounded-xl text-amber-200 font-bold">
+          Progresso: <span id="story-progress-text">Cap. 1</span>
+        </div>
+      </div>
+
+      <!-- Escolha do Herói para jogar a história -->
+      <div class="bg-slate-900/90 border border-slate-700 rounded-2xl p-3 mb-4">
+        <div class="text-xs font-bold text-cyan-300 uppercase mb-2">Selecione seu Lutador para a Campanha:</div>
+        <div id="story-hero-picker" class="flex gap-2 overflow-x-auto pb-1 custom-scroll"></div>
+      </div>
+
+      <!-- Lista de Capítulos -->
+      <div id="story-chapters-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 pb-4"></div>
+    </div>
+
+    <!-- ==================== TELA 3: CUTSCENE NARRATIVA ==================== -->
+    <div id="screen-cutscene" class="hidden absolute inset-0 z-30 flex flex-col justify-between bg-slate-950">
+      <canvas id="cutscene-canvas" class="absolute inset-0 w-full h-full"></canvas>
+      
+      <!-- Topo Cutscene -->
+      <div class="relative z-10 flex items-center justify-between p-4">
+        <span id="cutscene-chapter-badge" class="bg-amber-500/90 text-slate-950 font-extrabold px-3 py-1 rounded-xl text-xs sm:text-sm shadow-lg">
+          CAPÍTULO 1
+        </span>
+        <button onclick="skipCutscene()" class="arcade-btn bg-slate-900/85 hover:bg-slate-800 border border-slate-500 text-slate-200 px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold">
+          Pular Cena ⏭
+        </button>
+      </div>
+
+      <!-- Caixa de Diálogo -->
+      <div class="relative z-10 p-3 sm:p-6">
+        <div class="max-w-3xl mx-auto bg-slate-900/95 border-2 border-indigo-400/70 rounded-2xl p-4 sm:p-5 shadow-2xl">
+          <div class="flex items-center justify-between mb-1.5">
+            <span id="cutscene-speaker" class="text-base sm:text-lg font-extrabold text-cyan-300">Narrador</span>
+            <span id="cutscene-step-counter" class="text-xs text-slate-400 font-mono">1 / 3</span>
+          </div>
+          <p id="cutscene-text" class="text-sm sm:text-base text-slate-100 leading-relaxed min-h-[3.5rem]">
+            ...
+          </p>
+          <div class="flex justify-end mt-3">
+            <button onclick="nextCutsceneLine()" id="btn-cutscene-next" class="arcade-btn bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2 rounded-xl font-extrabold text-sm text-white shadow-lg">
+              Continuar ▶
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TELA 4: SELEÇÃO DE PERSONAGEM (SOLO P1 -> OPONENTE / P2P) ==================== -->
+    <div id="screen-select" class="hidden absolute inset-0 z-20 flex flex-col p-4 sm:p-5 bg-slate-950/95 overflow-y-auto custom-scroll">
+      <!-- Cabeçalho -->
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <button onclick="handleSelectBack()" id="btn-select-back" class="arcade-btn bg-slate-800 hover:bg-slate-700 px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm border border-slate-600">
+          ⬅ Voltar
+        </button>
+        <div class="text-center">
+          <div id="select-step-badge" class="inline-block px-3 py-0.5 rounded-full text-xs font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 mb-0.5">
+            PASSO 1 DE 2
+          </div>
+          <h2 id="select-title" class="text-lg sm:text-2xl font-extrabold text-white">ESCOLHA SEU LUTADOR (P1)</h2>
+        </div>
+        <div class="w-20 hidden sm:block"></div>
+      </div>
+
+      <!-- Painel Comparativo P1 vs P2/CPU -->
+      <div class="grid grid-cols-2 gap-3 mb-3 bg-slate-900/90 border border-slate-800 rounded-2xl p-3">
+        <!-- Card P1 -->
+        <div id="preview-p1-card" class="flex items-center gap-3 p-2 rounded-xl border-2 border-cyan-400 bg-cyan-950/30">
+          <div id="preview-p1-avatar" class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-extrabold text-xl shadow-inner shrink-0"></div>
+          <div class="min-w-0">
+            <div class="text-[10px] font-bold text-cyan-300 uppercase">JOGADOR 1 (VOCÊ)</div>
+            <div id="preview-p1-name" class="text-sm sm:text-base font-extrabold truncate text-white">---</div>
+            <div id="preview-p1-power" class="text-[11px] text-slate-300 truncate">Poder: ---</div>
+          </div>
+        </div>
+        <!-- Card P2 / Inimigo -->
+        <div id="preview-p2-card" class="flex items-center gap-3 p-2 rounded-xl border border-slate-700 bg-slate-800/40">
+          <div id="preview-p2-avatar" class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-extrabold text-xl bg-slate-800 text-slate-500 shrink-0">?</div>
+          <div class="min-w-0">
+            <div id="preview-p2-role" class="text-[10px] font-bold text-rose-400 uppercase">OPONENTE (CPU)</div>
+            <div id="preview-p2-name" class="text-sm sm:text-base font-extrabold truncate text-slate-400">Aguardando...</div>
+            <div id="preview-p2-power" class="text-[11px] text-slate-400 truncate">---</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid de Lutadores Disponíveis -->
+      <div id="roster-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 mb-3"></div>
+
+      <!-- Escolha de Arena + Botão Iniciar -->
+      <div class="mt-auto bg-slate-900/95 border border-slate-700 rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
+          <span class="text-xs font-bold text-slate-300 shrink-0">🏟️ Arena:</span>
+          <button onclick="setArena('dojo')" data-arena="dojo" class="arena-opt arcade-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950">Dojô Sol</button>
+          <button onclick="setArena('cyber')" data-arena="cyber" class="arena-opt arcade-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-200">Templo Neon</button>
+          <button onclick="setArena('volcano')" data-arena="volcano" class="arena-opt arcade-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-200">Vulcão</button>
+          <button onclick="setArena('void')" data-arena="void" class="arena-opt arcade-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-200">Dimensão Caos</button>
+        </div>
+        <button onclick="confirmSelectionStep()" id="btn-confirm-select" class="arcade-btn w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-cyan-500 hover:brightness-110 px-6 py-2.5 rounded-xl font-extrabold text-sm sm:text-base text-slate-950 shadow-lg">
+          Confirmar P1 ➡
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== TELA 5: OFICINA DE CRIAÇÃO + CRIADOR DE PODERES ==================== -->
+    <div id="screen-workshop" class="hidden absolute inset-0 z-20 flex flex-col p-4 bg-slate-950 overflow-y-auto custom-scroll">
+      <div class="flex items-center justify-between mb-3">
+        <button onclick="showScreen('menu')" class="arcade-btn bg-slate-800 hover:bg-slate-700 px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm border border-slate-600">⬅ Menu</button>
+        <h2 class="text-lg sm:text-2xl font-extrabold text-purple-300">🎨 OFICINA DE LUTADOR &amp; PODERES</h2>
+        <button onclick="saveCustomFighter()" class="arcade-btn bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-xl font-extrabold text-xs sm:text-sm shadow-lg">
+          💾 Salvar Lutador
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Coluna Esquerda: Visual do Bloquinho & Status -->
+        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-purple-300 uppercase">Aparência do Bloquinho</span>
+            <button onclick="openPowerCreator()" class="arcade-btn bg-gradient-to-r from-amber-500 to-pink-600 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold shadow-md animate-pulse">
+              ✨ CRIAR PODER PERSONALIZADO
+            </button>
+          </div>
+
+          <!-- Canvas de Prévia do Bloquinho -->
+          <div class="w-full h-36 bg-slate-950 rounded-xl border border-slate-700 relative overflow-hidden">
+            <canvas id="workshop-char-canvas"></canvas>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Nome do Lutador</label>
+              <input id="ws-name" type="text" maxlength="16" value="Astro" oninput="updateWorkshopPreview()" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-1.5 text-sm font-bold text-white" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Expressão dos Olhos</label>
+              <select id="ws-eyes" onchange="updateWorkshopPreview()" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-2.5 py-1.5 text-sm font-bold text-white">
+                <option value="determined">Determinado (Foco)</option>
+                <option value="angry">Feroz (Batalha)</option>
+                <option value="happy">Fofo (Feliz)</option>
+                <option value="cyber">Visor Cibernético</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Cor do Corpo</label>
+              <input id="ws-color" type="color" value="#38bdf8" oninput="updateWorkshopPreview()" class="w-full h-9 bg-slate-800 border border-slate-600 rounded-xl cursor-pointer" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Cor da Aura</label>
+              <input id="ws-aura" type="color" value="#facc15" oninput="updateWorkshopPreview()" class="w-full h-9 bg-slate-800 border border-slate-600 rounded-xl cursor-pointer" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Acessório / Faixa</label>
+              <select id="ws-accessory" onchange="updateWorkshopPreview()" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-2.5 py-1.5 text-sm font-bold text-white">
+                <option value="headband">Faixa Ninja</option>
+                <option value="crown">Coroa Real</option>
+                <option value="horns">Chifres Cósmicos</option>
+                <option value="none">Nenhum</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Velocidade / Força</label>
+              <select id="ws-style" onchange="updateWorkshopPreview()" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-2.5 py-1.5 text-sm font-bold text-white">
+                <option value="balanced">Equilibrado</option>
+                <option value="speed">Veloz (Combo Rápido)</option>
+                <option value="power">Pesado (Dano Alto)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Resumo do Poder Configurado -->
+          <div class="bg-slate-950/90 border border-amber-500/40 rounded-xl p-2.5 flex items-center justify-between">
+            <div>
+              <div class="text-[11px] font-bold text-amber-300">PODER ATUAL EQUIPADO:</div>
+              <div id="ws-power-summary" class="text-xs text-slate-200 font-semibold">Esfera Brilhante • 1x Projétil • Frente</div>
+            </div>
+            <button onclick="openPowerCreator()" class="arcade-btn bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400 text-amber-200 px-3 py-1 rounded-lg text-xs font-bold">
+              Editar Poder
+            </button>
+          </div>
+        </div>
+
+        <!-- Coluna Direita: Lista de Lutadores Criados -->
+        <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col">
+          <h3 class="text-sm font-extrabold text-slate-200 mb-2">Lutadores Personalizados Salvos</h3>
+          <div id="custom-fighters-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto max-h-[340px] custom-scroll"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: CRIADOR DE PODERES COM TRAÇADO DE PERCURSO ==================== -->
+    <div id="modal-power-creator" class="hidden fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div class="bg-slate-900 border-2 border-amber-400/70 rounded-2xl w-full max-w-4xl p-4 sm:p-5 shadow-2xl max-h-[95vh] overflow-y-auto custom-scroll">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+          <div>
+            <h3 class="text-lg sm:text-xl font-extrabold text-amber-300">✨ CRIADOR VISUAL DE PODERES</h3>
+            <p class="text-xs text-slate-400">Defina forma, brilho, origem, quantidade e desenhe o trajeto exato até o inimigo!</p>
+          </div>
+          <button onclick="closePowerCreator()" class="arcade-btn bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-xl font-bold text-sm">✖ Fechar</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <!-- Configurações do Poder -->
+          <div class="md:col-span-5 space-y-3">
+            <div>
+              <label class="text-xs font-bold text-slate-300 block mb-1">Nome do Poder</label>
+              <input id="pwr-name" type="text" maxlength="18" value="Raio Estelar" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-1.5 text-sm font-bold text-white" />
+            </div>
+
+            <!-- Forma e Brilho -->
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-xs font-bold text-slate-300 block mb-1">Forma do Projétil</label>
+                <select id="pwr-shape" onchange="syncPowerFormToState()" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-2.5 py-1.5 text-xs font-bold text-white">
+                  <option value="circle">🔵 Redondo (Esfera)</option>
+                  <option value="triangle">🔺 Triangular (Lâmina)</option>
+                  <option value="square">🟦 Quadrado (Cubo)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs font-bold text-slate-300 block mb-1">Cor &amp; Brilho</label>
+                <div class="flex items-center gap-2">
+                  <input id="pwr-color" type="color" value="#38bdf8" oninput="syncPowerFormToState()" class="w-10 h-8 bg-slate-800 border border-slate-600 rounded-lg cursor-pointer" />
+                  <label class="flex items-center gap-1.5 text-xs font-bold text-amber-300 cursor-pointer bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-600 flex-1">
+                    <input id="pwr-glow" type="checkbox" checked onchange="syncPowerFormToState()" class="accent-amber-400" />
+                    ✨ Brilha
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Origem / Direção de Ataque -->
+            <div>
+              <label class="text-xs font-bold text-slate-300 block mb-1">De onde o poder surge?</label>
+              <select id="pwr-origin" onchange="syncPowerFormToState()" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-2.5 py-1.5 text-xs font-bold text-white">
+                <option value="front">➡️ De Frente (Sai do lutador)</option>
+                <option value="top">⬇️ De Cima (Cai do céu sobre o inimigo)</option>
+                <option value="bottom">⬆️ De Baixo (Emerge do chão)</option>
+                <option value="back">⬅️ Outro Lado / Por Trás do Inimigo</option>
+              </select>
+            </div>
+
+            <!-- Quantidade de Projéteis (1, 2 ou 3) -->
+            <div>
+              <label class="text-xs font-bold text-slate-300 block mb-1">Quantidade de Projéteis (1, 2 ou 3)</label>
+              <div class="grid grid-cols-3 gap-2">
+                <button type="button" onclick="setPowerCount(1)" id="btn-pwr-count-1" class="pwr-count-btn arcade-btn py-1.5 rounded-xl text-xs font-extrabold bg-amber-500 text-slate-950">1 Projétil</button>
+                <button type="button" onclick="setPowerCount(2)" id="btn-pwr-count-2" class="pwr-count-btn arcade-btn py-1.5 rounded-xl text-xs font-extrabold bg-slate-800 text-slate-200">2 Projéteis</button>
+                <button type="button" onclick="setPowerCount(3)" id="btn-pwr-count-3" class="pwr-count-btn arcade-btn py-1.5 rounded-xl text-xs font-extrabold bg-slate-800 text-slate-200">3 Projéteis</button>
+              </div>
+            </div>
+
+            <!-- Configuração Individual por Projétil -->
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-cyan-300">Editando Projétil:</span>
+                <div id="pwr-proj-tabs" class="flex gap-1"></div>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-[11px] text-slate-400">Tamanho: <span id="pwr-size-val" class="text-white font-bold">18</span>px</label>
+                  <input id="pwr-size" type="range" min="10" max="38" value="18" oninput="updateActiveProjectileProp('size', +this.value)" class="w-full accent-cyan-400" />
+                </div>
+                <div>
+                  <label class="text-[11px] text-slate-400">Dano: <span id="pwr-dmg-val" class="text-rose-400 font-bold">14</span></label>
+                  <input id="pwr-dmg" type="range" min="5" max="30" value="14" oninput="updateActiveProjectileProp('damage', +this.value)" class="w-full accent-rose-500" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Canvas Interativo de Desenho de Trajetória -->
+          <div class="md:col-span-7 flex flex-col">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-bold text-emerald-300">✍️ DESENHE O PERCURSO DO PROJÉTIL <span id="draw-proj-index">#1</span>:</span>
+              <div class="flex gap-1.5">
+                <button type="button" onclick="clearCurrentPowerPath()" class="arcade-btn bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-200">
+                  🧹 Limpar Traço
+                </button>
+                <button type="button" onclick="triggerPowerPreviewBlast()" class="arcade-btn bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-3 py-1 rounded-lg text-xs font-extrabold">
+                  ▶ Testar Disparo
+                </button>
+              </div>
+            </div>
+
+            <div class="relative w-full h-56 sm:h-64 bg-slate-950 border-2 border-dashed border-cyan-500/60 rounded-2xl overflow-hidden">
+              <canvas id="power-draw-canvas"></canvas>
+              <div class="pointer-events-none absolute bottom-2 left-3 text-[11px] text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded">
+                Arraste o dedo/mouse da origem até o boneco-alvo à direita!
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-3">
+              <button type="button" onclick="applyCustomPowerToFighter()" class="arcade-btn bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-extrabold px-5 py-2 rounded-xl text-sm shadow-lg">
+                ✅ Aplicar Poder ao Lutador
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TELA 6: ARENA DE COMBATE ==================== -->
+    <div id="screen-battle" class="hidden absolute inset-0 z-10 flex flex-col">
+      <!-- HUD Superior -->
+      <div class="relative z-20 p-2 sm:p-3 flex items-start justify-between gap-2 pointer-events-none">
+        <!-- HUD P1 -->
+        <div class="w-[42%] max-w-xs bg-slate-900/85 border border-cyan-500/50 rounded-xl p-1.5 sm:p-2 backdrop-blur-sm">
+          <div class="flex justify-between items-center text-xs font-extrabold mb-1">
+            <span id="hud-p1-name" class="text-cyan-300 truncate">P1</span>
+            <span id="hud-p1-hp-text" class="text-white font-mono">100/100</span>
+          </div>
+          <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+            <div id="hud-p1-hp" class="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 transition-all duration-100" style="width: 100%"></div>
+          </div>
+          <!-- Barra de Energia (Para Poder e Clone) -->
+          <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden mt-1">
+            <div id="hud-p1-energy" class="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-100" style="width: 100%"></div>
+          </div>
+          <div id="hud-p1-clone-badge" class="hidden text-[10px] font-bold text-amber-300 mt-0.5">👥 Clone Ativo!</div>
+        </div>
+
+        <!-- Centro: Timer, Capítulo/Modo & Pause -->
+        <div class="flex flex-col items-center pointer-events-auto">
+          <div class="bg-slate-900/90 border border-slate-700 px-3 py-1 rounded-xl text-center shadow-lg">
+            <div id="hud-mode-label" class="text-[10px] font-bold text-amber-300 uppercase">VERSUS</div>
+            <div id="hud-timer" class="text-lg sm:text-xl font-black font-mono text-white leading-none">99</div>
+          </div>
+          <button onclick="togglePauseMenu()" class="arcade-btn mt-1 bg-slate-900/90 hover:bg-slate-800 border border-slate-600 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-200">
+            ⏸ Pause
+          </button>
+        </div>
+
+        <!-- HUD P2 / CPU / BOSS -->
+        <div class="w-[42%] max-w-xs bg-slate-900/85 border border-rose-500/50 rounded-xl p-1.5 sm:p-2 backdrop-blur-sm">
+          <div class="flex justify-between items-center text-xs font-extrabold mb-1">
+            <span id="hud-p2-hp-text" class="text-white font-mono">100/100</span>
+            <span id="hud-p2-name" class="text-rose-300 truncate">CPU</span>
+          </div>
+          <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+            <div id="hud-p2-hp" class="h-full bg-gradient-to-l from-rose-500 to-amber-500 transition-all duration-100 ml-auto" style="width: 100%"></div>
+          </div>
+          <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden mt-1">
+            <div id="hud-p2-energy" class="h-full bg-gradient-to-l from-purple-400 to-pink-500 transition-all duration-100 ml-auto" style="width: 100%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Canvas Principal da Luta -->
+      <canvas id="battle-canvas" class="absolute inset-0 w-full h-full"></canvas>
+
+      <!-- Controles Touch Customizáveis na Tela -->
+      <div id="touch-controls-layer" class="absolute inset-0 z-20 pointer-events-none">
+        <!-- D-Pad Esquerdo -->
+        <div id="ctrl-dpad" data-ctrl="dpad" class="touch-draggable pointer-events-auto absolute bottom-4 left-4 w-36 h-36 flex items-center justify-center">
+          <div class="relative w-full h-full">
+            <button data-dir="up" class="dpad-btn absolute top-0 left-1/2 -translate-x-1/2 w-11 h-11 bg-slate-800/75 active:bg-cyan-500/80 border border-slate-500/70 rounded-xl flex items-center justify-center text-lg font-bold shadow">▲</button>
+            <button data-dir="down" class="dpad-btn absolute bottom-0 left-1/2 -translate-x-1/2 w-11 h-11 bg-slate-800/75 active:bg-cyan-500/80 border border-slate-500/70 rounded-xl flex items-center justify-center text-lg font-bold shadow">▼</button>
+            <button data-dir="left" class="dpad-btn absolute left-0 top-1/2 -translate-y-1/2 w-11 h-11 bg-slate-800/75 active:bg-cyan-500/80 border border-slate-500/70 rounded-xl flex items-center justify-center text-lg font-bold shadow">◀</button>
+            <button data-dir="right" class="dpad-btn absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 bg-slate-800/75 active:bg-cyan-500/80 border border-slate-500/70 rounded-xl flex items-center justify-center text-lg font-bold shadow">▶</button>
+          </div>
+        </div>
+
+        <!-- Botão Pular -->
+        <button id="ctrl-jump" data-ctrl="jump" class="touch-draggable pointer-events-auto absolute bottom-24 right-4 w-14 h-14 rounded-full bg-emerald-600/80 active:bg-emerald-400 border-2 border-emerald-300 font-extrabold text-xs text-white shadow-lg flex flex-col items-center justify-center">
+          <span>⬆️</span><span>PULO</span>
+        </button>
+
+        <!-- Botão Bater (Combos Direcionais) -->
+        <button id="ctrl-attack" data-ctrl="attack" class="touch-draggable pointer-events-auto absolute bottom-5 right-20 w-16 h-16 rounded-full bg-rose-600/85 active:bg-rose-400 border-2 border-rose-300 font-extrabold text-xs text-white shadow-lg flex flex-col items-center justify-center">
+          <span>👊</span><span>BATER</span>
+        </button>
+
+        <!-- Botão Poder Personalizado -->
+        <button id="ctrl-power" data-ctrl="power" class="touch-draggable pointer-events-auto absolute bottom-5 right-4 w-14 h-14 rounded-full bg-amber-500/85 active:bg-amber-300 border-2 border-amber-200 font-extrabold text-xs text-slate-950 shadow-lg flex flex-col items-center justify-center">
+          <span>⚡</span><span>PODER</span>
+        </button>
+
+        <!-- Botão Dash -->
+        <button id="ctrl-dash" data-ctrl="dash" class="touch-draggable pointer-events-auto absolute bottom-24 right-20 w-13 h-13 p-2 rounded-full bg-cyan-600/80 active:bg-cyan-400 border-2 border-cyan-300 font-extrabold text-[11px] text-white shadow-lg flex flex-col items-center justify-center">
+          <span>💨</span><span>DASH</span>
+        </button>
+
+        <!-- NOVO Botão Invocar Clone (25% HP) -->
+        <button id="ctrl-clone" data-ctrl="clone" class="touch-draggable pointer-events-auto absolute bottom-24 right-36 w-13 h-13 p-2 rounded-full bg-purple-600/85 active:bg-purple-400 border-2 border-purple-300 font-extrabold text-[11px] text-white shadow-lg flex flex-col items-center justify-center">
+          <span>👥</span><span>CLONE</span>
+        </button>
+      </div>
+
+      <!-- Barra de Ferramentas do Editor Individual de Controles (Ativa apenas no modo edição) -->
+      <div id="touch-editor-toolbar" class="hidden absolute top-16 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 border-2 border-amber-400 rounded-2xl p-3 shadow-2xl flex flex-wrap items-center justify-center gap-2 max-w-[95vw]">
+        <span class="text-xs font-extrabold text-amber-300">🎛️ MODO EDIÇÃO DE TOQUE: Arraste qualquer botão ou ajuste o tamanho:</span>
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs text-slate-300">Tamanho:</span>
+          <input id="touch-scale-slider" type="range" min="0.7" max="1.5" step="0.05" value="1" oninput="resizeSelectedTouchCtrl(this.value)" class="w-24 accent-amber-400" />
+        </div>
+        <button onclick="resetTouchLayout()" class="arcade-btn bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded-xl text-xs font-bold text-slate-200 border border-slate-600">Resetar</button>
+        <button onclick="exitTouchEditor()" class="arcade-btn bg-emerald-500 text-slate-950 px-3.5 py-1 rounded-xl text-xs font-extrabold">✅ Concluir</button>
+      </div>
+
+      <!-- Menu de Pause -->
+      <div id="modal-pause" class="hidden absolute inset-0 z-30 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-slate-700 rounded-2xl w-full max-w-sm p-5 text-center space-y-3 shadow-2xl">
+          <h3 class="text-2xl font-extrabold text-white">⏸ JOGO PAUSADO</h3>
+          <button onclick="togglePauseMenu()" class="arcade-btn w-full bg-emerald-500 text-slate-950 py-2.5 rounded-xl font-extrabold">▶ Continuar Luta</button>
+          <button onclick="openTouchEditorFromPause()" class="arcade-btn w-full bg-cyan-600 text-white py-2.5 rounded-xl font-extrabold">🎛️ Editar Botões de Toque</button>
+          <button onclick="openAspectModal()" class="arcade-btn w-full bg-slate-800 text-cyan-300 border border-cyan-500/40 py-2.5 rounded-xl font-bold">📐 Proporção de Tela</button>
+          <button onclick="AudioEngine.cycleMusic()" class="arcade-btn w-full bg-indigo-900 text-indigo-200 py-2.5 rounded-xl font-bold">🎵 Trocar Música</button>
+          <button onclick="quitBattleToMenu()" class="arcade-btn w-full bg-rose-600/90 text-white py-2.5 rounded-xl font-bold">🚪 Sair da Batalha</button>
+        </div>
+      </div>
+
+      <!-- Modal Fim de Round / Vitória / Derrota -->
+      <div id="modal-result" class="hidden absolute inset-0 z-30 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-amber-400 rounded-2xl w-full max-w-md p-6 text-center space-y-4 shadow-2xl">
+          <div id="result-icon" class="text-5xl">🏆</div>
+          <h3 id="result-title" class="text-2xl sm:text-3xl font-extrabold text-amber-300">VITÓRIA!</h3>
+          <p id="result-subtitle" class="text-sm text-slate-300">Você derrotou seu oponente!</p>
+          <div id="result-unlock-box" class="hidden bg-amber-500/20 border border-amber-400 rounded-xl p-3 text-amber-200 font-bold text-sm">
+          </div>
+          <div class="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
+            <button id="btn-result-primary" onclick="handleResultPrimaryAction()" class="arcade-btn bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 px-5 py-2.5 rounded-xl font-extrabold text-sm">
+              Continuar ▶
+            </button>
+            <button onclick="quitBattleToMenu()" class="arcade-btn bg-slate-800 hover:bg-slate-700 text-slate-200 px-5 py-2.5 rounded-xl font-bold text-sm border border-slate-600">
+              Menu Principal
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: MULTIPLAYER P2P ==================== -->
+    <div id="modal-p2p" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border-2 border-emerald-500/60 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xl font-extrabold text-emerald-300">🌐 MULTIPLAYER P2P ONLINE</h3>
+          <button onclick="closeP2PModal()" class="arcade-btn bg-slate-800 px-3 py-1 rounded-xl text-sm font-bold">✖</button>
+        </div>
+        <p class="text-xs text-slate-300">Crie uma sala e envie seu código para um amigo, ou cole o código dele para conectar diretamente via PeerJS!</p>
+
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+          <div class="text-xs font-bold text-slate-400">SEU CÓDIGO DE SALA:</div>
+          <div class="flex items-center gap-2">
+            <input id="p2p-my-id" readonly value="Gerando ID..." class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm font-mono font-bold text-cyan-300" />
+            <button onclick="copyP2PId()" class="arcade-btn bg-cyan-600 hover:bg-cyan-500 px-3 py-2 rounded-xl text-xs font-extrabold text-white">Copiar</button>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+          <div class="text-xs font-bold text-slate-400">ENTRAR NA SALA DE UM AMIGO:</div>
+          <div class="flex items-center gap-2">
+            <input id="p2p-remote-id" placeholder="Cole o código do amigo..." class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm font-mono text-white" />
+            <button onclick="connectToPeer()" class="arcade-btn bg-emerald-500 hover:bg-emerald-400 px-4 py-2 rounded-xl text-xs font-extrabold text-slate-950">Conectar</button>
+          </div>
+        </div>
+
+        <div id="p2p-status" class="text-xs text-center font-bold text-amber-300">Status: Aguardando conexão...</div>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: PROPORÇÃO DE TELA (LARGURA x ALTURA) ==================== -->
+    <div id="modal-aspect" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border-2 border-cyan-500/60 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-extrabold text-cyan-300">📐 PROPORÇÃO DE TELA (LARGURA x ALTURA)</h3>
+          <button onclick="closeAspectModal()" class="arcade-btn bg-slate-800 px-3 py-1 rounded-xl text-sm font-bold">✖</button>
+        </div>
+        <p class="text-xs text-slate-300">Ajuste a proporção da janela do jogo para celular, tablet ou monitor widescreen:</p>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="setAspectRatio('full')" class="arcade-btn bg-slate-800 hover:bg-cyan-900/50 border border-slate-600 p-2.5 rounded-xl text-xs font-bold">📱 Tela Cheia (Auto)</button>
+          <button onclick="setAspectRatio('16:9')" class="arcade-btn bg-slate-800 hover:bg-cyan-900/50 border border-slate-600 p-2.5 rounded-xl text-xs font-bold">🖥️ 16:9 Widescreen</button>
+          <button onclick="setAspectRatio('20:9')" class="arcade-btn bg-slate-800 hover:bg-cyan-900/50 border border-slate-600 p-2.5 rounded-xl text-xs font-bold">📲 20:9 Celular (A10s)</button>
+          <button onclick="setAspectRatio('4:3')" class="arcade-btn bg-slate-800 hover:bg-cyan-900/50 border border-slate-600 p-2.5 rounded-xl text-xs font-bold">📺 4:3 Clássico</button>
+        </div>
+        <div class="flex items-center gap-2 pt-2 border-t border-slate-800">
+          <input id="custom-aspect-w" type="number" value="16" min="1" max="32" class="w-20 bg-slate-800 border border-slate-600 rounded-xl px-2.5 py-1.5 text-sm font-bold text-center" />
+          <span class="font-bold text-slate-400">x</span>
+          <input id="custom-aspect-h" type="number" value="9" min="1" max="32" class="w-20 bg-slate-800 border border-slate-600 rounded-xl px-2.5 py-1.5 text-sm font-bold text-center" />
+          <button onclick="applyCustomAspect()" class="arcade-btn flex-1 bg-cyan-500 text-slate-950 py-1.5 rounded-xl font-extrabold text-xs">Aplicar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: GUIA DE COMBOS E HABILIDADES ==================== -->
+    <div id="modal-guide" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border-2 border-indigo-400/60 rounded-2xl w-full max-w-lg p-5 space-y-3 shadow-2xl max-h-[90vh] overflow-y-auto custom-scroll">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-extrabold text-indigo-300">🕹️ GUIA DE COMBOS &amp; PODERES</h3>
+          <button onclick="closeControlsGuide()" class="arcade-btn bg-slate-800 px-3 py-1 rounded-xl text-sm font-bold">✖</button>
+        </div>
+        <div class="space-y-2 text-xs text-slate-200">
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <strong class="text-cyan-300">👊 Combo Neutro (3 Hits):</strong> Aperte <kbd class="bg-slate-800 px-1.5 py-0.5 rounded">BATER</kbd> (ou <kbd class="bg-slate-800 px-1 rounded">J</kbd>) 3x seguidas para Jab → Gancho → Impacto Final!
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <strong class="text-amber-300">⬆️ Uppercut / Shoryuken:</strong> Segure <kbd class="bg-slate-800 px-1.5 py-0.5 rounded">CIMA</kbd> + <kbd class="bg-slate-800 px-1.5 py-0.5 rounded">BATER</kbd> para subir girando e lançar o inimigo no ar!
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <strong class="text-emerald-300">⬇️ Rasteira Veloz:</strong> Segure <kbd class="bg-slate-800 px-1.5 py-0.5 rounded">BAIXO</kbd> + <kbd class="bg-slate-800 px-1.5 py-0.5 rounded">BATER</kbd> para deslizar por baixo derrubando o oponente!
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <strong class="text-rose-300">↔️ Corte Duplo (Dois Lados):</strong> Segure <kbd class="bg-slate-800 px-1.5 py-0.5 rounded">ESQUERDA/DIREITA</kbd> + <kbd class="bg-slate-800 px-1.5 py-0.5 rounded">BATER</kbd> para avançar golpeando dos dois lados com pós-imagem!
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <strong class="text-purple-300">🌀 Supergiro Aéreo 360°:</strong> No ar, aperte <kbd class="bg-slate-800 px-1.5 py-0.5 rounded">BATER</kbd> para girar em alta velocidade causando múltiplos hits!
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <strong class="text-pink-300">👥 Invocar Clone (25% HP):</strong> Aperte <kbd class="bg-slate-800 px-1.5 py-0.5 rounded">CLONE</kbd> (ou <kbd class="bg-slate-800 px-1 rounded">U</kbd>) com 40+ de energia para criar um aliado com 25% da sua vida!
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <strong class="text-amber-300">⚡ Poder Desenhado:</strong> Aperte <kbd class="bg-slate-800 px-1.5 py-0.5 rounded">PODER</kbd> (ou <kbd class="bg-slate-800 px-1 rounded">K</kbd>) para lançar os projéteis personalizados que você desenhou na Oficina!
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   1. SISTEMA DE ÁUDIO WEB AUDIO API (5 TRILHAS SONORAS + SFX DISTINTOS)
+   ============================================================================ */
+const AudioEngine = (() => {
+  let ctx = null;
+  let muted = false;
+  let musicIndex = 0;
+  let musicTimer = null;
+  let step = 0;
+
+  const tracks = [
+    { name: "Música 1: Dojo", tempo: 170, notes: [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 293.66, 392.00] },
+    { name: "Música 2: Neon", tempo: 140, notes: [220.00, 261.63, 329.63, 440.00, 392.00, 329.63, 246.94, 329.63] },
+    { name: "Música 3: Vulcão", tempo: 130, notes: [146.83, 174.61, 220.00, 146.83, 164.81, 196.00, 246.94, 196.00] },
+    { name: "Música 4: Boss", tempo: 115, notes: [130.81, 155.56, 196.00, 261.63, 246.94, 196.00, 155.56, 123.47] },
+    { name: "Música 5: Vitória", tempo: 160, notes: [392.00, 493.88, 587.33, 783.99, 659.25, 587.33, 493.88, 587.33] }
+  ];
+
+  function ensureCtx() {
+    if (!ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) ctx = new AudioCtx();
+    }
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+  }
+
+  function playTone(freq, duration, type = 'triangle', volume = 0.08, slideTo = null) {
+    if (muted) return;
+    ensureCtx();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      if (slideTo) {
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), now + duration);
+      }
+      gain.gain.setValueAtTime(volume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + duration);
+    } catch (e) {}
+  }
+
+  function startMusicLoop() {
+    if (musicTimer) clearInterval(musicTimer);
+    const track = tracks[musicIndex];
+    musicTimer = setInterval(() => {
+      if (muted) return;
+      const freq = track.notes[step % track.notes.length];
+      playTone(freq, 0.16, step % 4 === 0 ? 'square' : 'triangle', 0.03);
+      step++;
+    }, track.tempo);
+  }
+
+  function cycleMusic() {
+    ensureCtx();
+    musicIndex = (musicIndex + 1) % tracks.length;
+    const lbl = document.getElementById('music-label');
+    if (lbl) lbl.textContent = tracks[musicIndex].name;
+    startMusicLoop();
+    showToast(`🎵 Tocando: ${tracks[musicIndex].name}`);
+  }
+
+  function toggleMute() {
+    muted = !muted;
+    const btn = document.getElementById('btn-mute');
+    if (btn) btn.textContent = muted ? '🔇 Som OFF' : '🔊 Som ON';
+    if (!muted) {
+      ensureCtx();
+      if (!musicTimer) startMusicLoop();
+    }
+  }
+
+  function sfx(type) {
+    ensureCtx();
+    if (muted) return;
+    switch (type) {
+      case 'jump': playTone(260, 0.15, 'sine', 0.09, 540); break;
+      case 'doubleJump': playTone(420, 0.18, 'triangle', 0.1, 820); break;
+      case 'dash': playTone(180, 0.14, 'sawtooth', 0.08, 90); break;
+      case 'punch': playTone(160, 0.09, 'square', 0.11, 70); break;
+      case 'uppercut': playTone(220, 0.25, 'sawtooth', 0.12, 760); break;
+      case 'sweep': playTone(140, 0.18, 'triangle', 0.12, 55); break;
+      case 'spin': playTone(380, 0.22, 'sine', 0.1, 680); break;
+      case 'hit': playTone(110, 0.12, 'sawtooth', 0.14, 45); break;
+      case 'power': playTone(520, 0.28, 'sine', 0.12, 240); break;
+      case 'clone': playTone(330, 0.3, 'triangle', 0.11, 660); break;
+      case 'win':
+        playTone(523.25, 0.15, 'triangle', 0.12);
+        setTimeout(() => playTone(659.25, 0.15, 'triangle', 0.12), 140);
+        setTimeout(() => playTone(783.99, 0.3, 'triangle', 0.14), 280);
+        break;
+    }
+  }
+
+  return { cycleMusic, toggleMute, sfx, startMusicLoop, ensureCtx };
+})();
+
+/* ============================================================================
+   2. ESTADO GLOBAL, DADOS DOS LUTADORES, PODERES E MODO HISTÓRIA
+   ============================================================================ */
+const STORAGE_KEY_FIGHTERS = 'bf_custom_fighters_v2';
+const STORAGE_KEY_PROGRESS = 'bf_story_progress_v2';
+const STORAGE_KEY_TOUCH = 'bf_touch_layout_v2';
+
+// Lutadores Base + Chefes Desbloqueáveis da História
+const BASE_FIGHTERS = [
+  {
+    id: 'kai',
+    name: 'Kai',
+    role: 'Herói do Dojô',
+    color: '#38bdf8',
+    aura: '#facc15',
+    eyes: 'determined',
+    accessory: 'headband',
+    style: 'balanced',
+    maxHp: 110,
+    speed: 5.2,
+    powerScale: 1.0,
+    unlocked: true,
+    power: {
+      name: 'Onda Solar',
+      shape: 'circle',
+      color: '#38bdf8',
+      glow: true,
+      origin: 'front',
+      count: 1,
+      projectiles: [
+        { size: 18, damage: 14, path: [{x:0.15, y:0.55}, {x:0.5, y:0.55}, {x:0.85, y:0.55}] }
+      ]
+    }
+  },
+  {
+    id: 'rubi',
+    name: 'Rubi',
+    role: 'Chama Escarlate',
+    color: '#f43f5e',
+    aura: '#fb923c',
+    eyes: 'angry',
+    accessory: 'headband',
+    style: 'speed',
+    maxHp: 105,
+    speed: 6.0,
+    powerScale: 1.05,
+    unlocked: true,
+    power: {
+      name: 'Lâminas Rubi',
+      shape: 'triangle',
+      color: '#fb7185',
+      glow: true,
+      origin: 'front',
+      count: 2,
+      projectiles: [
+        { size: 15, damage: 9, path: [{x:0.15, y:0.5}, {x:0.5, y:0.35}, {x:0.85, y:0.52}] },
+        { size: 15, damage: 9, path: [{x:0.15, y:0.6}, {x:0.5, y:0.75}, {x:0.85, y:0.58}] }
+      ]
+    }
+  },
+  {
+    id: 'sombra',
+    name: 'Sombra',
+    role: 'Espião do Vazio',
+    color: '#6366f1',
+    aura: '#c084fc',
+    eyes: 'cyber',
+    accessory: 'horns',
+    style: 'speed',
+    maxHp: 105,
+    speed: 5.8,
+    powerScale: 1.05,
+    unlocked: true,
+    power: {
+      name: 'Emboscada Sombria',
+      shape: 'triangle',
+      color: '#a855f7',
+      glow: true,
+      origin: 'back',
+      count: 1,
+      projectiles: [
+        { size: 19, damage: 15, path: [{x:0.95, y:0.45}, {x:0.88, y:0.52}, {x:0.82, y:0.55}] }
+      ]
+    }
+  },
+  {
+    id: 'magma',
+    name: 'Magma',
+    role: 'Guardião da Forja',
+    color: '#ea580c',
+    aura: '#fde047',
+    eyes: 'angry',
+    accessory: 'crown',
+    style: 'power',
+    maxHp: 130,
+    speed: 4.5,
+    powerScale: 1.2,
+    unlocked: true,
+    power: {
+      name: 'Erupção Tectônica',
+      shape: 'square',
+      color: '#f97316',
+      glow: true,
+      origin: 'bottom',
+      count: 2,
+      projectiles: [
+        { size: 20, damage: 11, path: [{x:0.75, y:0.92}, {x:0.78, y:0.65}, {x:0.82, y:0.48}] },
+        { size: 20, damage: 11, path: [{x:0.88, y:0.92}, {x:0.85, y:0.65}, {x:0.82, y:0.48}] }
+      ]
+    }
+  },
+  {
+    id: 'volt',
+    name: 'General Volt',
+    role: 'BOSS • Comandante Cibernético',
+    color: '#eab308',
+    aura: '#22d3ee',
+    eyes: 'cyber',
+    accessory: 'crown',
+    style: 'speed',
+    maxHp: 135,
+    speed: 6.2,
+    powerScale: 1.2,
+    unlocked: false, // Desbloqueado no Cap. 4
+    power: {
+      name: 'Tempestade Orbital',
+      shape: 'triangle',
+      color: '#fde047',
+      glow: true,
+      origin: 'top',
+      count: 3,
+      projectiles: [
+        { size: 16, damage: 8, path: [{x:0.72, y:0.08}, {x:0.76, y:0.35}, {x:0.82, y:0.55}] },
+        { size: 16, damage: 8, path: [{x:0.82, y:0.05}, {x:0.82, y:0.35}, {x:0.82, y:0.55}] },
+        { size: 16, damage: 8, path: [{x:0.92, y:0.08}, {x:0.88, y:0.35}, {x:0.82, y:0.55}] }
+      ]
+    }
+  },
+  {
+    id: 'omega',
+    name: 'Imperador Ômega',
+    role: 'FINAL BOSS • Senhor do Caos',
+    color: '#1e1b4b',
+    aura: '#f43f5e',
+    eyes: 'angry',
+    accessory: 'horns',
+    style: 'power',
+    maxHp: 150,
+    speed: 6.0,
+    powerScale: 1.3,
+    unlocked: false, // Desbloqueado no Cap. 5
+    power: {
+      name: 'Juízo Dimensional',
+      shape: 'square',
+      color: '#f43f5e',
+      glow: true,
+      origin: 'front',
+      count: 3,
+      projectiles: [
+        { size: 20, damage: 10, path: [{x:0.15, y:0.45}, {x:0.5, y:0.25}, {x:0.83, y:0.52}] },
+        { size: 22, damage: 11, path: [{x:0.15, y:0.55}, {x:0.5, y:0.55}, {x:0.83, y:0.55}] },
+        { size: 20, damage: 10, path: [{x:0.15, y:0.65}, {x:0.5, y:0.82}, {x:0.83, y:0.58}] }
+      ]
+    }
+  }
+];
+
+// Capítulos do Modo História com Cutscenes
+const STORY_CHAPTERS = [
+  {
+    id: 1,
+    title: 'Cap. 1: O Despertar no Dojô',
+    enemyId: 'rubi',
+    enemyHpBonus: 0,
+    aiLevel: 0.45,
+    arena: 'dojo',
+    unlockId: null,
+    summary: 'Rubi desafia o campeão do Dojô após rumores de uma fenda dimensional.',
+    preCutscene: [
+      { speaker: 'Narrador', text: 'Nas montanhas iluminadas pelo sol, o Dojô dos Blocos treinava em paz há séculos...' },
+      { speaker: 'Rubi', text: 'Ei! Você acha mesmo que pode proteger o Cristal da Aura? O General Volt já começou a invadir as fronteiras!' },
+      { speaker: 'Herói', text: 'Se quiser provar sua força, Rubi, enfrente-me agora mesmo na arena!' }
+    ],
+    postCutscene: [
+      { speaker: 'Rubi', text: 'Incrível... seus combos direcionais são rápidos demais! Vá para a Floresta das Sombras, os espiões de Volt estão lá.' }
+    ]
+  },
+  {
+    id: 2,
+    title: 'Cap. 2: Sombras na Floresta',
+    enemyId: 'sombra',
+    enemyHpBonus: 15,
+    aiLevel: 0.6,
+    arena: 'dojo',
+    unlockId: null,
+    summary: 'O espião Sombra ataca pelas costas usando projeções do vazio.',
+    preCutscene: [
+      { speaker: 'Sombra', text: 'Hehehe... Você caiu direitinho na emboscada. O Imperador Ômega está drenando a energia de todos os mundos!' },
+      { speaker: 'Herói', text: 'Não importa de qual direção você ataque, meus reflexos vão parar suas lâminas!' }
+    ],
+    postCutscene: [
+      { speaker: 'Sombra', text: 'Argh! Você quebrou minha ilusão... O Guardião Magma está bloqueando o caminho para o Templo Neon!' }
+    ]
+  },
+  {
+    id: 3,
+    title: 'Cap. 3: A Fortaleza Vulcânica',
+    enemyId: 'magma',
+    enemyHpBonus: 30,
+    aiLevel: 0.72,
+    arena: 'volcano',
+    unlockId: null,
+    summary: 'Sub-Boss Magma guarda os portões de lava com erupções subterrâneas.',
+    preCutscene: [
+      { speaker: 'Magma', text: 'NINGUÉM PASSA PELA FORJA DE LAVA! O General Volt me deu poder absoluto para esmagar intrusos!' },
+      { speaker: 'Herói', text: 'Sua força bruta não vai deter minha determinação. Prepare-se!' }
+    ],
+    postCutscene: [
+      { speaker: 'Magma', text: 'O calor da sua aura superou até o núcleo do vulcão... Siga em frente até o Templo Neon!' }
+    ]
+  },
+  {
+    id: 4,
+    title: 'Cap. 4: Tempestade no Templo Neon',
+    enemyId: 'volt',
+    enemyHpBonus: 45,
+    aiLevel: 0.85,
+    arena: 'cyber',
+    unlockId: 'volt',
+    summary: 'BOSS: General Volt dispara raios orbitais do céu! Vença para desbloqueá-lo.',
+    preCutscene: [
+      { speaker: 'General Volt', text: 'BZZT! Detectando invasor orgânico. Meus satélites vão bombardear cada centímetro desta arena!' },
+      { speaker: 'Herói', text: 'Desative suas máquinas, Volt! O reinado de terror acaba hoje!' }
+    ],
+    postCutscene: [
+      { speaker: 'General Volt', text: 'Sistemas... falhando... Você é digno. Use minha tecnologia contra o verdadeiro vilão: o Imperador Ômega!' },
+      { speaker: 'Sistema', text: '🎉 NOVO LUTADOR DESBLOQUEADO: General Volt agora está disponível em todos os modos!' }
+    ]
+  },
+  {
+    id: 5,
+    title: 'Cap. 5: O Trono do Caos (FINAL BOSS)',
+    enemyId: 'omega',
+    enemyHpBonus: 70,
+    aiLevel: 0.96,
+    arena: 'void',
+    unlockId: 'omega',
+    summary: 'FINAL BOSS: Imperador Ômega invoca clones e rajadas dimensionais!',
+    preCutscene: [
+      { speaker: 'Imperador Ômega', text: 'MUAHAHAHA! Até que enfim chegou, pequeno bloco. Eu absorvi a energia de mil dimensões e posso criar exércitos de clones!' },
+      { speaker: 'Herói', text: 'Mesmo com todo o poder do Caos, nós nunca vamos desistir!' },
+      { speaker: 'Imperador Ômega', text: 'Então testemunhe o fim do seu universo!' }
+    ],
+    postCutscene: [
+      { speaker: 'Imperador Ômega', text: 'IMPOSSÍVEL! Uma aura tão pura... estilhaçou a dimensão do caos!' },
+      { speaker: 'Narrador', text: 'A paz retornou ao mundo dos blocos. Seu nome será lembrado como a Lenda Suprema!' },
+      { speaker: 'Sistema', text: '👑 FINAL BOSS DESBLOQUEADO: Imperador Ômega agora é jogável!' }
+    ]
+  }
+];
+
+let customFighters = [];
+let storyProgress = {
+  maxChapterUnlocked: 1,
+  unlockedIds: ['kai', 'rubi', 'sombra', 'magma'],
+  selectedHeroId: 'kai'
+};
+
+// Estado de Navegação e Seleção
+let appState = {
+  mode: 'solo', // 'solo' | 'story' | 'p2p'
+  selectStep: 1, // 1 = Escolhendo P1, 2 = Escolhendo Oponente (CPU)
+  p1Fighter: null,
+  p2Fighter: null,
+  arena: 'dojo',
+  currentChapter: null,
+  cutsceneQueue: [],
+  cutsceneIndex: 0,
+  cutsceneCallback: null
+};
+
+// Carregar dados salvos
+function loadSavedData() {
+  try {
+    const f = localStorage.getItem(STORAGE_KEY_FIGHTERS);
+    if (f) customFighters = JSON.parse(f);
+  } catch (e) { customFighters = []; }
+
+  try {
+    const p = localStorage.getItem(STORAGE_KEY_PROGRESS);
+    if (p) {
+      const parsed = JSON.parse(p);
+      storyProgress = { ...storyProgress, ...parsed };
+    }
+  } catch (e) {}
+  updateFooterUnlocked();
+}
+
+function saveStoryProgress() {
+  try {
+    localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(storyProgress));
+  } catch (e) {}
+  updateFooterUnlocked();
+}
+
+function getAllFighters() {
+  const baseWithUnlock = BASE_FIGHTERS.map(f => ({
+    ...f,
+    unlocked: f.unlocked || storyProgress.unlockedIds.includes(f.id)
+  }));
+  return [...baseWithUnlock, ...customFighters.map(cf => ({ ...cf, unlocked: true }))];
+}
+
+function updateFooterUnlocked() {
+  const all = getAllFighters();
+  const unlockedCount = all.filter(f => f.unlocked).length;
+  const el = document.getElementById('footer-unlocked-count');
+  if (el) el.textContent = `${unlockedCount}/${all.length}`;
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast-banner');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.add('hidden'), 2800);
+}
+
+function showScreen(name) {
+  ['menu', 'story', 'cutscene', 'select', 'workshop', 'battle'].forEach(s => {
+    const el = document.getElementById(`screen-${s}`);
+    if (el) el.classList.add('hidden');
+  });
+  const target = document.getElementById(`screen-${name}`);
+  if (target) target.classList.remove('hidden');
+}
+
+/* ============================================================================
+   3. CORREÇÃO DA SELEÇÃO NO MODO SOLO (P1 -> OPONENTE CPU) & P2P
+   ============================================================================ */
+function openCharSelect(mode) {
+  AudioEngine.ensureCtx();
+  appState.mode = mode;
+  appState.selectStep = 1;
+  appState.p1Fighter = null;
+  appState.p2Fighter = null;
+
+  showScreen('select');
+  renderSelectScreen();
+}
+
+function renderSelectScreen() {
+  const stepBadge = document.getElementById('select-step-badge');
+  const title = document.getElementById('select-title');
+  const btnConfirm = document.getElementById('btn-confirm-select');
+  const btnBack = document.getElementById('btn-select-back');
+  const p2Role = document.getElementById('preview-p2-role');
+
+  if (appState.mode === 'p2p') {
+    stepBadge.textContent = 'MULTIPLAYER ONLINE';
+    title.textContent = 'ESCOLHA SEU LUTADOR P2P';
+    p2Role.textContent = 'ADVERSÁRIO ONLINE';
+    btnBack.textContent = '⬅ Menu';
+    btnConfirm.textContent = 'Pronto para Lutar! ⚔️';
+  } else {
+    // Modo Solo: Passo 1 (P1) ou Passo 2 (Oponente CPU)
+    if (appState.selectStep === 1) {
+      stepBadge.textContent = 'PASSO 1 DE 2 • JOGADOR 1';
+      stepBadge.className = 'inline-block px-3 py-0.5 rounded-full text-xs font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 mb-0.5';
+      title.textContent = 'ESCOLHA SEU LUTADOR (P1)';
+      btnBack.textContent = '⬅ Menu';
+      btnConfirm.textContent = 'Confirmar P1 ➡';
+    } else {
+      stepBadge.textContent = 'PASSO 2 DE 2 • ESCOLHA O INIMIGO';
+      stepBadge.className = 'inline-block px-3 py-0.5 rounded-full text-xs font-extrabold bg-rose-500/20 text-rose-300 border border-rose-400/40 mb-0.5';
+      title.textContent = 'ESCOLHA SEU OPONENTE (CPU)';
+      btnBack.textContent = '⬅ Trocar P1';
+      btnConfirm.textContent = 'INICIAR BATALHA! ⚔️';
+    }
+    p2Role.textContent = 'OPONENTE (CPU)';
+  }
+
+  // Atualizar Cards Superiores P1 e P2
+  updateFighterPreviewCard('p1', appState.p1Fighter);
+  updateFighterPreviewCard('p2', appState.p2Fighter);
+
+  // Renderizar Grid de Personagens
+  const grid = document.getElementById('roster-grid');
+  grid.innerHTML = '';
+  const all = getAllFighters();
+
+  all.forEach(f => {
+    const isSelectedP1 = appState.p1Fighter && appState.p1Fighter.id === f.id;
+    const isSelectedP2 = appState.p2Fighter && appState.p2Fighter.id === f.id;
+    const locked = !f.unlocked;
+
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = `arcade-btn relative p-3 rounded-2xl border-2 text-left transition flex flex-col justify-between ${
+      locked
+        ? 'bg-slate-900/50 border-slate-800 opacity-60 cursor-not-allowed'
+        : isSelectedP1 && appState.selectStep === 1
+        ? 'bg-cyan-950/60 border-cyan-400 shadow-lg shadow-cyan-500/20'
+        : isSelectedP2 && appState.selectStep === 2
+        ? 'bg-rose-950/60 border-rose-400 shadow-lg shadow-rose-500/20'
+        : 'bg-slate-900 hover:bg-slate-800 border-slate-700'
+    }`;
+
+    card.innerHTML = `
+      <div class="flex items-center gap-2.5">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center font-black text-white text-lg shrink-0 relative"
+             style="background:${f.color}; box-shadow: 0 0 12px ${f.aura};">
+          ${locked ? '🔒' : '▪_▪'}
+        </div>
+        <div class="min-w-0">
+          <div class="font-extrabold text-sm text-white truncate">${f.name}</div>
+          <div class="text-[11px] text-slate-400 truncate">${locked ? 'Desbloqueie na História' : f.role}</div>
+        </div>
+      </div>
+      <div class="mt-2 pt-1.5 border-t border-slate-800 flex items-center justify-between text-[10px] font-bold">
+        <span class="text-amber-300 truncate">⚡ ${f.power ? f.power.name : 'Energia'}</span>
+        ${isSelectedP1 ? '<span class="bg-cyan-500 text-slate-950 px-1.5 py-0.5 rounded">P1</span>' : ''}
+        ${isSelectedP2 ? '<span class="bg-rose-500 text-white px-1.5 py-0.5 rounded">CPU</span>' : ''}
+      </div>
+    `;
+
+    card.onclick = () => {
+      if (locked) {
+        showToast('🔒 Vença o Modo História para desbloquear este Boss!');
+        return;
+      }
+      AudioEngine.sfx('punch');
+      if (appState.mode === 'p2p' || appState.selectStep === 1) {
+        appState.p1Fighter = JSON.parse(JSON.stringify(f));
+      } else {
+        appState.p2Fighter = JSON.parse(JSON.stringify(f));
+      }
+      renderSelectScreen();
+    };
+
+    grid.appendChild(card);
+  });
+}
+
+function updateFighterPreviewCard(slot, fighter) {
+  const avatar = document.getElementById(`preview-${slot}-avatar`);
+  const name = document.getElementById(`preview-${slot}-name`);
+  const power = document.getElementById(`preview-${slot}-power`);
+  const card = document.getElementById(`preview-${slot}-card`);
+
+  if (!fighter) {
+    avatar.style.background = '#1e293b';
+    avatar.style.boxShadow = 'none';
+    avatar.textContent = '?';
+    name.textContent = slot === 'p1' ? 'Escolha abaixo...' : 'Aguardando escolha...';
+    name.className = 'text-sm sm:text-base font-extrabold truncate text-slate-400';
+    power.textContent = '---';
+    card.className = 'flex items-center gap-3 p-2 rounded-xl border border-slate-700 bg-slate-800/40';
+    return;
+  }
+
+  avatar.style.background = fighter.color;
+  avatar.style.boxShadow = `0 0 14px ${fighter.aura}`;
+  avatar.textContent = '▪_▪';
+  name.textContent = fighter.name;
+  name.className = 'text-sm sm:text-base font-extrabold truncate text-white';
+  power.textContent = `⚡ ${fighter.power.name} (${fighter.power.count}x)`;
+  card.className = slot === 'p1'
+    ? 'flex items-center gap-3 p-2 rounded-xl border-2 border-cyan-400 bg-cyan-950/35'
+    : 'flex items-center gap-3 p-2 rounded-xl border-2 border-rose-400 bg-rose-950/35';
+}
+
+function handleSelectBack() {
+  if (appState.mode === 'solo' && appState.selectStep === 2) {
+    appState.selectStep = 1;
+    appState.p2Fighter = null;
+    renderSelectScreen();
+  } else {
+    showScreen('menu');
+  }
+}
+
+function confirmSelectionStep() {
+  if (appState.mode === 'p2p') {
+    if (!appState.p1Fighter) {
+      showToast('Selecione seu lutador primeiro!');
+      return;
+    }
+    P2PManager.sendFighterReady(appState.p1Fighter);
+    return;
+  }
+
+  // Modo Solo
+  if (appState.selectStep === 1) {
+    if (!appState.p1Fighter) {
+      showToast('Escolha primeiro o seu lutador (P1)!');
+      return;
+    }
+    appState.selectStep = 2;
+    // Pré-seleciona o primeiro diferente apenas como sugestão visual, mas deixa o jogador clicar livremente
+    renderSelectScreen();
+    showToast('Agora escolha manualmente o seu OPONENTE (CPU)!');
+  } else {
+    if (!appState.p2Fighter) {
+      showToast('Clique em um lutador para ser seu oponente!');
+      return;
+    }
+    startBattle({
+      mode: 'solo',
+      p1: appState.p1Fighter,
+      p2: appState.p2Fighter,
+      arena: appState.arena,
+      aiLevel: 0.65
+    });
+  }
+}
+
+function setArena(arenaId) {
+  appState.arena = arenaId;
+  document.querySelectorAll('.arena-opt').forEach(btn => {
+    if (btn.dataset.arena === arenaId) {
+      btn.className = 'arena-opt arcade-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950';
+    } else {
+      btn.className = 'arena-opt arcade-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-200';
+    }
+  });
+}
+
+/* ============================================================================
+   4. MODO HISTÓRIA COM CUTSCENES ANIMADAS E DESBLOQUEIO DE BOSSES
+   ============================================================================ */
+function startStoryMenu() {
+  AudioEngine.ensureCtx();
+  showScreen('story');
+  renderStoryScreen();
+}
+
+function renderStoryScreen() {
+  document.getElementById('story-progress-text').textContent = `Até Cap. ${storyProgress.maxChapterUnlocked}`;
+
+  // Seletor do Herói da Campanha
+  const heroPicker = document.getElementById('story-hero-picker');
+  heroPicker.innerHTML = '';
+  getAllFighters().filter(f => f.unlocked).forEach(f => {
+    const active = storyProgress.selectedHeroId === f.id;
+    const btn = document.createElement('button');
+    btn.className = `arcade-btn shrink-0 px-3 py-2 rounded-xl border text-xs font-extrabold flex items-center gap-2 ${
+      active ? 'bg-cyan-950 border-cyan-400 text-cyan-200' : 'bg-slate-800 border-slate-700 text-slate-300'
+    }`;
+    btn.innerHTML = `<span class="w-4 h-4 rounded inline-block" style="background:${f.color}"></span> ${f.name}`;
+    btn.onclick = () => {
+      storyProgress.selectedHeroId = f.id;
+      saveStoryProgress();
+      renderStoryScreen();
+    };
+    heroPicker.appendChild(btn);
+  });
+
+  // Lista de Capítulos
+  const list = document.getElementById('story-chapters-list');
+  list.innerHTML = '';
+  STORY_CHAPTERS.forEach(ch => {
+    const unlocked = ch.id <= storyProgress.maxChapterUnlocked;
+    const enemy = BASE_FIGHTERS.find(b => b.id === ch.enemyId);
+    const card = document.createElement('div');
+    card.className = `p-4 rounded-2xl border-2 flex flex-col justify-between gap-3 ${
+      unlocked ? 'bg-slate-900 border-amber-500/50' : 'bg-slate-900/40 border-slate-800 opacity-60'
+    }`;
+
+    card.innerHTML = `
+      <div>
+        <div class="flex items-center justify-between gap-2 mb-1">
+          <span class="text-sm sm:text-base font-extrabold text-amber-300">${ch.title}</span>
+          <span class="text-xs px-2 py-0.5 rounded-lg font-bold ${unlocked ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">
+            ${unlocked ? 'Disponível' : '🔒 Bloqueado'}
+          </span>
+        </div>
+        <p class="text-xs text-slate-300 mb-2">${ch.summary}</p>
+        <div class="flex items-center gap-2 text-xs text-slate-400">
+          <span>Inimigo: <strong class="text-rose-400">${enemy ? enemy.name : ch.enemyId}</strong></span>
+          ${ch.unlockId ? `<span class="text-amber-300 font-bold">• Desbloqueia Boss!</span>` : ''}
+        </div>
+      </div>
+      <button ${unlocked ? '' : 'disabled'} class="arcade-btn w-full py-2 rounded-xl font-extrabold text-xs sm:text-sm ${
+        unlocked ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow' : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+      }">
+        ${unlocked ? '▶ Jogar Capítulo' : 'Complete o capítulo anterior'}
+      </button>
+    `;
+
+    if (unlocked) {
+      card.querySelector('button').onclick = () => launchStoryChapter(ch);
+    }
+    list.appendChild(card);
+  });
+}
+
+function launchStoryChapter(chapter) {
+  appState.currentChapter = chapter;
+  const hero = getAllFighters().find(f => f.id === storyProgress.selectedHeroId) || BASE_FIGHTERS[0];
+  const enemyBase = BASE_FIGHTERS.find(f => f.id === chapter.enemyId);
+  const enemy = JSON.parse(JSON.stringify(enemyBase));
+  enemy.maxHp += chapter.enemyHpBonus;
+
+  playCutscene(chapter.title, chapter.preCutscene, hero, enemy, () => {
+    startBattle({
+      mode: 'story',
+      p1: JSON.parse(JSON.stringify(hero)),
+      p2: enemy,
+      arena: chapter.arena,
+      aiLevel: chapter.aiLevel,
+      chapter
+    });
+  });
+}
+
+// Sistema de Cutscene Ilustrada no Canvas
+let cutsceneAnimId = null;
+let cutsceneHeroObj = null;
+let cutsceneEnemyObj = null;
+
+function playCutscene(badgeTitle, lines, hero, enemy, onComplete) {
+  appState.cutsceneQueue = lines;
+  appState.cutsceneIndex = 0;
+  appState.cutsceneCallback = onComplete;
+  cutsceneHeroObj = hero;
+  cutsceneEnemyObj = enemy;
+
+  document.getElementById('cutscene-chapter-badge').textContent = badgeTitle;
+  showScreen('cutscene');
+  updateCutsceneUI();
+  startCutsceneCanvasLoop();
+}
+
+function updateCutsceneUI() {
+  const line = appState.cutsceneQueue[appState.cutsceneIndex];
+  if (!line) return;
+  document.getElementById('cutscene-speaker').textContent = line.speaker;
+  document.getElementById('cutscene-text').textContent = line.text;
+  document.getElementById('cutscene-step-counter').textContent = `${appState.cutsceneIndex + 1} / ${appState.cutsceneQueue.length}`;
+  document.getElementById('btn-cutscene-next').textContent =
+    appState.cutsceneIndex === appState.cutsceneQueue.length - 1 ? 'Iniciar Combate! ⚔️' : 'Continuar ▶';
+}
+
+function nextCutsceneLine() {
+  AudioEngine.sfx('punch');
+  appState.cutsceneIndex++;
+  if (appState.cutsceneIndex >= appState.cutsceneQueue.length) {
+    finishCutscene();
+  } else {
+    updateCutsceneUI();
+  }
+}
+
+function skipCutscene() {
+  finishCutscene();
+}
+
+function finishCutscene() {
+  if (cutsceneAnimId) cancelAnimationFrame(cutsceneAnimId);
+  if (appState.cutsceneCallback) {
+    const cb = appState.cutsceneCallback;
+    appState.cutsceneCallback = null;
+    cb();
+  }
+}
+
+function startCutsceneCanvasLoop() {
+  const canvas = document.getElementById('cutscene-canvas');
+  const ctx = canvas.getContext('2d');
+  let t = 0;
+
+  function render() {
+    if (document.getElementById('screen-cutscene').classList.contains('hidden')) return;
+    const rect = canvas.parentElement.getBoundingClientRect();
+    if (canvas.width !== rect.width || canvas.height !== rect.height) {
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    const w = canvas.width;
+    const h = canvas.height;
+    t += 0.04;
+
+    // Fundo dramático
+    const grad = ctx.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, '#090d16');
+    grad.addColorStop(0.5, '#1e1b4b');
+    grad.addColorStop(1, '#090d16');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Raios de energia ao fundo
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 6; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, ((t * 40 + i * 90) % h));
+      ctx.lineTo(w, ((t * 40 + i * 90 + 60) % h));
+      ctx.stroke();
+    }
+
+    // Desenhar Herói à Esquerda e Vilão à Direita
+    const bob1 = Math.sin(t * 2) * 8;
+    const bob2 = Math.cos(t * 2) * 8;
+    if (cutsceneHeroObj) {
+      drawCuteBlock(ctx, w * 0.28, h * 0.44 + bob1, 76, cutsceneHeroObj, 1, 0);
+    }
+    if (cutsceneEnemyObj) {
+      drawCuteBlock(ctx, w * 0.72, h * 0.44 + bob2, 84, cutsceneEnemyObj, -1, 0);
+    }
+
+    cutsceneAnimId = requestAnimationFrame(render);
+  }
+  render();
+}
+
+/* ============================================================================
+   5. OFICINA DE LUTADOR + CRIADOR VISUAL DE PODERES (COM TRAÇADO DE PERCURSO)
+   ============================================================================ */
+let workshopPowerState = {
+  name: 'Raio Estelar',
+  shape: 'circle',
+  color: '#38bdf8',
+  glow: true,
+  origin: 'front',
+  count: 1,
+  projectiles: [
+    { size: 18, damage: 14, path: [{x:0.18, y:0.55}, {x:0.5, y:0.55}, {x:0.82, y:0.55}] },
+    { size: 16, damage: 10, path: [{x:0.18, y:0.45}, {x:0.5, y:0.3}, {x:0.82, y:0.52}] },
+    { size: 16, damage: 10, path: [{x:0.18, y:0.65}, {x:0.5, y:0.8}, {x:0.82, y:0.58}] }
+  ]
+};
+let activePowerProjIdx = 0;
+let previewBlastProgress = -1; // -1 = parado, 0..1 = animando disparo teste
+
+function openWorkshop() {
+  showScreen('workshop');
+  renderCustomFightersList();
+  updateWorkshopPreview();
+}
+
+function updateWorkshopPreview() {
+  const canvas = document.getElementById('workshop-char-canvas');
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width || 300;
+  canvas.height = rect.height || 144;
+  const ctx = canvas.getContext('2d');
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const mockFighter = {
+    color: document.getElementById('ws-color').value,
+    aura: document.getElementById('ws-aura').value,
+    eyes: document.getElementById('ws-eyes').value,
+    accessory: document.getElementById('ws-accessory').value
+  };
+  drawCuteBlock(ctx, canvas.width / 2, canvas.height * 0.62, 54, mockFighter, 1, 0);
+
+  // Atualizar texto resumo do poder
+  const originMap = { front: 'Frente', top: 'De Cima', bottom: 'De Baixo', back: 'Por Trás' };
+  const shapeMap = { circle: 'Redondo', triangle: 'Triangular', square: 'Quadrado' };
+  document.getElementById('ws-power-summary').textContent =
+    `${workshopPowerState.name} • ${shapeMap[workshopPowerState.shape]} ${workshopPowerState.glow ? '(Brilha)' : ''} • ${workshopPowerState.count}x • ${originMap[workshopPowerState.origin]}`;
+}
+
+function saveCustomFighter() {
+  const name = document.getElementById('ws-name').value.trim() || 'Lutador';
+  const style = document.getElementById('ws-style').value;
+  const newFighter = {
+    id: 'custom_' + Date.now(),
+    name,
+    role: 'Lutador Personalizado',
+    color: document.getElementById('ws-color').value,
+    aura: document.getElementById('ws-aura').value,
+    eyes: document.getElementById('ws-eyes').value,
+    accessory: document.getElementById('ws-accessory').value,
+    style,
+    maxHp: style === 'power' ? 125 : style === 'speed' ? 105 : 115,
+    speed: style === 'speed' ? 6.1 : style === 'power' ? 4.8 : 5.4,
+    powerScale: style === 'power' ? 1.15 : 1.0,
+    unlocked: true,
+    power: JSON.parse(JSON.stringify(workshopPowerState))
+  };
+
+  customFighters.push(newFighter);
+  try {
+    localStorage.setItem(STORAGE_KEY_FIGHTERS, JSON.stringify(customFighters));
+  } catch (e) {}
+  updateFooterUnlocked();
+  renderCustomFightersList();
+  AudioEngine.sfx('win');
+  showToast(`✅ Lutador "${name}" e seu poder foram salvos!`);
+}
+
+function renderCustomFightersList() {
+  const container = document.getElementById('custom-fighters-list');
+  container.innerHTML = '';
+  if (customFighters.length === 0) {
+    container.innerHTML = `<div class="col-span-2 text-center text-xs text-slate-400 py-8">Nenhum lutador personalizado criado ainda. Configure ao lado e clique em Salvar!</div>`;
+    return;
+  }
+
+  customFighters.forEach((f, idx) => {
+    const div = document.createElement('div');
+    div.className = 'bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2';
+    div.innerHTML = `
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shrink-0" style="background:${f.color}; box-shadow:0 0 10px ${f.aura}">▪_▪</div>
+        <div class="min-w-0">
+          <div class="font-extrabold text-sm text-white truncate">${f.name}</div>
+          <div class="text-[11px] text-amber-300 truncate">⚡ ${f.power.name} (${f.power.count}x)</div>
+        </div>
+      </div>
+      <button onclick="deleteCustomFighter(${idx})" class="arcade-btn bg-rose-950 hover:bg-rose-800 text-rose-300 px-2.5 py-1.5 rounded-lg text-xs font-bold">🗑️</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function deleteCustomFighter(idx) {
+  customFighters.splice(idx, 1);
+  localStorage.setItem(STORAGE_KEY_FIGHTERS, JSON.stringify(customFighters));
+  updateFooterUnlocked();
+  renderCustomFightersList();
+}
+
+// --- Modal Criador de Poderes ---
+function openPowerCreator() {
+  document.getElementById('modal-power-creator').classList.remove('hidden');
+  document.getElementById('pwr-name').value = workshopPowerState.name;
+  document.getElementById('pwr-shape').value = workshopPowerState.shape;
+  document.getElementById('pwr-color').value = workshopPowerState.color;
+  document.getElementById('pwr-glow').checked = workshopPowerState.glow;
+  document.getElementById('pwr-origin').value = workshopPowerState.origin;
+  setPowerCount(workshopPowerState.count);
+  initPowerDrawCanvas();
+}
+
+function closePowerCreator() {
+  document.getElementById('modal-power-creator').classList.add('hidden');
+  updateWorkshopPreview();
+}
+
+function syncPowerFormToState() {
+  workshopPowerState.name = document.getElementById('pwr-name').value.trim() || 'Poder Custom';
+  workshopPowerState.shape = document.getElementById('pwr-shape').value;
+  workshopPowerState.color = document.getElementById('pwr-color').value;
+  workshopPowerState.glow = document.getElementById('pwr-glow').checked;
+  workshopPowerState.origin = document.getElementById('pwr-origin').value;
+}
+
+function setPowerCount(count) {
+  workshopPowerState.count = count;
+  [1, 2, 3].forEach(n => {
+    const btn = document.getElementById(`btn-pwr-count-${n}`);
+    btn.className = n === count
+      ? 'pwr-count-btn arcade-btn py-1.5 rounded-xl text-xs font-extrabold bg-amber-500 text-slate-950'
+      : 'pwr-count-btn arcade-btn py-1.5 rounded-xl text-xs font-extrabold bg-slate-800 text-slate-200';
+  });
+  if (activePowerProjIdx >= count) activePowerProjIdx = 0;
+  renderProjectileTabs();
+}
+
+function renderProjectileTabs() {
+  const tabs = document.getElementById('pwr-proj-tabs');
+  tabs.innerHTML = '';
+  for (let i = 0; i < workshopPowerState.count; i++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = `#${i + 1}`;
+    btn.className = i === activePowerProjIdx
+      ? 'px-2.5 py-0.5 rounded-lg text-xs font-extrabold bg-cyan-400 text-slate-950'
+      : 'px-2.5 py-0.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300';
+    btn.onclick = () => {
+      activePowerProjIdx = i;
+      renderProjectileTabs();
+    };
+    tabs.appendChild(btn);
+  }
+  document.getElementById('draw-proj-index').textContent = `#${activePowerProjIdx + 1}`;
+  const proj = workshopPowerState.projectiles[activePowerProjIdx];
+  document.getElementById('pwr-size').value = proj.size;
+  document.getElementById('pwr-size-val').textContent = proj.size;
+  document.getElementById('pwr-dmg').value = proj.damage;
+  document.getElementById('pwr-dmg-val').textContent = proj.damage;
+}
+
+function updateActiveProjectileProp(prop, val) {
+  workshopPowerState.projectiles[activePowerProjIdx][prop] = val;
+  if (prop === 'size') document.getElementById('pwr-size-val').textContent = val;
+  if (prop === 'damage') document.getElementById('pwr-dmg-val').textContent = val;
+}
+
+function clearCurrentPowerPath() {
+  workshopPowerState.projectiles[activePowerProjIdx].path = [];
+  showToast(`Traço do projétil #${activePowerProjIdx + 1} limpo! Desenhe a nova linha.`);
+}
+
+function triggerPowerPreviewBlast() {
+  syncPowerFormToState();
+  previewBlastProgress = 0;
+  AudioEngine.sfx('power');
+}
+
+function applyCustomPowerToFighter() {
+  syncPowerFormToState();
+  // Garantir que cada projétil ativo tenha um caminho válido
+  const originDefaults = {
+    front: [{x:0.18, y:0.55}, {x:0.82, y:0.55}],
+    top: [{x:0.82, y:0.08}, {x:0.82, y:0.55}],
+    bottom: [{x:0.82, y:0.92}, {x:0.82, y:0.55}],
+    back: [{x:0.96, y:0.55}, {x:0.82, y:0.55}]
+  };
+  for (let i = 0; i < workshopPowerState.count; i++) {
+    if (!workshopPowerState.projectiles[i].path || workshopPowerState.projectiles[i].path.length < 2) {
+      workshopPowerState.projectiles[i].path = JSON.parse(JSON.stringify(originDefaults[workshopPowerState.origin]));
+    }
+  }
+  closePowerCreator();
+  showToast(`✨ Poder "${workshopPowerState.name}" equipado!`);
+}
+
+let powerDrawInitialized = false;
+function initPowerDrawCanvas() {
+  const canvas = document.getElementById('power-draw-canvas');
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+
+  function getNormPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: Math.max(0.03, Math.min(0.97, (clientX - rect.left) / rect.width)),
+      y: Math.max(0.05, Math.min(0.95, (clientY - rect.top) / rect.height))
+    };
+  }
+
+  if (!powerDrawInitialized) {
+    powerDrawInitialized = true;
+    const startDraw = (e) => {
+      e.preventDefault();
+      drawing = true;
+      const pt = getNormPos(e);
+      workshopPowerState.projectiles[activePowerProjIdx].path = [pt];
+    };
+    const moveDraw = (e) => {
+      if (!drawing) return;
+      e.preventDefault();
+      const pt = getNormPos(e);
+      const path = workshopPowerState.projectiles[activePowerProjIdx].path;
+      const last = path[path.length - 1];
+      if (!last || Math.hypot(pt.x - last.x, pt.y - last.y) > 0.015) {
+        path.push(pt);
+      }
+    };
+    const endDraw = () => { drawing = false; };
+
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', moveDraw);
+    window.addEventListener('mouseup', endDraw);
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchmove', moveDraw, { passive: false });
+    window.addEventListener('touchend', endDraw);
+  }
+
+  function renderDrawLoop() {
+    if (document.getElementById('modal-power-creator').classList.contains('hidden')) return;
+    const rect = canvas.parentElement.getBoundingClientRect();
+    if (canvas.width !== rect.width || canvas.height !== rect.height) {
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.fillStyle = '#070b14';
+    ctx.fillRect(0, 0, w, h);
+
+    // Grade tática
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < w; x += 28) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+    for (let y = 0; y < h; y += 28) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+
+    // Chão
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, h * 0.85, w, h * 0.15);
+
+    // Desenhar Lutador (Esquerda) e Boneco-Alvo (Direita)
+    drawCuteBlock(ctx, w * 0.16, h * 0.72, 38, {
+      color: document.getElementById('ws-color').value,
+      aura: document.getElementById('ws-aura').value,
+      eyes: 'determined',
+      accessory: 'headband'
+    }, 1, 0);
+
+    drawCuteBlock(ctx, w * 0.82, h * 0.72, 38, {
+      color: '#f43f5e',
+      aura: '#fb923c',
+      eyes: 'angry',
+      accessory: 'none'
+    }, -1, 0);
+
+    // Desenhar trajetórias de todos os projéteis ativos
+    for (let i = 0; i < workshopPowerState.count; i++) {
+      const proj = workshopPowerState.projectiles[i];
+      if (!proj.path || proj.path.length === 0) continue;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.strokeStyle = i === activePowerProjIdx ? workshopPowerState.color : 'rgba(148, 163, 184, 0.45)';
+      ctx.lineWidth = i === activePowerProjIdx ? 3.5 : 2;
+      if (i !== activePowerProjIdx) ctx.setLineDash([5, 5]);
+
+      proj.path.forEach((pt, idx) => {
+        if (idx === 0) ctx.moveTo(pt.x * w, pt.y * h);
+        else ctx.lineTo(pt.x * w, pt.y * h);
+      });
+      ctx.stroke();
+      ctx.restore();
+
+      // Desenhar o projétil na posição animada ou no ponto inicial
+      let samplePt = proj.path[0];
+      if (previewBlastProgress >= 0 && proj.path.length > 1) {
+        const floatIdx = Math.min(proj.path.length - 1, previewBlastProgress * (proj.path.length - 1));
+        const idx0 = Math.floor(floatIdx);
+        const idx1 = Math.min(proj.path.length - 1, idx0 + 1);
+        const frac = floatIdx - idx0;
+        samplePt = {
+          x: proj.path[idx0].x + (proj.path[idx1].x - proj.path[idx0].x) * frac,
+          y: proj.path[idx0].y + (proj.path[idx1].y - proj.path[idx0].y) * frac
+        };
+      }
+      drawCustomProjectileShape(
+        ctx,
+        samplePt.x * w,
+        samplePt.y * h,
+        proj.size,
+        workshopPowerState.shape,
+        workshopPowerState.color,
+        workshopPowerState.glow,
+        previewBlastProgress * 12
+      );
+    }
+
+    if (previewBlastProgress >= 0) {
+      previewBlastProgress += 0.035;
+      if (previewBlastProgress > 1.15) previewBlastProgress = -1;
+    }
+
+    requestAnimationFrame(renderDrawLoop);
+  }
+  renderDrawLoop();
+}
+
+/* ============================================================================
+   6. RENDERIZAÇÃO DOS BLOQUINHOS FOFINHOS E PROJÉTEIS PERSONALIZADOS
+   ============================================================================ */
+function drawCuteBlock(ctx, x, y, size, fighter, facing = 1, rotation = 0, isClone = false) {
+  ctx.save();
+  ctx.translate(x, y);
+  if (isClone) ctx.globalAlpha = 0.82;
+  if (rotation !== 0) ctx.rotate(rotation);
+
+  const half = size / 2;
+
+  // Aura brilhante ao redor
+  ctx.shadowColor = fighter.aura || '#facc15';
+  ctx.shadowBlur = isClone ? 10 : 18;
+
+  // Corpo arredondado fofinho
+  ctx.fillStyle = fighter.color || '#38bdf8';
+  ctx.beginPath();
+  ctx.roundRect(-half, -half, size, size, size * 0.24);
+  ctx.fill();
+
+  // Borda interna sutil
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = isClone ? '#c084fc' : 'rgba(255,255,255,0.45)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Acessório
+  if (fighter.accessory === 'headband') {
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(-half - 1, -half + size * 0.16, size + 2, size * 0.13);
+    // Pontas da faixa esvoaçando atrás
+    ctx.beginPath();
+    ctx.moveTo(-facing * half, -half + size * 0.2);
+    ctx.lineTo(-facing * (half + size * 0.35), -half + size * 0.1);
+    ctx.lineTo(-facing * (half + size * 0.3), -half + size * 0.32);
+    ctx.fill();
+  } else if (fighter.accessory === 'crown') {
+    ctx.fillStyle = '#facc15';
+    ctx.beginPath();
+    ctx.moveTo(-half * 0.6, -half);
+    ctx.lineTo(-half * 0.35, -half - size * 0.24);
+    ctx.lineTo(0, -half - size * 0.08);
+    ctx.lineTo(half * 0.35, -half - size * 0.24);
+    ctx.lineTo(half * 0.6, -half);
+    ctx.closePath();
+    ctx.fill();
+  } else if (fighter.accessory === 'horns') {
+    ctx.fillStyle = '#f43f5e';
+    ctx.beginPath();
+    ctx.moveTo(-half * 0.7, -half);
+    ctx.lineTo(-half * 0.9, -half - size * 0.28);
+    ctx.lineTo(-half * 0.3, -half);
+    ctx.moveTo(half * 0.7, -half);
+    ctx.lineTo(half * 0.9, -half - size * 0.28);
+    ctx.lineTo(half * 0.3, -half);
+    ctx.fill();
+  }
+
+  // Olhos Expressivos voltados para facing
+  const eyeOffsetX = facing * (size * 0.14);
+  const eyeY = -size * 0.04;
+  const eyeSpacing = size * 0.19;
+
+  if (fighter.eyes === 'cyber') {
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(eyeOffsetX - eyeSpacing - 4, eyeY - 5, eyeSpacing * 2 + 8, 10);
+    ctx.fillStyle = '#22d3ee';
+    ctx.fillRect(eyeOffsetX - eyeSpacing - 2, eyeY - 3, eyeSpacing * 2 + 4, 6);
+  } else {
+    // Olhos brancos com pupila
+    [-1, 1].forEach(side => {
+      const ex = eyeOffsetX + side * eyeSpacing;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(ex, eyeY, size * 0.11, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(ex + facing * 1.5, eyeY, size * 0.055, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sobrancelha feroz se 'angry'
+      if (fighter.eyes === 'angry') {
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(ex - 5, eyeY - (side === facing ? 4 : 8));
+        ctx.lineTo(ex + 5, eyeY - (side === facing ? 8 : 4));
+        ctx.stroke();
+      }
+    });
+  }
+
+  // Tag CLONE se for clone
+  if (isClone) {
+    ctx.fillStyle = '#e9d5ff';
+    ctx.font = 'bold 10px Fredoka, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('CLONE', 0, -half - 8);
+  }
+
+  ctx.restore();
+}
+
+function drawCustomProjectileShape(ctx, x, y, size, shape, color, glow, angle = 0) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+
+  if (glow) {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 18;
+  }
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+
+  const r = size / 2;
+  ctx.beginPath();
+  if (shape === 'circle') {
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+  } else if (shape === 'triangle') {
+    ctx.moveTo(r * 1.2, 0);
+    ctx.lineTo(-r, -r);
+    ctx.lineTo(-r, r);
+    ctx.closePath();
+  } else {
+    ctx.roundRect(-r, -r, size, size, 4);
+  }
+  ctx.fill();
+  if (glow) ctx.stroke();
+
+  ctx.restore();
+}
+
+/* ============================================================================
+   7. MOTOR DE COMBATE: COMBOS DIRECIONAIS, PODER DESENHADO E CLONE (25% HP)
+   ============================================================================ */
+let battleState = null;
+let battleAnimId = null;
+
+const inputKeys = {
+  left: false,
+  right: false,
+  up: false,
+  down: false
+};
+
+function startBattle(config) {
+  showScreen('battle');
+  document.getElementById('modal-pause').classList.add('hidden');
+  document.getElementById('modal-result').classList.add('hidden');
+
+  const canvas = document.getElementById('battle-canvas');
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width || 800;
+  canvas.height = rect.height || 450;
+
+  const groundY = canvas.height * 0.80;
+
+  battleState = {
+    mode: config.mode,
+    arena: config.arena || 'dojo',
+    aiLevel: config.aiLevel || 0.65,
+    chapter: config.chapter || null,
+    paused: false,
+    over: false,
+    timer: 99,
+    timerAccum: 0,
+    groundY,
+    p1: createFighterEntity(config.p1, canvas.width * 0.25, groundY, 1, false),
+    p2: createFighterEntity(config.p2, canvas.width * 0.75, groundY, -1, config.mode !== 'p2p'),
+    clones: [], // Clones aliados com 25% HP
+    projectiles: [],
+    particles: [],
+    afterimages: [],
+    callouts: [] // Textos flutuantes de combo ("UPPERCUT!", "RASTEIRA!", etc.)
+  };
+
+  document.getElementById('hud-p1-name').textContent = battleState.p1.data.name;
+  document.getElementById('hud-p2-name').textContent = battleState.p2.data.name;
+  document.getElementById('hud-mode-label').textContent =
+    config.mode === 'story' ? config.chapter.title.split(':')[0] : config.mode === 'p2p' ? 'P2P ONLINE' : 'MODO SOLO';
+
+  updateBattleHUD();
+
+  if (battleAnimId) cancelAnimationFrame(battleAnimId);
+  let lastTime = performance.now();
+
+  function loop(now) {
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+
+    if (!battleState.paused && !battleState.over) {
+      updateBattle(dt, canvas.width, canvas.height);
+    }
+    renderBattle(canvas.getContext('2d'), canvas.width, canvas.height);
+    battleAnimId = requestAnimationFrame(loop);
+  }
+  battleAnimId = requestAnimationFrame(loop);
+}
+
+function createFighterEntity(data, x, groundY, facing, isAI, isClone = false) {
+  const maxHp = isClone ? Math.max(15, Math.round(data.maxHp * 0.25)) : data.maxHp;
+  return {
+    data,
+    x,
+    y: groundY - 26,
+    vx: 0,
+    vy: 0,
+    size: isClone ? 42 : 52,
+    facing,
+    isAI,
+    isClone,
+    hp: maxHp,
+    maxHp,
+    energy: isClone ? 60 : 100,
+    maxEnergy: 100,
+    grounded: true,
+    jumpsLeft: 2,
+    rotation: 0,
+    spinTimer: 0,
+    dashTimer: 0,
+    attackTimer: 0,
+    attackType: null, // 'combo1' | 'combo2' | 'combo3' | 'uppercut' | 'sweep' | 'doubleSide' | 'airSpin'
+    comboStep: 0,
+    comboResetTimer: 0,
+    hitStun: 0,
+    hasHitThisSwing: false,
+    aiCooldown: 0
+  };
+}
+
+// --- Ações de Combate (Jogador ou IA ou Clone) ---
+function performJump(fighter) {
+  if (fighter.hitStun > 0) return;
+  if (fighter.grounded || fighter.jumpsLeft > 0) {
+    const isDouble = !fighter.grounded;
+    fighter.vy = isDouble ? -11.5 : -12.5;
+    fighter.grounded = false;
+    fighter.jumpsLeft--;
+    if (isDouble) {
+      fighter.spinTimer = 0.35; // Pulo duplo giratório 360°
+      AudioEngine.sfx('doubleJump');
+      spawnParticles(fighter.x, fighter.y + 20, fighter.data.aura, 8);
+    } else {
+      AudioEngine.sfx('jump');
+    }
+  }
+}
+
+function performDash(fighter) {
+  if (fighter.hitStun > 0 || fighter.dashTimer > 0) return;
+  fighter.dashTimer = 0.18;
+  fighter.vx = fighter.facing * 15;
+  AudioEngine.sfx('dash');
+  spawnParticles(fighter.x, fighter.y, fighter.data.aura, 6);
+}
+
+// SEQUÊNCIA DE COMBOS DIRECIONAIS E ANIMAÇÕES AVANÇADAS
+function performDirectionalAttack(fighter, dirState) {
+  if (fighter.hitStun > 0 || fighter.attackTimer > 0.08) return;
+
+  fighter.hasHitThisSwing = false;
+
+  // 1. No Ar -> SUPERGIRO AÉREO 360°
+  if (!fighter.grounded) {
+    fighter.attackType = 'airSpin';
+    fighter.attackTimer = 0.34;
+    fighter.spinTimer = 0.34;
+    fighter.vy = Math.min(fighter.vy, -2.5);
+    AudioEngine.sfx('spin');
+    addCallout(fighter.x, fighter.y - 45, '🌀 SUPERGIRO 360°!', '#c084fc');
+    return;
+  }
+
+  // 2. Cima + Bater -> UPPERCUT / SHORYUKEN
+  if (dirState.up) {
+    fighter.attackType = 'uppercut';
+    fighter.attackTimer = 0.36;
+    fighter.vy = -13.5;
+    fighter.vx = fighter.facing * 4.5;
+    fighter.grounded = false;
+    fighter.spinTimer = 0.32;
+    AudioEngine.sfx('uppercut');
+    addCallout(fighter.x, fighter.y - 50, '⬆️ UPPERCUT!', '#facc15');
+    return;
+  }
+
+  // 3. Baixo + Bater -> RASTEIRA BAIXA
+  if (dirState.down) {
+    fighter.attackType = 'sweep';
+    fighter.attackTimer = 0.30;
+    fighter.vx = fighter.facing * 11;
+    AudioEngine.sfx('sweep');
+    addCallout(fighter.x, fighter.y - 35, '⬇️ RASTEIRA!', '#34d399');
+    return;
+  }
+
+  // 4. Esquerda ou Direita + Bater -> INVESTIDA DUPLA (DOIS LADOS)
+  if (dirState.left || dirState.right) {
+    fighter.facing = dirState.right ? 1 : -1;
+    fighter.attackType = 'doubleSide';
+    fighter.attackTimer = 0.34;
+    fighter.vx = fighter.facing * 13.5;
+    AudioEngine.sfx('uppercut');
+    addCallout(fighter.x, fighter.y - 45, '↔️ CORTE DUPLO!', '#fb7185');
+    return;
+  }
+
+  // 5. Neutro -> SEQUÊNCIA DE 3 HITS (Jab -> Gancho -> Impacto Final)
+  fighter.comboStep = (fighter.comboStep % 3) + 1;
+  fighter.comboResetTimer = 0.85;
+  fighter.attackType = `combo${fighter.comboStep}`;
+  fighter.attackTimer = fighter.comboStep === 3 ? 0.30 : 0.20;
+  fighter.vx = fighter.facing * (fighter.comboStep === 3 ? 8 : 4);
+  AudioEngine.sfx('punch');
+
+  if (fighter.comboStep === 2) {
+    addCallout(fighter.x, fighter.y - 40, '👊 GANCHO!', '#38bdf8');
+  } else if (fighter.comboStep === 3) {
+    addCallout(fighter.x, fighter.y - 45, '💥 COMBO 3x FINAL!', '#f97316');
+  }
+}
+
+// DISPARAR PODER PERSONALIZADO DESENHADO PELO JOGADOR
+function performCustomPower(fighter, target, arenaW, arenaH) {
+  if (fighter.hitStun > 0 || fighter.energy < 25) return;
+  fighter.energy -= 25;
+  fighter.attackTimer = 0.25;
+  fighter.attackType = 'powerCast';
+  AudioEngine.sfx('power');
+
+  const pwr = fighter.data.power;
+  addCallout(fighter.x, fighter.y - 50, `⚡ ${pwr.name.toUpperCase()}!`, pwr.color);
+
+  const count = pwr.count || 1;
+  for (let i = 0; i < count; i++) {
+    const spec = pwr.projectiles[i] || pwr.projectiles[0];
+    // Converte o percurso normalizado desenhado (0..1) em coordenadas reais da arena
+    // Se origin === 'back', nasce atrás do inimigo; se 'top', nasce acima do inimigo; se 'bottom', emerge do chão sob o inimigo
+    const worldPath = spec.path.map((pt, idx) => {
+      if (pwr.origin === 'top') {
+        const progress = idx / Math.max(1, spec.path.length - 1);
+        const offsetX = (pt.x - 0.82) * arenaW * 0.6;
+        return {
+          x: target.x + offsetX,
+          y: 30 + progress * (target.y - 20)
+        };
+      } else if (pwr.origin === 'bottom') {
+        const progress = idx / Math.max(1, spec.path.length - 1);
+        const offsetX = (pt.x - 0.82) * arenaW * 0.6;
+        return {
+          x: target.x + offsetX,
+          y: battleState.groundY + 15 - progress * 95
+        };
+      } else if (pwr.origin === 'back') {
+        const progress = idx / Math.max(1, spec.path.length - 1);
+        const behindX = target.x + fighter.facing * 130;
+        return {
+          x: behindX - fighter.facing * progress * 145,
+          y: target.y - 20 + (pt.y - 0.55) * 140
+        };
+      } else {
+        // 'front': segue exatamente a curva desenhada pelo jogador partindo do lutador em direção ao inimigo!
+        const relX = (pt.x - 0.16) / 0.66; // 0 no lutador, 1 no alvo
+        const dist = Math.max(180, Math.abs(target.x - fighter.x));
+        const wx = fighter.x + fighter.facing * (relX * dist);
+        const wy = fighter.y + (pt.y - 0.55) * (arenaH * 0.55);
+        return { x: wx, y: wy };
+      }
+    });
+
+    battleState.projectiles.push({
+      owner: fighter,
+      shape: pwr.shape,
+      color: pwr.color,
+      glow: pwr.glow,
+      size: spec.size,
+      damage: Math.round(spec.damage * (fighter.data.powerScale || 1)),
+      path: worldPath,
+      progress: 0,
+      speed: 2.2 - i * 0.15,
+      x: worldPath[0].x,
+      y: worldPath[0].y,
+      angle: 0
+    });
+  }
+}
+
+// NOVA HABILIDADE: INVOCAR CLONE COM 25% DE VIDA
+function summonAllyClone(owner) {
+  if (owner.isClone || owner.hitStun > 0) return;
+  if (owner.energy < 40) {
+    if (!owner.isAI) showToast('⚡ Energia insuficiente para Clone (Precisa 40)!');
+    return;
+  }
+  // Limite de 1 clone ativo por lutador ao mesmo tempo
+  const existing = battleState.clones.find(c => c.owner === owner && c.hp > 0);
+  if (existing) {
+    if (!owner.isAI) showToast('👥 Você já possui um Clone ativo na arena!');
+    return;
+  }
+
+  owner.energy -= 40;
+  AudioEngine.sfx('clone');
+  const clone = createFighterEntity(
+    owner.data,
+    owner.x + owner.facing * 45,
+    battleState.groundY,
+    owner.facing,
+    true,
+    true
+  );
+  clone.owner = owner;
+  battleState.clones.push(clone);
+  spawnParticles(clone.x, clone.y, '#c084fc', 16);
+  addCallout(clone.x, clone.y - 50, `👥 CLONE INVOCADO (${clone.maxHp} HP)!`, '#c084fc');
+}
+
+function updateBattle(dt, w, h) {
+  const bs = battleState;
+
+  // Timer da partida
+  bs.timerAccum += dt;
+  if (bs.timerAccum >= 1) {
+    bs.timerAccum = 0;
+    bs.timer = Math.max(0, bs.timer - 1);
+    document.getElementById('hud-timer').textContent = bs.timer;
+    if (bs.timer === 0) {
+      endBattle(bs.p1.hp >= bs.p2.hp ? 'p1' : 'p2');
+      return;
+    }
+  }
+
+  // Controles do Jogador 1 (Teclado / Touch)
+  if (bs.p1.hitStun <= 0 && bs.p1.dashTimer <= 0) {
+    if (inputKeys.left) {
+      bs.p1.vx = -bs.p1.data.speed;
+      bs.p1.facing = -1;
+    } else if (inputKeys.right) {
+      bs.p1.vx = bs.p1.data.speed;
+      bs.p1.facing = 1;
+    } else {
+      bs.p1.vx *= 0.78;
+    }
+  }
+
+  // IA do Oponente P2 (se não for P2P)
+  if (bs.p2.isAI) {
+    updateAIController(bs.p2, bs.p1, dt, bs.aiLevel, w, h);
+  }
+
+  // Atualizar Clones Aliados (25% HP)
+  for (let i = bs.clones.length - 1; i >= 0; i--) {
+    const clone = bs.clones[i];
+    const enemyTarget = clone.owner === bs.p1 ? bs.p2 : bs.p1;
+    updateAIController(clone, enemyTarget, dt, 0.72, w, h);
+    integrateFighterPhysics(clone, enemyTarget, dt, w);
+
+    if (clone.hp <= 0) {
+      spawnParticles(clone.x, clone.y, '#c084fc', 18);
+      addCallout(clone.x, clone.y - 30, '💨 Clone Derrotado!', '#94a3b8');
+      bs.clones.splice(i, 1);
+    }
+  }
+
+  // Física e Colisão de Combate para P1 e P2
+  integrateFighterPhysics(bs.p1, bs.p2, dt, w);
+  integrateFighterPhysics(bs.p2, bs.p1, dt, w);
+
+  // Atualizar Projéteis Personalizados
+  updateProjectiles(dt);
+
+  // Atualizar Partículas, Pós-imagens e Callouts
+  bs.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= dt; });
+  bs.particles = bs.particles.filter(p => p.life > 0);
+
+  bs.afterimages.forEach(a => { a.alpha -= dt * 3.5; });
+  bs.afterimages = bs.afterimages.filter(a => a.alpha > 0);
+
+  bs.callouts.forEach(c => { c.y -= 28 * dt; c.life -= dt; });
+  bs.callouts = bs.callouts.filter(c => c.life > 0);
+
+  // Sincronizar P2P se conectado
+  if (bs.mode === 'p2p') {
+    P2PManager.syncBattleFrame(bs.p1);
+  }
+
+  updateBattleHUD();
+
+  // Verificar Vitória / Derrota
+  if (bs.p1.hp <= 0) endBattle('p2');
+  else if (bs.p2.hp <= 0) endBattle('p1');
+}
+
+function updateAIController(ai, target, dt, level, w, h) {
+  if (ai.hitStun > 0) return;
+  ai.aiCooldown -= dt;
+
+  const dx = target.x - ai.x;
+  const dist = Math.abs(dx);
+  ai.facing = dx >= 0 ? 1 : -1;
+
+  if (ai.dashTimer <= 0) {
+    if (dist > 85) {
+      ai.vx = ai.facing * ai.data.speed * (0.75 + level * 0.25);
+    } else if (dist < 45) {
+      ai.vx = -ai.facing * 2.5;
+    } else {
+      ai.vx *= 0.8;
+    }
+  }
+
+  if (ai.aiCooldown <= 0) {
+    ai.aiCooldown = Math.max(0.28, 0.95 - level * 0.55);
+    const roll = Math.random();
+
+    // Boss Ômega ou níveis altos podem invocar clone!
+    if (!ai.isClone && level >= 0.85 && ai.energy >= 40 && roll < 0.14) {
+      summonAllyClone(ai);
+      return;
+    }
+
+    if (dist < 95) {
+      // Escolhe combo direcional variado
+      const moves = [
+        { up: false, down: false, left: false, right: false },
+        { up: true, down: false, left: false, right: false },
+        { up: false, down: true, left: false, right: false },
+        { up: false, down: false, left: ai.facing < 0, right: ai.facing > 0 }
+      ];
+      performDirectionalAttack(ai, moves[Math.floor(Math.random() * moves.length)]);
+    } else if (dist > 140 && ai.energy >= 25 && roll < 0.45) {
+      performCustomPower(ai, target, w, h);
+    } else if (roll < 0.22) {
+      performJump(ai);
+    } else if (dist > 170 && roll < 0.35) {
+      performDash(ai);
+    }
+  }
+}
+
+function integrateFighterPhysics(f, mainEnemy, dt, arenaW) {
+  // Regeneração passiva de energia
+  f.energy = Math.min(f.maxEnergy, f.energy + 8 * dt);
+
+  if (f.hitStun > 0) f.hitStun -= dt;
+  if (f.dashTimer > 0) {
+    f.dashTimer -= dt;
+    battleState.afterimages.push({ x: f.x, y: f.y, size: f.size, color: f.data.aura, alpha: 0.55 });
+  }
+  if (f.comboResetTimer > 0) {
+    f.comboResetTimer -= dt;
+    if (f.comboResetTimer <= 0) f.comboStep = 0;
+  }
+
+  // Gravidade
+  f.vy += 0.62;
+  f.x += f.vx;
+  f.y += f.vy;
+
+  // Limites laterais
+  const margin = f.size / 2 + 12;
+  f.x = Math.max(margin, Math.min(arenaW - margin, f.x));
+
+  // Chão
+  const floorY = battleState.groundY - f.size / 2;
+  if (f.y >= floorY) {
+    f.y = floorY;
+    f.vy = 0;
+    f.grounded = true;
+    f.jumpsLeft = 2;
+  }
+
+  // Rotação (Pulo duplo, Uppercut ou Supergiro 360°)
+  if (f.spinTimer > 0) {
+    f.spinTimer -= dt;
+    f.rotation += f.facing * 24 * dt;
+  } else {
+    f.rotation = 0;
+  }
+
+  // Verificar acerto de ataque corpo-a-corpo
+  if (f.attackTimer > 0) {
+    f.attackTimer -= dt;
+    if (f.attackType === 'doubleSide') {
+      battleState.afterimages.push({ x: f.x, y: f.y, size: f.size, color: f.data.color, alpha: 0.45 });
+    }
+
+    if (!f.hasHitThisSwing) {
+      // Alvos possíveis: inimigo principal + clones inimigos
+      const targets = [mainEnemy, ...battleState.clones.filter(c => c.owner !== f && c !== f)];
+      for (const tgt of targets) {
+        if (!tgt || tgt.hp <= 0) continue;
+        const reach = f.attackType === 'airSpin' || f.attackType === 'doubleSide' ? 78 : 66;
+        const dx = tgt.x - f.x;
+        const dy = Math.abs(tgt.y - f.y);
+        const inFront = f.attackType === 'airSpin' || f.attackType === 'doubleSide' || Math.sign(dx) === f.facing;
+
+        if (inFront && Math.abs(dx) <= reach && dy <= 62) {
+          f.hasHitThisSwing = true;
+          applyMeleeHit(f, tgt);
+          break;
+        }
+      }
+    }
+  } else {
+    f.attackType = null;
+  }
+}
+
+function applyMeleeHit(attacker, defender) {
+  const scale = attacker.data.powerScale || 1;
+  let dmg = 7;
+  let knockX = attacker.facing * 6;
+  let knockY = -3;
+
+  switch (attacker.attackType) {
+    case 'combo1': dmg = 6; knockX = attacker.facing * 4; break;
+    case 'combo2': dmg = 8; knockX = attacker.facing * 6; break;
+    case 'combo3': dmg = 13; knockX = attacker.facing * 12; knockY = -6; break;
+    case 'uppercut': dmg = 12; knockX = attacker.facing * 5; knockY = -12.5; break;
+    case 'sweep': dmg = 10; knockX = attacker.facing * 7; knockY = -7; break;
+    case 'doubleSide': dmg = 13; knockX = attacker.facing * 11; knockY = -4; break;
+    case 'airSpin': dmg = 12; knockX = attacker.facing * 8; knockY = -5; break;
+  }
+
+  dmg = Math.round(dmg * scale);
+  defender.hp = Math.max(0, defender.hp - dmg);
+  defender.vx = knockX;
+  defender.vy = knockY;
+  defender.grounded = false;
+  defender.hitStun = 0.22;
+  attacker.energy = Math.min(attacker.maxEnergy, attacker.energy + 10);
+
+  AudioEngine.sfx('hit');
+  spawnParticles(defender.x, defender.y, attacker.data.aura, 12);
+}
+
+function updateProjectiles(dt) {
+  const bs = battleState;
+  for (let i = bs.projectiles.length - 1; i >= 0; i--) {
+    const p = bs.projectiles[i];
+    p.progress += dt * p.speed;
+    p.angle += dt * 10;
+
+    if (p.progress >= 1.15 || p.path.length < 2) {
+      bs.projectiles.splice(i, 1);
+      continue;
+    }
+
+    const clamped = Math.min(1, p.progress);
+    const floatIdx = clamped * (p.path.length - 1);
+    const idx0 = Math.floor(floatIdx);
+    const idx1 = Math.min(p.path.length - 1, idx0 + 1);
+    const frac = floatIdx - idx0;
+
+    p.x = p.path[idx0].x + (p.path[idx1].x - p.path[idx0].x) * frac;
+    p.y = p.path[idx0].y + (p.path[idx1].y - p.path[idx0].y) * frac;
+
+    // Colisão com inimigo principal ou clones inimigos
+    const mainEnemy = p.owner === bs.p1 || p.owner.owner === bs.p1 ? bs.p2 : bs.p1;
+    const targets = [mainEnemy, ...bs.clones.filter(c => c.owner !== p.owner && c !== p.owner)];
+
+    let hitSomething = false;
+    for (const tgt of targets) {
+      if (!tgt || tgt.hp <= 0) continue;
+      if (Math.hypot(p.x - tgt.x, p.y - tgt.y) <= p.size / 2 + tgt.size / 2) {
+        tgt.hp = Math.max(0, tgt.hp - p.damage);
+        tgt.vx = p.owner.facing * 7;
+        tgt.vy = -4;
+        tgt.hitStun = 0.18;
+        AudioEngine.sfx('hit');
+        spawnParticles(p.x, p.y, p.color, 14);
+        hitSomething = true;
+        break;
+      }
+    }
+
+    if (hitSomething) {
+      bs.projectiles.splice(i, 1);
+    }
+  }
+}
+
+function spawnParticles(x, y, color, count) {
+  if (!battleState) return;
+  for (let i = 0; i < count; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 1.5 + Math.random() * 4.5;
+    battleState.particles.push({
+      x,
+      y,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd - 1.5,
+      color,
+      size: 3 + Math.random() * 4,
+      life: 0.35 + Math.random() * 0.2
+    });
+  }
+}
+
+function addCallout(x, y, text, color) {
+  if (!battleState) return;
+  battleState.callouts.push({ x, y, text, color, life: 0.75 });
+}
+
+function updateBattleHUD() {
+  const { p1, p2 } = battleState;
+  document.getElementById('hud-p1-hp').style.width = `${(p1.hp / p1.maxHp) * 100}%`;
+  document.getElementById('hud-p1-hp-text').textContent = `${p1.hp}/${p1.maxHp}`;
+  document.getElementById('hud-p1-energy').style.width = `${(p1.energy / p1.maxEnergy) * 100}%`;
+
+  document.getElementById('hud-p2-hp').style.width = `${(p2.hp / p2.maxHp) * 100}%`;
+  document.getElementById('hud-p2-hp-text').textContent = `${p2.hp}/${p2.maxHp}`;
+  document.getElementById('hud-p2-energy').style.width = `${(p2.energy / p2.maxEnergy) * 100}%`;
+
+  const hasP1Clone = battleState.clones.some(c => c.owner === p1 && c.hp > 0);
+  document.getElementById('hud-p1-clone-badge').classList.toggle('hidden', !hasP1Clone);
+}
+
+/* ============================================================================
+   8. RENDERIZAÇÃO DA ARENA E EFEITOS DE COMBO
+   ============================================================================ */
+function renderBattle(ctx, w, h) {
+  const bs = battleState;
+  if (!bs) return;
+
+  // 1. Fundo conforme a Arena escolhida
+  const bgMap = {
+    dojo: ['#1e1b4b', '#312e81', '#f59e0b'],
+    cyber: ['#020617', '#0f172a', '#06b6d4'],
+    volcano: ['#1f0909', '#450a0a', '#ea580c'],
+    void: ['#090418', '#2e1065', '#e11d48']
+  };
+  const colors = bgMap[bs.arena] || bgMap.dojo;
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, colors[0]);
+  grad.addColorStop(0.7, colors[1]);
+  grad.addColorStop(1, colors[2]);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Chão da Arena
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, bs.groundY, w, h - bs.groundY);
+  ctx.fillStyle = colors[2];
+  ctx.fillRect(0, bs.groundY, w, 4);
+
+  // 2. Pós-imagens (Dash e Corte Duplo)
+  bs.afterimages.forEach(a => {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, a.alpha);
+    ctx.fillStyle = a.color;
+    ctx.beginPath();
+    ctx.roundRect(a.x - a.size / 2, a.y - a.size / 2, a.size, a.size, 12);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // 3. Clones Aliados (25% HP) com mini barra de vida acima
+  bs.clones.forEach(c => {
+    drawCuteBlock(ctx, c.x, c.y, c.size, c.data, c.facing, c.rotation, true);
+    // Mini barra de HP do Clone
+    const bw = 38;
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(c.x - bw / 2, c.y - c.size / 2 - 22, bw, 5);
+    ctx.fillStyle = '#c084fc';
+    ctx.fillRect(c.x - bw / 2, c.y - c.size / 2 - 22, bw * (c.hp / c.maxHp), 5);
+  });
+
+  // 4. Lutadores P1 e P2 + Efeitos Visuais dos Combos Direcionais
+  [bs.p1, bs.p2].forEach(f => {
+    drawCuteBlock(ctx, f.x, f.y, f.size, f.data, f.facing, f.rotation, false);
+
+    if (f.attackTimer > 0) {
+      ctx.save();
+      ctx.strokeStyle = f.data.aura;
+      ctx.shadowColor = f.data.aura;
+      ctx.shadowBlur = 14;
+      ctx.lineWidth = 4;
+
+      if (f.attackType === 'airSpin') {
+        // Anel cortante 360° ao redor do bloquinho
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.size * 0.85, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (f.attackType === 'uppercut') {
+        // Arco ascendente
+        ctx.beginPath();
+        ctx.arc(f.x + f.facing * 20, f.y, 44, -Math.PI * 0.7, Math.PI * 0.2);
+        ctx.stroke();
+      } else if (f.attackType === 'sweep') {
+        // Onda rasteira no chão
+        ctx.beginPath();
+        ctx.moveTo(f.x, bs.groundY - 4);
+        ctx.lineTo(f.x + f.facing * 68, bs.groundY - 12);
+        ctx.stroke();
+      } else if (f.attackType === 'doubleSide') {
+        // Cortes cruzados nos dois lados
+        ctx.beginPath();
+        ctx.moveTo(f.x - 52, f.y - 16);
+        ctx.lineTo(f.x + 52, f.y + 16);
+        ctx.moveTo(f.x - 52, f.y + 16);
+        ctx.lineTo(f.x + 52, f.y - 16);
+        ctx.stroke();
+      } else {
+        // Soco / Gancho frontal
+        ctx.fillStyle = f.data.aura;
+        ctx.beginPath();
+        ctx.arc(f.x + f.facing * 42, f.y, f.attackType === 'combo3' ? 18 : 12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  });
+
+  // 5. Projéteis Personalizados
+  bs.projectiles.forEach(p => {
+    drawCustomProjectileShape(ctx, p.x, p.y, p.size, p.shape, p.color, p.glow, p.angle);
+  });
+
+  // 6. Partículas
+  bs.particles.forEach(pt => {
+    ctx.fillStyle = pt.color;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // 7. Callouts dos Golpes ("UPPERCUT!", "RASTEIRA!", etc.)
+  bs.callouts.forEach(c => {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, c.life * 1.5);
+    ctx.font = '900 14px Fredoka, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#0f172a';
+    ctx.fillText(c.text, c.x + 1.5, c.y + 1.5);
+    ctx.fillStyle = c.color;
+    ctx.fillText(c.text, c.x, c.y);
+    ctx.restore();
+  });
+}
+
+/* ============================================================================
+   9. FIM DE BATALHA, PROGRESSÃO DA HISTÓRIA E DESBLOQUEIO DE PERSONAGENS
+   ============================================================================ */
+let postResultAction = null;
+
+function endBattle(winnerSlot) {
+  if (battleState.over) return;
+  battleState.over = true;
+  const p1Won = winnerSlot === 'p1';
+
+  const modal = document.getElementById('modal-result');
+  const icon = document.getElementById('result-icon');
+  const title = document.getElementById('result-title');
+  const sub = document.getElementById('result-subtitle');
+  const unlockBox = document.getElementById('result-unlock-box');
+  const primaryBtn = document.getElementById('btn-result-primary');
+
+  unlockBox.classList.add('hidden');
+  modal.classList.remove('hidden');
+
+  if (p1Won) {
+    AudioEngine.sfx('win');
+    icon.textContent = '🏆';
+    title.textContent = 'VITÓRIA!';
+    title.className = 'text-2xl sm:text-3xl font-extrabold text-amber-300';
+    sub.textContent = `${battleState.p1.data.name} derrotou ${battleState.p2.data.name}!`;
+
+    if (battleState.mode === 'story' && battleState.chapter) {
+      const ch = battleState.chapter;
+      // Liberar próximo capítulo
+      if (ch.id >= storyProgress.maxChapterUnlocked && ch.id < STORY_CHAPTERS.length) {
+        storyProgress.maxChapterUnlocked = ch.id + 1;
+      }
+      // Desbloquear Boss se houver
+      if (ch.unlockId && !storyProgress.unlockedIds.includes(ch.unlockId)) {
+        storyProgress.unlockedIds.push(ch.unlockId);
+        const boss = BASE_FIGHTERS.find(b => b.id === ch.unlockId);
+        unlockBox.textContent = `🎉 PERSONAGEM DESBLOQUEADO: ${boss ? boss.name : ch.unlockId}!`;
+        unlockBox.classList.remove('hidden');
+      }
+      saveStoryProgress();
+
+      primaryBtn.textContent = 'Ver Cutscene Final ▶';
+      postResultAction = () => {
+        modal.classList.add('hidden');
+        playCutscene(ch.title, ch.postCutscene, battleState.p1.data, battleState.p2.data, () => {
+          startStoryMenu();
+        });
+      };
+    } else {
+      primaryBtn.textContent = 'Jogar Novamente 🔄';
+      postResultAction = () => {
+        startBattle({
+          mode: battleState.mode,
+          p1: JSON.parse(JSON.stringify(battleState.p1.data)),
+          p2: JSON.parse(JSON.stringify(battleState.p2.data)),
+          arena: battleState.arena,
+          aiLevel: battleState.aiLevel
+        });
+      };
+    }
+  } else {
+    icon.textContent = '💀';
+    title.textContent = 'DERROTA!';
+    title.className = 'text-2xl sm:text-3xl font-extrabold text-rose-400';
+    sub.textContent = `${battleState.p2.data.name} venceu esta batalha.`;
+    primaryBtn.textContent = 'Tentar Novamente 🔄';
+    postResultAction = () => {
+      if (battleState.mode === 'story' && battleState.chapter) {
+        launchStoryChapter(battleState.chapter);
+      } else {
+        startBattle({
+          mode: battleState.mode,
+          p1: JSON.parse(JSON.stringify(battleState.p1.data)),
+          p2: JSON.parse(JSON.stringify(battleState.p2.data)),
+          arena: battleState.arena,
+          aiLevel: battleState.aiLevel
+        });
+      }
+    };
+  }
+}
+
+function handleResultPrimaryAction() {
+  if (postResultAction) postResultAction();
+}
+
+function togglePauseMenu() {
+  if (!battleState || battleState.over) return;
+  battleState.paused = !battleState.paused;
+  document.getElementById('modal-pause').classList.toggle('hidden', !battleState.paused);
+}
+
+function quitBattleToMenu() {
+  if (battleAnimId) cancelAnimationFrame(battleAnimId);
+  battleState = null;
+  showScreen('menu');
+}
+
+/* ============================================================================
+   10. CONTROLES DE TECLADO, TOUCH E EDITOR INDIVIDUAL COM MOLDURA QUADRADA
+   ============================================================================ */
+window.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  if (k === 'arrowleft' || k === 'a') inputKeys.left = true;
+  if (k === 'arrowright' || k === 'd') inputKeys.right = true;
+  if (k === 'arrowup' || k === 'w') {
+    if (!inputKeys.up && battleState && !battleState.paused) performJump(battleState.p1);
+    inputKeys.up = true;
+  }
+  if (k === 'arrowdown' || k === 's') inputKeys.down = true;
+
+  if (!battleState || battleState.paused || battleState.over) return;
+  const canvas = document.getElementById('battle-canvas');
+  if (k === 'j' || k === 'z') performDirectionalAttack(battleState.p1, inputKeys);
+  if (k === 'k' || k === 'x') performCustomPower(battleState.p1, battleState.p2, canvas.width, canvas.height);
+  if (k === 'l' || k === 'c') performDash(battleState.p1);
+  if (k === 'u' || k === 'v') summonAllyClone(battleState.p1);
+});
+
+window.addEventListener('keyup', (e) => {
+  const k = e.key.toLowerCase();
+  if (k === 'arrowleft' || k === 'a') inputKeys.left = false;
+  if (k === 'arrowright' || k === 'd') inputKeys.right = false;
+  if (k === 'arrowup' || k === 'w') inputKeys.up = false;
+  if (k === 'arrowdown' || k === 's') inputKeys.down = false;
+});
+
+// Touch Controls & Editor Individual com Moldura Quadrada
+let touchEditorActive = false;
+let selectedTouchEl = null;
+
+function initTouchControls() {
+  // D-Pad direções
+  document.querySelectorAll('.dpad-btn').forEach(btn => {
+    const dir = btn.dataset.dir;
+    const setDir = (val) => {
+      if (touchEditorActive) return;
+      inputKeys[dir] = val;
+      if (dir === 'up' && val && battleState && !battleState.paused) {
+        performJump(battleState.p1);
+      }
+    };
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); setDir(true); }, { passive: false });
+    btn.addEventListener('touchend', (e) => { e.preventDefault(); setDir(false); }, { passive: false });
+    btn.addEventListener('mousedown', () => setDir(true));
+    btn.addEventListener('mouseup', () => setDir(false));
+  });
+
+  // Botões de ação
+  const bindAction = (id, fn) => {
+    const el = document.getElementById(id);
+    const trigger = (e) => {
+      if (touchEditorActive) return;
+      e.preventDefault();
+      if (!battleState || battleState.paused || battleState.over) return;
+      fn();
+    };
+    el.addEventListener('touchstart', trigger, { passive: false });
+    el.addEventListener('mousedown', trigger);
+  };
+
+  bindAction('ctrl-jump', () => performJump(battleState.p1));
+  bindAction('ctrl-attack', () => performDirectionalAttack(battleState.p1, inputKeys));
+  bindAction('ctrl-power', () => {
+    const c = document.getElementById('battle-canvas');
+    performCustomPower(battleState.p1, battleState.p2, c.width, c.height);
+  });
+  bindAction('ctrl-dash', () => performDash(battleState.p1));
+  bindAction('ctrl-clone', () => summonAllyClone(battleState.p1));
+
+  // Arrastar individual no Editor de Toque
+  document.querySelectorAll('.touch-draggable').forEach(el => {
+    let dragging = false;
+    let startX = 0, startY = 0, origLeft = 0, origTop = 0;
+
+    const onDown = (e) => {
+      if (!touchEditorActive) return;
+      e.preventDefault();
+      e.stopPropagation();
+      dragging = true;
+      document.querySelectorAll('.touch-draggable').forEach(x => x.classList.remove('selected-ctrl'));
+      el.classList.add('selected-ctrl');
+      selectedTouchEl = el;
+      const curScale = parseFloat(el.dataset.scale || '1');
+      document.getElementById('touch-scale-slider').value = curScale;
+
+      const pt = e.touches ? e.touches[0] : e;
+      const rect = el.getBoundingClientRect();
+      const parentRect = el.parentElement.getBoundingClientRect();
+      startX = pt.clientX;
+      startY = pt.clientY;
+      origLeft = rect.left - parentRect.left;
+      origTop = rect.top - parentRect.top;
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+      el.style.left = origLeft + 'px';
+      el.style.top = origTop + 'px';
+    };
+
+    const onMove = (e) => {
+      if (!dragging || !touchEditorActive) return;
+      e.preventDefault();
+      const pt = e.touches ? e.touches[0] : e;
+      el.style.left = (origLeft + (pt.clientX - startX)) + 'px';
+      el.style.top = (origTop + (pt.clientY - startY)) + 'px';
+    };
+
+    const onUp = () => { dragging = false; };
+
+    el.addEventListener('mousedown', onDown);
+    el.addEventListener('touchstart', onDown, { passive: false });
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchend', onUp);
+  });
+
+  loadSavedTouchLayout();
+}
+
+function openTouchEditorFromPause() {
+  document.getElementById('modal-pause').classList.add('hidden');
+  touchEditorActive = true;
+  document.getElementById('touch-editor-toolbar').classList.remove('hidden');
+  document.querySelectorAll('.touch-draggable').forEach(el => el.classList.add('touch-edit-box'));
+}
+
+function resizeSelectedTouchCtrl(scale) {
+  if (!selectedTouchEl) return;
+  selectedTouchEl.dataset.scale = scale;
+  selectedTouchEl.style.transform = `scale(${scale})`;
+}
+
+function resetTouchLayout() {
+  localStorage.removeItem(STORAGE_KEY_TOUCH);
+  document.querySelectorAll('.touch-draggable').forEach(el => {
+    el.style.left = '';
+    el.style.top = '';
+    el.style.right = '';
+    el.style.bottom = '';
+    el.style.transform = '';
+    el.dataset.scale = '1';
+  });
+  showToast('Layout de toque restaurado!');
+}
+
+function exitTouchEditor() {
+  touchEditorActive = false;
+  document.getElementById('touch-editor-toolbar').classList.add('hidden');
+  const layout = {};
+  document.querySelectorAll('.touch-draggable').forEach(el => {
+    el.classList.remove('touch-edit-box', 'selected-ctrl');
+    layout[el.dataset.ctrl] = {
+      left: el.style.left,
+      top: el.style.top,
+      scale: el.dataset.scale || '1'
+    };
+  });
+  try { localStorage.setItem(STORAGE_KEY_TOUCH, JSON.stringify(layout)); } catch (e) {}
+  document.getElementById('modal-pause').classList.remove('hidden');
+  showToast('✅ Posição e tamanho dos botões salvos!');
+}
+
+function loadSavedTouchLayout() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_TOUCH);
+    if (!raw) return;
+    const layout = JSON.parse(raw);
+    document.querySelectorAll('.touch-draggable').forEach(el => {
+      const cfg = layout[el.dataset.ctrl];
+      if (cfg && cfg.left) {
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+        el.style.left = cfg.left;
+        el.style.top = cfg.top;
+        el.dataset.scale = cfg.scale || '1';
+        el.style.transform = `scale(${cfg.scale || 1})`;
+      }
+    });
+  } catch (e) {}
+}
+
+/* ============================================================================
+   11. MULTIPLAYER P2P (PEERJS) & PROPORÇÃO DE TELA LARGURAxALTURA
+   ============================================================================ */
+const P2PManager = (() => {
+  let peer = null;
+  let conn = null;
+  let remoteFighter = null;
+
+  function initPeer() {
+    if (peer) return;
+    try {
+      const shortId = 'bf-' + Math.random().toString(36).substring(2, 7);
+      peer = new Peer(shortId);
+      peer.on('open', (id) => {
+        document.getElementById('p2p-my-id').value = id;
+      });
+      peer.on('connection', (c) => {
+        conn = c;
+        setupConnHandlers();
+        document.getElementById('p2p-status').textContent = '✅ Amigo conectado! Abrindo seleção...';
+        setTimeout(() => {
+          closeP2PModal();
+          openCharSelect('p2p');
+        }, 700);
+      });
+    } catch (e) {
+      document.getElementById('p2p-my-id').value = 'Indisponível offline';
+    }
+  }
+
+  function connect(remoteId) {
+    if (!peer || !remoteId) return;
+    conn = peer.connect(remoteId.trim());
+    setupConnHandlers();
+    document.getElementById('p2p-status').textContent = '⏳ Conectando...';
+  }
+
+  function setupConnHandlers() {
+    if (!conn) return;
+    conn.on('open', () => {
+      document.getElementById('p2p-status').textContent = '✅ Conectado! Escolha seu lutador!';
+      setTimeout(() => {
+        closeP2PModal();
+        openCharSelect('p2p');
+      }, 600);
+    });
+    conn.on('data', (msg) => {
+      if (msg.type === 'fighterReady') {
+        remoteFighter = msg.fighter;
+        tryStartP2PBattle();
+      } else if (msg.type === 'sync' && battleState && battleState.mode === 'p2p') {
+        battleState.p2.x = msg.x;
+        battleState.p2.y = msg.y;
+        battleState.p2.facing = msg.facing;
+        battleState.p2.hp = msg.hp;
+      }
+    });
+  }
+
+  function sendFighterReady(fighter) {
+    if (conn && conn.open) {
+      conn.send({ type: 'fighterReady', fighter });
+      showToast('Aguardando o amigo confirmar o lutador...');
+      tryStartP2PBattle();
+    } else {
+      showToast('Conexão P2P não ativa!');
+    }
+  }
+
+  function tryStartP2PBattle() {
+    if (appState.p1Fighter && remoteFighter) {
+      startBattle({
+        mode: 'p2p',
+        p1: appState.p1Fighter,
+        p2: remoteFighter,
+        arena: appState.arena
+      });
+    }
+  }
+
+  function syncBattleFrame(p1) {
+    if (conn && conn.open) {
+      conn.send({ type: 'sync', x: p1.x, y: p1.y, facing: p1.facing, hp: p1.hp });
+    }
+  }
+
+  return { initPeer, connect, sendFighterReady, syncBattleFrame };
+})();
+
+function openP2PModal() {
+  document.getElementById('modal-p2p').classList.remove('hidden');
+  P2PManager.initPeer();
+}
+function closeP2PModal() {
+  document.getElementById('modal-p2p').classList.add('hidden');
+}
+function copyP2PId() {
+  const inp = document.getElementById('p2p-my-id');
+  inp.select();
+  document.execCommand('copy');
+  showToast('📋 Código da sala copiado!');
+}
+function connectToPeer() {
+  P2PManager.connect(document.getElementById('p2p-remote-id').value);
+}
+
+// Proporção de Tela
+function openAspectModal() {
+  document.getElementById('modal-aspect').classList.remove('hidden');
+}
+function closeAspectModal() {
+  document.getElementById('modal-aspect').classList.add('hidden');
+}
+function setAspectRatio(ratio) {
+  const frame = document.getElementById('game-frame');
+  if (ratio === 'full') {
+    frame.style.width = '100%';
+    frame.style.height = '100%';
+    frame.style.aspectRatio = 'auto';
+  } else {
+    const [rw, rh] = ratio.split(':').map(Number);
+    frame.style.aspectRatio = `${rw} / ${rh}`;
+    frame.style.width = '100%';
+    frame.style.height = 'auto';
+    frame.style.maxHeight = '100vh';
+    frame.style.maxWidth = `calc(100vh * (${rw} / ${rh}))`;
+  }
+  closeAspectModal();
+  showToast(`📐 Proporção ajustada: ${ratio}`);
+}
+function applyCustomAspect() {
+  const w = Math.max(1, +document.getElementById('custom-aspect-w').value || 16);
+  const h = Math.max(1, +document.getElementById('custom-aspect-h').value || 9);
+  setAspectRatio(`${w}:${h}`);
+}
+
+function openControlsGuide() {
+  document.getElementById('modal-guide').classList.remove('hidden');
+}
+function closeControlsGuide() {
+  document.getElementById('modal-guide').classList.add('hidden');
+}
+
+// Inicialização Geral
+window.addEventListener('DOMContentLoaded', () => {
+  loadSavedData();
+  initTouchControls();
+  renderProjectileTabs();
+});
+</script>
+</body>
+</html>
