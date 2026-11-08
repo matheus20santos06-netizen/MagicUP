@@ -936,127 +936,193 @@
       z-index: 12;
     }
 
-    /* Direcional Esquerdo */
-    .dpad-zone {
+    /* Botões Touch Individuais (Posicionáveis e Redimensionáveis) */
+    .touch-btn {
       position: absolute;
-      left: 16px;
-      bottom: 16px;
-      width: 156px;
-      height: 156px;
       pointer-events: auto;
-    }
-
-    .dpad-btn {
-      position: absolute;
-      width: 52px;
-      height: 52px;
-      background: rgba(255, 255, 255, 0.14);
-      border: 2px solid rgba(255, 255, 255, 0.32);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.3rem;
-      color: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(2px);
-    }
-
-    .dpad-btn.active {
-      background: rgba(0, 229, 255, 0.42);
-      border-color: #00e5ff;
-      transform: scale(0.94);
-    }
-
-    #btn-up { top: 0; left: 52px; }
-    #btn-down { bottom: 0; left: 52px; }
-    #btn-left { top: 52px; left: 0; }
-    #btn-right { top: 52px; right: 0; }
-
-    /* Botões de Ação Direitos */
-    .action-zone {
-      position: absolute;
-      right: 16px;
-      bottom: 16px;
-      width: 195px;
-      height: 165px;
-      pointer-events: auto;
-    }
-
-    .act-btn {
-      position: absolute;
-      border-radius: 50%;
-      font-family: 'Chakra Petch', sans-serif;
-      font-weight: 700;
-      color: #fff;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-      border: 2.5px solid rgba(255, 255, 255, 0.45);
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.92);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+      border: 2.5px solid rgba(255, 255, 255, 0.42);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
-      transition: transform 0.06s ease;
+      transition: transform 0.06s ease, filter 0.06s ease;
+      transform-origin: center center;
     }
 
-    .act-btn.active {
-      transform: scale(0.9);
+    .touch-btn.dpad-style {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.16);
+      font-size: 1.25rem;
+    }
+
+    .touch-btn.dpad-style.active {
+      background: rgba(0, 229, 255, 0.45);
+      border-color: #00e5ff;
+    }
+
+    .touch-btn.act-style {
+      border-radius: 50%;
+    }
+
+    .touch-btn.act-style.active {
       filter: brightness(1.3);
     }
 
-    /* Botão Bater (Principal grande) */
     #btn-hit {
       width: 68px;
       height: 68px;
-      right: 6px;
-      bottom: 8px;
-      background: radial-gradient(circle, rgba(255, 62, 85, 0.78), rgba(180, 20, 45, 0.88));
-      font-size: 0.85rem;
+      background: radial-gradient(circle, rgba(255, 62, 85, 0.82), rgba(180, 20, 45, 0.9));
+      font-size: 0.82rem;
     }
 
-    /* Botão Poder */
     #btn-power {
       width: 58px;
       height: 58px;
-      right: 84px;
-      bottom: 14px;
-      background: radial-gradient(circle, rgba(0, 180, 216, 0.78), rgba(0, 100, 160, 0.88));
-      font-size: 0.75rem;
+      background: radial-gradient(circle, rgba(0, 180, 216, 0.82), rgba(0, 100, 160, 0.9));
+      font-size: 0.72rem;
     }
 
-    /* Botão Dash */
     #btn-dash {
       width: 54px;
       height: 54px;
-      right: 14px;
-      bottom: 88px;
-      background: radial-gradient(circle, rgba(16, 185, 129, 0.78), rgba(5, 110, 75, 0.88));
-      font-size: 0.72rem;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.82), rgba(5, 110, 75, 0.9));
+      font-size: 0.7rem;
     }
 
-    /* Botão Especial */
     #btn-special {
       width: 62px;
       height: 62px;
-      right: 82px;
-      bottom: 84px;
-      background: radial-gradient(circle, rgba(100, 116, 139, 0.55), rgba(51, 65, 85, 0.75));
-      font-size: 0.72rem;
-      opacity: 0.7;
+      background: radial-gradient(circle, rgba(100, 116, 139, 0.6), rgba(51, 65, 85, 0.8));
+      font-size: 0.7rem;
+      opacity: 0.75;
     }
 
     #btn-special.ready {
       opacity: 1;
-      background: radial-gradient(circle, rgba(255, 209, 102, 0.92), rgba(247, 127, 0, 0.95));
+      background: radial-gradient(circle, rgba(255, 209, 102, 0.94), rgba(247, 127, 0, 0.96));
       border-color: #fff;
       color: #1a0c00;
       text-shadow: none;
       animation: specialBtnGlow 0.6s infinite alternate;
     }
 
-    @keyframes specialBtnGlow {
-      from { box-shadow: 0 0 10px #ffd166; transform: scale(1); }
-      to { box-shadow: 0 0 24px #ff9f1c; transform: scale(1.06); }
+    #btn-defend {
+      width: 52px;
+      height: 52px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.8), rgba(29, 78, 216, 0.9));
+      font-size: 0.68rem;
     }
+
+    #btn-touch-pause {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.85);
+      border-color: rgba(255, 255, 255, 0.35);
+      font-size: 0.9rem;
+    }
+
+    @keyframes specialBtnGlow {
+      from { box-shadow: 0 0 10px #ffd166; }
+      to { box-shadow: 0 0 24px #ff9f1c; }
+    }
+
+    /* Overlay do Editor Visual de Esquema de Toque */
+    #screen-touch-editor {
+      position: absolute;
+      inset: 0;
+      z-index: 40;
+      background: rgba(5, 8, 17, 0.68);
+      backdrop-filter: blur(2px);
+      overflow: hidden;
+    }
+
+    .touch-editor-topbar {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(12, 18, 32, 0.94);
+      border: 1.5px solid rgba(255, 255, 255, 0.25);
+      border-radius: 14px;
+      padding: 6px 12px;
+      z-index: 45;
+      max-width: 96%;
+    }
+
+    .touch-editor-hint {
+      position: absolute;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 229, 255, 0.16);
+      border: 1px solid rgba(0, 229, 255, 0.45);
+      color: #e0f2fe;
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 12px;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 44;
+    }
+
+    .editor-proxy-btn {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 3px #000;
+      cursor: pointer;
+      touch-action: none;
+      z-index: 41;
+    }
+
+    .editor-proxy-btn.selected {
+      z-index: 43;
+    }
+
+    /* Moldura Quadrada Exclusiva ao Redor do Botão Selecionado */
+    #selection-frame {
+      position: absolute;
+      border: 2.5px dashed #ffd166;
+      background: rgba(255, 209, 102, 0.12);
+      box-shadow: 0 0 18px rgba(255, 209, 102, 0.55), inset 0 0 10px rgba(255, 209, 102, 0.2);
+      z-index: 42;
+      cursor: move;
+      touch-action: none;
+    }
+
+    .resize-handle {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: #00e5ff;
+      border: 2px solid #090d16;
+      border-radius: 4px;
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.8);
+      touch-action: none;
+    }
+
+    .resize-handle.nw { top: -9px; left: -9px; cursor: nwse-resize; }
+    .resize-handle.ne { top: -9px; right: -9px; cursor: nesw-resize; }
+    .resize-handle.sw { bottom: -9px; left: -9px; cursor: nesw-resize; }
+    .resize-handle.se { bottom: -9px; right: -9px; cursor: nwse-resize; }
 
     /* Aviso de Orientação Retrato */
     #rotate-hint {
@@ -1144,37 +1210,37 @@
       <div class="fighter-hud p2">
         <div class="hud-name-row">
           <span id="hud-p2-name">CIANO</span>
-          <div class="round-dots" id="hud-p2-rounds">
-            <div class="round-dot"></div>
-            <div class="round-dot"></div>
-          </div>
-        </div>
-        <div class="hp-bar-outer">
-          <div class="hp-bar-damage" id="hud-p2-dmg"></div>
-          <div class="hp-bar-fill" id="hud-p2-hp"></div>
-        </div>
-        <div class="sp-bar-outer">
-          <div class="sp-bar-fill" id="hud-p2-sp"></div>
-        </div>
-      </div>
-    </div>
-    <div class="perf-badge" id="perf-badge">60 FPS • LOCAL</div>
+  <!-- CONTROLES TOUCH MOBILE (POSICIONÁVEIS) -->
+  <div id="touch-controls" class="hidden">
+    <div class="touch-btn dpad-style" id="btn-up">▲</div>
+    <div class="touch-btn dpad-style" id="btn-down">▼</div>
+    <div class="touch-btn dpad-style" id="btn-left">◀</div>
+    <div class="touch-btn dpad-style" id="btn-right">▶</div>
+
+    <div class="touch-btn act-style" id="btn-dash">DASH</div>
+    <div class="touch-btn act-style" id="btn-special">ESPECIAL</div>
+    <div class="touch-btn act-style" id="btn-power">PODER</div>
+    <div class="touch-btn act-style" id="btn-hit">BATER</div>
+    <div class="touch-btn act-style" id="btn-defend">DEFESA</div>
+    <div class="touch-btn" id="btn-touch-pause">⏸</div>
   </div>
 
-  <!-- CONTROLES TOUCH MOBILE -->
-  <div id="touch-controls" class="hidden">
-    <div class="dpad-zone">
-      <div class="dpad-btn" id="btn-up">▲</div>
-      <div class="dpad-btn" id="btn-down">▼</div>
-      <div class="dpad-btn" id="btn-left">◀</div>
-      <div class="dpad-btn" id="btn-right">▶</div>
+  <!-- EDITOR VISUAL DE ESQUEMA DE TOQUE -->
+  <div id="screen-touch-editor" class="hidden">
+    <div class="touch-editor-topbar">
+      <button class="btn btn-gold btn-sm" id="btn-save-touch-layout">💾 SALVAR LAYOUT</button>
+      <button class="btn btn-dark btn-sm" id="btn-size-minus">➖ DIMINUIR</button>
+      <button class="btn btn-dark btn-sm" id="btn-size-plus">➕ AUMENTAR</button>
+      <button class="btn btn-secondary btn-sm" id="btn-reset-touch-layout">🔄 RESETAR PADRÃO</button>
+      <button class="btn btn-primary btn-sm" id="btn-close-touch-editor">✔ VOLTAR</button>
     </div>
-
-    <div class="action-zone">
-      <div class="act-btn" id="btn-dash">DASH</div>
-      <div class="act-btn" id="btn-special">ESPECIAL</div>
-      <div class="act-btn" id="btn-power">PODER</div>
-      <div class="act-btn" id="btn-hit">BATER</div>
+    <div class="touch-editor-hint" id="touch-editor-hint">Toque em um botão para abrir a moldura quadrada de edição</div>
+    <div id="touch-editor-stage" style="position: absolute; inset: 0;"></div>
+    <div id="selection-frame" class="hidden">
+      <div class="resize-handle nw" data-corner="nw"></div>
+      <div class="resize-handle ne" data-corner="ne"></div>
+      <div class="resize-handle sw" data-corner="sw"></div>
+      <div class="resize-handle se" data-corner="se"></div>
     </div>
   </div>
 
@@ -1481,6 +1547,10 @@
       </div>
 
       <div style="display: flex; gap: 8px; justify-content: center; margin-top: 6px;">
+        <button class="btn btn-create-char btn-sm" id="btn-open-touch-editor">🎮 EDITAR ESQUEMA DE TOQUE</button>
+      </div>
+
+      <div style="display: flex; gap: 8px; justify-content: center; margin-top: 4px;">
         <button class="btn btn-secondary btn-sm" id="btn-reset-ratio">🔄 RESETAR AUTOMÁTICO</button>
         <button class="btn btn-dark btn-sm" id="btn-settings-close">⬅ VOLTAR</button>
       </div>
@@ -2189,7 +2259,7 @@ function alertDisconnect() {
 // 4. CONTROLES (TECLADO + TOUCH RESPONSIVO)
 // ----------------------------------------------------------------------------
 const Input = {
-  local: { left: false, right: false, up: false, down: false, hit: false, power: false, dash: false, special: false },
+  local: { left: false, right: false, up: false, down: false, hit: false, power: false, dash: false, special: false, defend: false },
   justPressed: { up: false, hit: false, power: false, dash: false, special: false },
 
   setKey(action, pressed) {
@@ -2197,6 +2267,11 @@ const Input = {
       if (action in this.justPressed) this.justPressed[action] = true;
     }
     this.local[action] = pressed;
+  },
+
+  clearAll() {
+    Object.keys(this.local).forEach(k => this.local[k] = false);
+    this.clearJustPressed();
   },
 
   clearJustPressed() {
@@ -2207,1248 +2282,189 @@ const Input = {
     this.justPressed.special = false;
   }
 };
-
-window.addEventListener('keydown', (e) => {
-  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
-  const k = e.key.toLowerCase();
-  if (k === 'a' || k === 'arrowleft') Input.setKey('left', true);
-  if (k === 'd' || k === 'arrowright') Input.setKey('right', true);
-  if (k === 'w' || k === 'arrowup') Input.setKey('up', true);
-  if (k === 's' || k === 'arrowdown') Input.setKey('down', true);
-  if (k === 'j' || k === 'z') Input.setKey('hit', true);
-  if (k === 'k' || k === 'x') Input.setKey('power', true);
-  if (k === 'l' || k === 'c' || k === 'shift') Input.setKey('dash', true);
-  if (k === 'u' || k === ' ') Input.setKey('special', true);
-  if (k === 'escape' || k === 'p') {
-    if (GameState.screen === 'PLAYING') Battle.togglePause();
-  }
-});
-
-window.addEventListener('keyup', (e) => {
-  const k = e.key.toLowerCase();
-  if (k === 'a' || k === 'arrowleft') Input.setKey('left', false);
-  if (k === 'd' || k === 'arrowright') Input.setKey('right', false);
-  if (k === 'w' || k === 'arrowup') Input.setKey('up', false);
-  if (k === 's' || k === 'arrowdown') Input.setKey('down', false);
-  if (k === 'j' || k === 'z') Input.setKey('hit', false);
-  if (k === 'k' || k === 'x') Input.setKey('power', false);
-  if (k === 'l' || k === 'c' || k === 'shift') Input.setKey('dash', false);
-  if (k === 'u' || k === ' ') Input.setKey('special', false);
-});
-
-function bindTouchButton(id, action) {
-  const el = document.getElementById(id);
-  if (!el) return;
-
-  const start = (e) => {
-    e.preventDefault();
-    SoundFX.init();
-    el.classList.add('active');
-    Input.setKey(action, true);
-  };
-  const end = (e) => {
-    e.preventDefault();
-    el.classList.remove('active');
-    Input.setKey(action, false);
-  };
-
-  el.addEventListener('touchstart', start, { passive: false });
-  el.addEventListener('touchend', end, { passive: false });
-  el.addEventListener('touchcancel', end, { passive: false });
-  el.addEventListener('mousedown', start);
-  el.addEventListener('mouseup', end);
-  el.addEventListener('mouseleave', end);
-}
-
-bindTouchButton('btn-up', 'up');
-bindTouchButton('btn-down', 'down');
-bindTouchButton('btn-left', 'left');
-bindTouchButton('btn-right', 'right');
+// ... existing code ... -->
 bindTouchButton('btn-hit', 'hit');
 bindTouchButton('btn-power', 'power');
 bindTouchButton('btn-dash', 'dash');
 bindTouchButton('btn-special', 'special');
+bindTouchButton('btn-defend', 'defend');
 
-// ----------------------------------------------------------------------------
-// 5. PARTÍCULAS E RENDERIZADOR COMPARTILHADO DE ROUPAS / OLHOS DO BLOQUINHO
-// ----------------------------------------------------------------------------
-const Particles = [];
-const Projectiles = [];
-const AfterImages = [];
-
-function spawnParticle(x, y, vx, vy, color, size, life, gravity = 0) {
-  if (Particles.length > 140) Particles.shift();
-  Particles.push({ x, y, vx, vy, color, size, life, maxLife: life, gravity });
-}
-
-function spawnBurst(x, y, color, count = 10, speed = 5) {
-  for (let i = 0; i < count; i++) {
-    const ang = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
-    const spd = speed * (0.4 + Math.random() * 0.8);
-    spawnParticle(x, y, Math.cos(ang) * spd, Math.sin(ang) * spd, color, 3 + Math.random() * 4, 16 + Math.random() * 12, 0.12);
-  }
-}
-
-/**
- * Desenha o bloquinho completo (aura, corpo, traje/roupas, olhos e chapéu/acessórios).
- * Usado tanto na batalha quanto na pré-visualização da Oficina!
- */
-function drawBlockCharacter(ctx, data, opts) {
-  const { w, h, facing, lookDir, state, comboStep, isBlinking, auraPhase, rotation, slowTimer } = opts;
-
-  ctx.save();
-  ctx.rotate(rotation || 0);
-
-  // 1. Aura Energética Constante
-  const pulse = 1 + Math.sin(auraPhase) * 0.08;
-  const auraW = (w + 18) * pulse;
-  const auraH = (h + 18) * pulse;
-  ctx.fillStyle = slowTimer > 0 ? 'rgba(0, 212, 255, 0.5)' : data.auraColor;
-  ctx.beginPath();
-  ctx.roundRect(-auraW / 2, -auraH / 2, auraW, auraH, 16);
-  ctx.fill();
-
-  if (opts.spFull) {
-    ctx.strokeStyle = 'rgba(255, 215, 0, 0.9)';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-  }
-
-  // Capa atrás do corpo (se equipado)
-  const outfitCol = data.outfitColor || '#ffd166';
-  if (data.suit === 'cape') {
-    ctx.fillStyle = outfitCol;
-    ctx.strokeStyle = '#111827';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-facing * (w * 0.25), -h * 0.15);
-    ctx.lineTo(-facing * (w * 0.72), h * 0.48);
-    ctx.lineTo(-facing * (w * 0.15), h * 0.45);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  // 2. Corpo do Bloquinho Quadrado
-  ctx.fillStyle = state === 'HURT' ? '#ffffff' : (slowTimer > 0 ? '#72efdd' : data.color);
-  ctx.strokeStyle = '#111827';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.roundRect(-w / 2, -h / 2, w, h, 11);
-  ctx.fill();
-  ctx.stroke();
-
-  // Brilho superior fofo
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-  ctx.beginPath();
-  ctx.roundRect(-w * 0.36, -h * 0.4, w * 0.72, h * 0.2, 6);
-  ctx.fill();
-
-  // 3. Traje / Roupa sobre a parte inferior do bloquinho
-  if (data.suit && data.suit !== 'none') {
-    ctx.fillStyle = outfitCol;
-    ctx.strokeStyle = '#111827';
-    ctx.lineWidth = 2;
-
-    if (data.suit === 'kimono') {
-      ctx.beginPath();
-      ctx.roundRect(-w / 2 + 1, h * 0.08, w - 2, h * 0.42 - 1, [0, 0, 9, 9]);
-      ctx.fill();
-      ctx.stroke();
-      // Gola cruzada e faixa preta
-      ctx.beginPath();
-      ctx.moveTo(-w * 0.25, h * 0.08);
-      ctx.lineTo(w * 0.12, h * 0.34);
-      ctx.moveTo(w * 0.25, h * 0.08);
-      ctx.lineTo(-w * 0.12, h * 0.34);
-      ctx.stroke();
-      ctx.fillStyle = '#111827';
-      ctx.fillRect(-w / 2 + 2, h * 0.28, w - 4, 5);
-    } else if (data.suit === 'armor') {
-      ctx.beginPath();
-      ctx.roundRect(-w / 2 + 2, h * 0.05, w - 4, h * 0.38, 5);
-      ctx.fill();
-      ctx.stroke();
-      // Placa central metálica
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.fillRect(-w * 0.2, h * 0.12, w * 0.4, h * 0.2);
-    } else if (data.suit === 'vest') {
-      ctx.fillRect(-w / 2 + 2, h * 0.06, w * 0.28, h * 0.42);
-      ctx.fillRect(w / 2 - w * 0.28 - 2, h * 0.06, w * 0.28, h * 0.42);
-      ctx.strokeRect(-w / 2 + 2, h * 0.06, w * 0.28, h * 0.42);
-      ctx.strokeRect(w / 2 - w * 0.28 - 2, h * 0.06, w * 0.28, h * 0.42);
-    } else if (data.suit === 'robe') {
-      ctx.beginPath();
-      ctx.roundRect(-w / 2 + 1, h * 0.04, w - 2, h * 0.46 - 1, [2, 2, 9, 9]);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = '#ffd166';
-      ctx.fillRect(-3, h * 0.04, 6, h * 0.45);
-    }
-  }
-
-  // 4. Olhinhos Expressivos
-  const eyeStyle = data.eyeStyle || 'cute';
-  const eyeOffsetX = lookDir * 5;
-  const eyeY = -4;
-  const eyeSpacing = 10;
-
-  if (eyeStyle === 'cyclops') {
-    // Olho único robótico
-    ctx.fillStyle = '#0f172a';
-    ctx.beginPath();
-    ctx.roundRect(eyeOffsetX - 15, eyeY - 6, 30, 12, 6);
-    ctx.fill();
-    ctx.fillStyle = state === 'HURT' ? '#ffffff' : '#ff3e55';
-    ctx.beginPath();
-    ctx.arc(eyeOffsetX + lookDir * 5, eyeY, 4.5, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (eyeStyle === 'ninja') {
-    // Visor Ninja brilhante
-    ctx.fillStyle = '#0f172a';
-    ctx.beginPath();
-    ctx.roundRect(eyeOffsetX - 17, eyeY - 6, 34, 11, 5);
-    ctx.fill();
-    ctx.fillStyle = '#00e5ff';
-    ctx.fillRect(eyeOffsetX - 12, eyeY - 2, 9, 4);
-    ctx.fillRect(eyeOffsetX + 3, eyeY - 2, 9, 4);
-  } else {
-    [-1, 1].forEach((side) => {
-      const ex = eyeOffsetX + side * eyeSpacing;
-      if (state === 'KO' || state === 'HURT') {
-        ctx.strokeStyle = '#111827';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(ex - 4, eyeY - 4);
-        ctx.lineTo(ex + 4, eyeY + 4);
-        ctx.moveTo(ex + 4, eyeY - 4);
-        ctx.lineTo(ex - 4, eyeY + 4);
-        ctx.stroke();
-      } else if (isBlinking) {
-        ctx.strokeStyle = '#111827';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(ex - 5, eyeY);
-        ctx.lineTo(ex + 5, eyeY);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#111827';
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        ctx.ellipse(ex, eyeY, 5.4, 6.6, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = eyeStyle === 'star' ? '#ff9f1c' : '#0f172a';
-        ctx.beginPath();
-        ctx.arc(ex + lookDir * 1.8, eyeY + 0.5, 2.8, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(ex + lookDir * 1.2 - 1, eyeY - 1.5, 1.2, 0, Math.PI * 2);
-        ctx.fill();
-
-        const isAngry = eyeStyle === 'fierce' || state === 'ATTACK' || state === 'AIR_ATTACK' || state === 'POWER' || state === 'SPECIAL';
-        if (isAngry) {
-          ctx.strokeStyle = '#111827';
-          ctx.lineWidth = 2.5;
-          ctx.beginPath();
-          ctx.moveTo(ex - side * 5, eyeY - 8);
-          ctx.lineTo(ex + side * 5, eyeY - 4);
-          ctx.stroke();
-        }
-      }
-    });
-  }
-
-  // 5. Chapéu / Acessório de Cabeça
-  const hat = data.hat || 'none';
-  if (hat !== 'none') {
-    ctx.fillStyle = outfitCol;
-    ctx.strokeStyle = '#111827';
-    ctx.lineWidth = 2;
-
-    if (hat === 'headband') {
-      ctx.fillRect(-w / 2 - 1, -h * 0.34, w + 2, 7);
-      ctx.strokeRect(-w / 2 - 1, -h * 0.34, w + 2, 7);
-      // Pontas da faixa voando atrás
-      ctx.beginPath();
-      ctx.moveTo(-facing * (w / 2), -h * 0.3);
-      ctx.lineTo(-facing * (w / 2 + 12), -h * 0.38);
-      ctx.lineTo(-facing * (w / 2 + 10), -h * 0.2);
-      ctx.fill();
-    } else if (hat === 'crown') {
-      ctx.beginPath();
-      ctx.moveTo(-14, -h / 2);
-      ctx.lineTo(-16, -h / 2 - 12);
-      ctx.lineTo(-6, -h / 2 - 5);
-      ctx.lineTo(0, -h / 2 - 14);
-      ctx.lineTo(6, -h / 2 - 5);
-      ctx.lineTo(16, -h / 2 - 12);
-      ctx.lineTo(14, -h / 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    } else if (hat === 'wizard') {
-      ctx.beginPath();
-      ctx.moveTo(-22, -h / 2 + 2);
-      ctx.lineTo(22, -h / 2 + 2);
-      ctx.lineTo(0, -h / 2 - 22);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    } else if (hat === 'horns') {
-      [-1, 1].forEach(s => {
-        ctx.beginPath();
-        ctx.moveTo(s * 10, -h / 2 + 2);
-        ctx.lineTo(s * 18, -h / 2 - 13);
-        ctx.lineTo(s * 4, -h / 2 + 2);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-      });
-    } else if (hat === 'headphones') {
-      ctx.beginPath();
-      ctx.arc(0, -4, w * 0.54, Math.PI, 0);
-      ctx.stroke();
-      ctx.fillRect(-w / 2 - 5, -10, 6, 14);
-      ctx.fillRect(w / 2 - 1, -10, 6, 14);
-    } else if (hat === 'hood') {
-      ctx.beginPath();
-      ctx.roundRect(-w / 2 - 2, -h / 2 - 3, w + 4, h * 0.34, [12, 12, 2, 2]);
-      ctx.fill();
-      ctx.stroke();
-    }
-  }
-
-  // 6. Efeito visual de ataque corpo-a-corpo (varia conforme o estilo escolhido!)
-  if (state === 'ATTACK' || state === 'AIR_ATTACK') {
-    const mStyle = data.meleeStyle || 'punch';
-    const fistX = facing * (w * 0.72);
-    ctx.fillStyle = data.coreColor;
-    ctx.strokeStyle = data.color;
-    ctx.lineWidth = 2.5;
-
-    if (mStyle === 'sword') {
-      // Lâmina de Energia
-      ctx.beginPath();
-      ctx.moveTo(facing * (w * 0.45), -6);
-      ctx.lineTo(facing * (w * 1.35), -2);
-      ctx.lineTo(facing * (w * 0.45), 8);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    } else if (mStyle === 'claws') {
-      // 3 Riscos de Garra
-      for (let c = -1; c <= 1; c++) {
-        ctx.beginPath();
-        ctx.moveTo(fistX - facing * 6, c * 7 - 3);
-        ctx.lineTo(fistX + facing * 14, c * 7 + 3);
-        ctx.stroke();
-      }
-    } else {
-      // Punho ou Impacto Sísmico
-      const rad = mStyle === 'seismic' ? 17 : (comboStep === 3 ? 15 : 11);
-      ctx.beginPath();
-      ctx.arc(fistX, 0, rad, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
-  }
-
-  // 7. Escudo de Defesa
-  if (state === 'BLOCK') {
-    ctx.strokeStyle = '#00e5ff';
-    ctx.fillStyle = 'rgba(0, 229, 255, 0.25)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(facing * 12, 0, 32, -Math.PI * 0.45, Math.PI * 0.45);
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-// ----------------------------------------------------------------------------
-// 6. CLASSE DO LUTADOR (COM SUPORTE A HABILIDADES CUSTOMIZADAS E EFEITOS)
-// ----------------------------------------------------------------------------
-class Fighter {
-  constructor(slot, charData, x) {
-    this.slot = slot;
-    this.data = charData;
-    this.x = x;
-    this.y = 0;
-    this.vx = 0;
-    this.vy = 0;
-
-    this.baseW = 48;
-    this.baseH = 48;
-    this.scaleX = 1;
-    this.scaleY = 1;
-    this.rotation = 0;
-
-    this.facing = slot === 1 ? 1 : -1;
-    this.onGround = true;
-    this.jumpsLeft = 2;
-    this.isDoubleJumping = false;
-
-    this.hp = 100;
-    this.maxHp = 100;
-    this.sp = 0;
-
-    this.state = 'IDLE';
-    this.stateTimer = 0;
-    this.comboStep = 0;
-    this.comboWindow = 0;
-    this.hasHitThisSwing = false;
-
-    this.dashCooldown = 0;
-    this.powerCooldown = 0;
-    this.invulnTimer = 0;
-    this.slowTimer = 0; // Efeito de congelamento/lentidão
-    this.burnTimer = 0; // Efeito de queimadura contínua
-    this.crouching = false;
-
-    this.blinkTimer = 90 + Math.random() * 120;
-    this.isBlinking = false;
-    this.auraPhase = Math.random() * Math.PI * 2;
-
-    this.input = { left: false, right: false, up: false, down: false, hit: false, power: false, dash: false, special: false };
-    this.prevInput = { up: false, hit: false, power: false, dash: false, special: false };
-    this.remoteInput = null;
-  }
-
-  reset(x, facing) {
-    this.x = x;
-    this.y = Battle.groundY;
-    this.vx = 0;
-    this.vy = 0;
-    this.facing = facing;
-    this.hp = 100;
-    this.onGround = true;
-    this.jumpsLeft = 2;
-    this.isDoubleJumping = false;
-    this.rotation = 0;
-    this.scaleX = 1;
-    this.scaleY = 1;
-    this.state = 'IDLE';
-    this.stateTimer = 0;
-    this.comboStep = 0;
-    this.comboWindow = 0;
-    this.dashCooldown = 0;
-    this.powerCooldown = 0;
-    this.invulnTimer = 0;
-    this.slowTimer = 0;
-    this.burnTimer = 0;
-  }
-
-  getInput() {
-    if (GameState.mode === 'CPU') {
-      if (this.slot === 1) return Input.local;
-      return CPUBrain.think(this, Battle.p1);
-    } else {
-      if (GameState.isHost) {
-        return this.slot === 1 ? Input.local : (this.remoteInput || this.input);
-      } else {
-        return this.slot === 2 ? Input.local : this.input;
-      }
-    }
-  }
-
-  update(opponent) {
-    const inp = this.getInput();
-    const justUp = inp.up && !this.prevInput.up;
-    const justHit = inp.hit && !this.prevInput.hit;
-    const justPower = inp.power && !this.prevInput.power;
-    const justDash = inp.dash && !this.prevInput.dash;
-    const justSpecial = inp.special && !this.prevInput.special;
-
-    this.prevInput = { up: inp.up, hit: inp.hit, power: inp.power, dash: inp.dash, special: inp.special };
-
-    this.auraPhase += 0.14;
-    if (this.dashCooldown > 0) this.dashCooldown--;
-    if (this.powerCooldown > 0) this.powerCooldown--;
-    if (this.invulnTimer > 0) this.invulnTimer--;
-    if (this.slowTimer > 0) this.slowTimer--;
-    if (this.burnTimer > 0) {
-      this.burnTimer--;
-      if (this.burnTimer % 25 === 0 && this.hp > 1 && this.state !== 'KO') {
-        this.hp = Math.max(1, this.hp - 1);
-        spawnParticle(this.x, this.y - 24, 0, -2, '#ff5400', 4, 14);
-      }
-    }
-
-    if (this.comboWindow > 0) {
-      this.comboWindow--;
-      if (this.comboWindow === 0) this.comboStep = 0;
-    }
-
-    this.blinkTimer--;
-    if (this.blinkTimer <= 0) {
-      this.isBlinking = true;
-      if (this.blinkTimer <= -7) {
-        this.isBlinking = false;
-        this.blinkTimer = 110 + Math.random() * 140;
-      }
-    }
-
-    this.scaleX += (1 - this.scaleX) * 0.22;
-    this.scaleY += (1 - this.scaleY) * 0.22;
-
-    if (this.state === 'KO') {
-      this.vy += this.data.weight;
-      this.y += this.vy;
-      this.rotation += 0.12 * -this.facing;
-      if (this.y >= Battle.groundY) {
-        this.y = Battle.groundY;
-        this.vy = 0;
-        this.rotation = (Math.PI / 2) * -this.facing;
-      }
-      return;
-    }
-
-    if (this.onGround && (this.state === 'IDLE' || this.state === 'RUN' || this.state === 'BLOCK')) {
-      if (opponent.x > this.x + 8) this.facing = 1;
-      else if (opponent.x < this.x - 8) this.facing = -1;
-    }
-
-    if (this.stateTimer > 0) {
-      this.stateTimer--;
-
-      if (this.state === 'DASH' || this.state === 'SPECIAL') {
-        AfterImages.push({
-          x: this.x,
-          y: this.y,
-          w: this.baseW * this.scaleX,
-          h: this.baseH * this.scaleY,
-          color: this.data.color,
-          alpha: 0.55,
-          rotation: this.rotation
-        });
-      }
-
-      if (this.state === 'ATTACK') {
-        this.x += this.vx;
-        this.vx *= 0.8;
-        this.checkMeleeHit(opponent);
-      } else if (this.state === 'AIR_ATTACK') {
-        this.rotation += 0.35 * this.facing;
-        this.checkMeleeHit(opponent);
-      }
-
-      if (this.stateTimer === 0) {
-        this.state = this.onGround ? 'IDLE' : 'JUMP';
-        if (!this.isDoubleJumping) this.rotation = 0;
-      }
-    }
-
-    const canAct = (this.state === 'IDLE' || this.state === 'RUN' || this.state === 'JUMP' || this.state === 'BLOCK');
-    const speedFactor = this.slowTimer > 0 ? 0.58 : 1.0;
-
-    if (canAct) {
-      this.crouching = this.onGround && inp.down;
-      if (this.crouching) {
-        this.scaleX = 1.18;
-        this.scaleY = 0.78;
-      }
-
-      if (justSpecial && this.sp >= 100) {
-        this.triggerSpecial(opponent);
-      } else if (justDash && this.dashCooldown === 0) {
-        const dashDir = inp.left ? -1 : (inp.right ? 1 : this.facing);
-        this.facing = dashDir;
-        this.state = 'DASH';
-        this.stateTimer = 11;
-        this.dashCooldown = 34;
-        this.invulnTimer = 10;
-        this.vx = dashDir * 14.5 * speedFactor;
-        this.vy = 0;
-        this.scaleX = 1.32;
-        this.scaleY = 0.72;
-        SoundFX.dash();
-        spawnBurst(this.x, this.y - 24, this.data.color, 8, 4);
-      } else if (justPower && this.powerCooldown === 0) {
-        this.triggerPower(opponent);
-      } else if (justHit) {
-        const mStyle = this.data.meleeStyle || 'punch';
-        if (!this.onGround) {
-          this.state = 'AIR_ATTACK';
-          this.stateTimer = 16;
-          this.hasHitThisSwing = false;
-          this.vy = Math.min(this.vy, 2);
-          this.scaleX = 1.2;
-          this.scaleY = 1.2;
-          SoundFX.airAttack();
-        } else {
-          this.comboStep = (this.comboStep % 3) + 1;
-          this.comboWindow = 32;
-          this.state = 'ATTACK';
-          this.hasHitThisSwing = false;
-
-          const spdBonus = mStyle === 'claws' ? 0.75 : (mStyle === 'seismic' ? 1.2 : 1.0);
-          if (this.comboStep === 1) {
-            this.stateTimer = Math.round(11 * spdBonus);
-            this.vx = this.facing * 4.5;
-            this.scaleX = 1.26;
-            this.scaleY = 0.85;
-          } else if (this.comboStep === 2) {
-            this.stateTimer = Math.round(13 * spdBonus);
-            this.vx = this.facing * 6.0;
-            this.scaleX = 1.32;
-            this.scaleY = 0.82;
-          } else {
-            this.stateTimer = Math.round(17 * spdBonus);
-            this.vx = this.facing * 8.5;
-            this.scaleX = 1.38;
-            this.scaleY = 0.78;
-            if (mStyle === 'punch' || mStyle === 'claws') {
-              this.vy = -6.0;
-              this.onGround = false;
-            }
-            spawnBurst(this.x + this.facing * 26, this.y - 24, this.data.color, 8, 5);
-          }
-          SoundFX.swingCombo(this.comboStep, mStyle);
-        }
-      } else if (justUp && this.jumpsLeft > 0) {
-        if (this.onGround) {
-          this.vy = -this.data.jumpForce;
-          this.onGround = false;
-          this.jumpsLeft = 1;
-          this.isDoubleJumping = false;
-          this.scaleX = 0.75;
-          this.scaleY = 1.3;
-          SoundFX.jump();
-          spawnBurst(this.x, this.y, this.data.color, 6, 3);
-        } else {
-          this.vy = -this.data.jumpForce * 0.94;
-          this.jumpsLeft = 0;
-          this.isDoubleJumping = true;
-          const moveDir = inp.left ? -1 : (inp.right ? 1 : this.facing);
-          this.facing = moveDir;
-          this.vx = moveDir * (this.data.speed * 1.25 * speedFactor);
-          this.rotation = 0.01;
-          this.scaleX = 0.88;
-          this.scaleY = 1.15;
-          SoundFX.doubleJump();
-          spawnBurst(this.x, this.y - 20, this.data.coreColor, 10, 4.5);
-        }
-        this.state = 'JUMP';
-      }
-
-      if (this.state !== 'DASH') {
-        let move = 0;
-        if (inp.left) move -= 1;
-        if (inp.right) move += 1;
-
-        if (move !== 0 && !this.crouching) {
-          this.vx = move * this.data.speed * speedFactor;
-          if (this.onGround && this.state !== 'BLOCK') this.state = 'RUN';
-          if (Math.random() < 0.35) {
-            spawnParticle(this.x - move * 14, this.y - 6 - Math.random() * 16, -move * 1.5, -0.5, this.data.color, 3.5, 14);
-          }
-        } else {
-          this.vx *= 0.72;
-          if (this.onGround && Math.abs(this.vx) < 0.4) {
-            this.state = 'IDLE';
-          }
-        }
-
-        const holdingBack = (this.facing === 1 && inp.left) || (this.facing === -1 && inp.right);
+document.getElementById('btn-touch-pause').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  SoundFX.uiClick();
+  Battle.togglePause();
+}, { passive: false });
+document.getElementById('btn-touch-pause').addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  SoundFX.uiClick();
+  Battle.togglePause();
+});
+// ... existing code ... -->
+        const holdingBack = inp.defend || (this.facing === 1 && inp.left) || (this.facing === -1 && inp.right);
         const oppAttacking = (opponent.state === 'ATTACK' || opponent.state === 'AIR_ATTACK' || opponent.state === 'POWER' || opponent.state === 'SPECIAL');
-        if (this.onGround && holdingBack && oppAttacking && Math.abs(opponent.x - this.x) < 165) {
+        if (this.onGround && (inp.defend || (holdingBack && oppAttacking && Math.abs(opponent.x - this.x) < 165))) {
           this.state = 'BLOCK';
         }
       }
     }
-
-    if (this.state !== 'DASH') {
-      this.vy += this.data.weight;
-    }
-
-    this.x += this.vx;
-    this.y += this.vy;
-
-    if (this.isDoubleJumping && !this.onGround) {
-      this.rotation += 0.28 * this.facing;
-      spawnParticle(this.x, this.y - 24, (Math.random() - 0.5) * 2, 1, this.data.color, 4, 12);
-    }
-
-    if (this.y >= Battle.groundY) {
-      if (!this.onGround) {
-        this.scaleX = 1.24;
-        this.scaleY = 0.78;
-        SoundFX.land();
-        spawnBurst(this.x, Battle.groundY, this.data.color, 5, 2.5);
-      }
-      this.y = Battle.groundY;
-      this.vy = 0;
-      this.onGround = true;
-      this.jumpsLeft = 2;
-      this.isDoubleJumping = false;
-      if (this.state !== 'AIR_ATTACK') this.rotation = 0;
-    }
-
-    const margin = 36;
-    if (this.x < margin) this.x = margin;
-    if (this.x > Battle.width - margin) this.x = Battle.width - margin;
-
-    const dist = Math.abs(this.x - opponent.x);
-    if (dist < 38 && Math.abs(this.y - opponent.y) < 38 && this.state !== 'DASH') {
-      const push = (38 - dist) * 0.5;
-      if (this.x < opponent.x) this.x -= push;
-      else this.x += push;
-    }
-  }
-
-  triggerPower(opponent) {
-    this.state = 'POWER';
-    this.stateTimer = 14;
-    this.powerCooldown = 36;
-    this.scaleX = 1.25;
-    this.scaleY = 0.85;
-    this.sp = Math.min(100, this.sp + 8);
-
-    const pType = this.data.projType || 'fireball';
-    const effect = this.data.powerEffect || 'burn';
-    SoundFX.powerByType(pType);
-
-    const spawnX = this.x + this.facing * 32;
-    const spawnY = this.y - 24;
-    const baseDmg = Math.round(9 * this.data.atkMult);
-
-    if (pType === 'shuriken' || pType === 'leaf') {
-      // Dispara 3 lâminas em leque
-      [-2.2, 0, 2.2].forEach(vySpread => {
-        Projectiles.push({
-          owner: this.slot,
-          type: pType,
-          effect,
-          x: spawnX,
-          y: spawnY,
-          vx: this.facing * (this.data.projSpeed || 12),
-          vy: vySpread,
-          radius: 9,
-          damage: Math.max(4, Math.round(baseDmg * 0.55)),
-          color: this.data.projColor || this.data.color,
-          core: this.data.coreColor,
-          life: 90,
-          target: opponent
-        });
-      });
-    } else {
-      Projectiles.push({
-        owner: this.slot,
-        type: pType,
-        effect,
-        x: spawnX,
-        y: spawnY,
-        vx: this.facing * (this.data.projSpeed || 11),
-        vy: pType === 'shockwave' ? -2.2 : 0,
-        radius: pType === 'shockwave' ? 16 : 12,
-        damage: baseDmg,
-        color: this.data.projColor || this.data.color,
-        core: this.data.coreColor,
-        life: 110,
-        target: opponent
-      });
-    }
-
-    spawnBurst(spawnX, spawnY, this.data.color, 8, 4);
-  }
-
-  triggerSpecial(opponent) {
-    this.sp = 0;
-    this.state = 'SPECIAL';
-    this.stateTimer = 26;
-    this.invulnTimer = 28;
-    this.scaleX = 1.4;
-    this.scaleY = 1.4;
-
-    const spType = this.data.specialType || 'meteor';
-    SoundFX.specialByType(spType);
-
-    GameState.flashAlpha = 0.45;
-    GameState.flashColor = this.data.color;
-    GameState.screenShake = 12;
-    GameState.hitStop = 5;
-
-    const dir = this.facing;
-    const col = this.data.color;
-    const core = this.data.coreColor;
-
-    if (spType === 'beam') {
-      // Feixe Kamehameha Gigante
-      for (let i = 0; i < 4; i++) {
-        Projectiles.push({
-          owner: this.slot,
-          type: 'laser',
-          x: this.x + dir * (35 + i * 25),
-          y: this.y - 26,
-          vx: dir * 22,
-          vy: 0,
-          radius: 26,
-          damage: 10,
-          color: col,
-          core: '#ffffff',
-          life: 48,
-          isSpecial: true
-        });
-      }
-    } else if (spType === 'blades' || spType === 'icespike') {
-      // Chuva de Lâminas / Estacas
-      for (let i = 0; i < 6; i++) {
-        Projectiles.push({
-          owner: this.slot,
-          type: 'shuriken',
-          x: this.x + dir * 28,
-          y: this.y - 10 - i * 11,
-          vx: dir * (13 + i * 1.1),
-          vy: 0,
-          radius: 14,
-          damage: 7,
-          color: col,
-          core: '#ffffff',
-          life: 90,
-          isSpecial: true
-        });
-      }
-    } else if (spType === 'nova' || spType === 'tornado') {
-      // Explosão Nova / Tornado Gigante
-      Projectiles.push({
-        owner: this.slot,
-        type: 'tornado',
-        x: this.x + dir * 42,
-        y: Battle.groundY - 45,
-        vx: dir * 9.5,
-        vy: 0,
-        radius: 38,
-        damage: Math.round(33 * this.data.atkMult),
-        color: col,
-        core,
-        life: 110,
-        isSpecial: true
-      });
-    } else if (spType === 'teleport') {
-      // Teleporte atrás do rival + Golpe Relâmpago
-      spawnBurst(this.x, this.y - 24, col, 16, 7);
-      this.x = Math.max(45, Math.min(Battle.width - 45, opponent.x - dir * 55));
-      this.y = opponent.y;
-      this.facing = Math.sign(opponent.x - this.x) || 1;
-      spawnBurst(this.x, this.y - 24, '#ffffff', 16, 7);
-      opponent.takeDamage(Math.round(32 * this.data.atkMult), this.facing * 14, -7, col);
-    } else if (spType === 'blackhole') {
-      Projectiles.push({
-        owner: this.slot,
-        type: 'homing',
-        x: this.x + dir * 70,
-        y: this.y - 34,
-        vx: dir * 5.5,
-        vy: 0,
-        radius: 34,
-        damage: Math.round(34 * this.data.atkMult),
-        color: col,
-        core: '#090d16',
-        life: 110,
-        target: opponent,
-        isSpecial: true
-      });
-    } else if (spType === 'eruption') {
-      for (let i = 1; i <= 4; i++) {
-        Projectiles.push({
-          owner: this.slot,
-          type: 'eruption',
-          x: this.x + dir * (i * 75),
-          y: Battle.groundY - 10,
-          vx: 0,
-          vy: -9 - i * 1.2,
-          radius: 22,
-          damage: 11,
-          color: col,
-          core: '#ffd166',
-          life: 65,
-          isSpecial: true
-        });
-      }
-    } else {
-      // Meteoro Devastador Padrão
-      for (let i = 0; i < 3; i++) {
-        Projectiles.push({
-          owner: this.slot,
-          type: 'meteor',
-          x: this.x + dir * (40 + i * 75),
-          y: Battle.groundY - 260 - i * 50,
-          vx: dir * 6.5,
-          vy: 11.5,
-          radius: 24,
-          damage: 13,
-          color: col,
-          core: '#ffd166',
-          life: 90,
-          isSpecial: true
-        });
-      }
-    }
-
-    spawnBurst(this.x, this.y - 24, this.data.color, 20, 8);
-  }
-
-  checkMeleeHit(opponent) {
-    if (this.hasHitThisSwing) return;
-
-    const mStyle = this.data.meleeStyle || 'punch';
-    const reachBonus = mStyle === 'sword' ? 18 : (mStyle === 'seismic' ? 10 : 0);
-    const reach = (this.state === 'AIR_ATTACK' ? 56 : (this.comboStep === 3 ? 66 : 54)) + reachBonus;
-    const hitX = this.x + this.facing * (reach * 0.65);
-    const hitY = this.y - 24;
-
-    if (Math.abs(hitX - opponent.x) < reach && Math.abs(hitY - (opponent.y - 24)) < 46) {
-      this.hasHitThisSwing = true;
-      let dmg = 6;
-      let knockX = this.facing * 5;
-      let knockY = 0;
-
-      if (this.state === 'AIR_ATTACK') {
-        dmg = 8;
-        knockX = this.facing * 7;
-      } else if (this.comboStep === 2) {
-        dmg = 7;
-        knockX = this.facing * 6;
-      } else if (this.comboStep === 3) {
-        dmg = mStyle === 'seismic' ? 15 : 12;
-        knockX = this.facing * (mStyle === 'seismic' ? 16 : 13);
-        knockY = -5.5;
-      }
-
-      dmg = Math.round(dmg * this.data.atkMult);
-      this.sp = Math.min(100, this.sp + 14);
-      opponent.takeDamage(dmg, knockX, knockY, this.data.color);
-    }
-  }
-
-  takeDamage(amount, knockX, knockY, hitColor, effect = null) {
-    if (this.invulnTimer > 0 || this.state === 'KO' || GameState.roundOver) return;
-
-    const defFactor = this.data.defMult || 1.0;
-    const finalDmg = Math.max(1, Math.round(amount / defFactor));
-
-    if (this.state === 'BLOCK') {
-      const reduced = Math.max(1, Math.round(finalDmg * 0.25));
-      this.hp = Math.max(0, this.hp - reduced);
-      this.sp = Math.min(100, this.sp + 6);
-      this.vx = knockX * 0.45;
-      SoundFX.block();
-      spawnBurst(this.x + this.facing * 18, this.y - 24, '#00e5ff', 6, 3);
-      if (this.hp <= 0) this.die();
-      return;
-    }
-
-    this.hp = Math.max(0, this.hp - finalDmg);
-    this.sp = Math.min(100, this.sp + 10);
-    this.state = 'HURT';
-    this.stateTimer = effect === 'stun' ? 22 : 12;
-    this.vx = effect === 'knockback' ? knockX * 1.65 : knockX;
-    if (knockY !== 0) {
-      this.vy = knockY;
-      this.onGround = false;
-    }
-    this.scaleX = 0.72;
-    this.scaleY = 1.28;
-
-    if (effect === 'freeze') this.slowTimer = 150;
-    if (effect === 'burn') this.burnTimer = 80;
-
-    GameState.hitStop = finalDmg >= 11 ? 4 : 2;
-    GameState.screenShake = finalDmg >= 11 ? 9 : 4;
-
-    if (finalDmg >= 11) SoundFX.hitHeavy();
-    else SoundFX.hitLight();
-
-    spawnBurst(this.x, this.y - 24, hitColor || '#ffffff', 12, 6);
-
-    if (this.hp <= 0) {
-      this.die();
-    }
-  }
-
-  die() {
-    this.hp = 0;
-    this.state = 'KO';
-    this.vy = -9;
-    this.onGround = false;
-    SoundFX.ko();
-    GameState.screenShake = 14;
-    spawnBurst(this.x, this.y - 24, this.data.color, 24, 8);
-    Battle.onFighterKO(this.slot);
-  }
-
-  draw(ctx, opponent) {
-    ctx.save();
-    ctx.translate(this.x, this.y - (this.baseH * this.scaleY) / 2);
-
-    const lookDir = opponent ? Math.sign(opponent.x - this.x) || this.facing : this.facing;
-    drawBlockCharacter(ctx, this.data, {
-      w: this.baseW * this.scaleX,
-      h: this.baseH * this.scaleY,
-      facing: this.facing,
-      lookDir,
-      state: this.state,
-      comboStep: this.comboStep,
-      isBlinking: this.isBlinking,
-      auraPhase: this.auraPhase,
-      rotation: this.rotation,
-      slowTimer: this.slowTimer,
-      spFull: this.sp >= 100
-    });
-
-    ctx.restore();
-  }
-}
-
-// ----------------------------------------------------------------------------
-// 7. INTELIGÊNCIA ARTIFICIAL (CPU RESPONSIVA E DIVERTIDA)
-// ----------------------------------------------------------------------------
-const CPUBrain = {
-  timer: 0,
-  currentAction: { left: false, right: false, up: false, down: false, hit: false, power: false, dash: false, special: false },
-
-  think(cpu, player) {
-    this.timer--;
-    if (this.timer > 0) return this.currentAction;
-
-    this.timer = 7 + Math.floor(Math.random() * 6);
-    const act = { left: false, right: false, up: false, down: false, hit: false, power: false, dash: false, special: false };
-
-    const dx = player.x - cpu.x;
-    const dist = Math.abs(dx);
-    const dir = Math.sign(dx);
-
-    if (cpu.sp >= 100 && dist < 340 && Math.random() < 0.65) {
-      act.special = true;
-      this.currentAction = act;
-      return act;
-    }
-
-    if ((player.state === 'ATTACK' || player.state === 'SPECIAL') && dist < 110 && Math.random() < 0.55) {
-      if (dir === 1) act.left = true;
-      else act.right = true;
-      this.currentAction = act;
-      return act;
-    }
-
-    if (dist < 72) {
-      if (Math.random() < 0.72) act.hit = true;
-      else if (Math.random() < 0.35) { act.up = true; act.hit = true; }
-      else act.dash = true;
-    } else if (dist < 260) {
-      const r = Math.random();
-      if (r < 0.25 && cpu.powerCooldown === 0) act.power = true;
-      else if (r < 0.42 && cpu.dashCooldown === 0) act.dash = true;
-      else {
-        if (dir === 1) act.right = true;
-        else act.left = true;
-        if (Math.random() < 0.16) act.up = true;
-      }
-    } else {
-      if (Math.random() < 0.32 && cpu.powerCooldown === 0) act.power = true;
-      else {
-        if (dir === 1) act.right = true;
-        else act.left = true;
-        if (Math.random() < 0.15) act.up = true;
-      }
-    }
-
-    this.currentAction = act;
-    return act;
-  }
-};
-
-// ----------------------------------------------------------------------------
-// 8. RENDERIZAÇÃO DOS 4 CENÁRIOS ANIMADOS (OTIMIZADOS PARA CANVAS 2D)
-// ----------------------------------------------------------------------------
-const StageRenderer = {
-  ambience: [],
-
-  initStage(stageId, w, h) {
-    this.ambience = [];
-    const count = 24;
-    for (let i = 0; i < count; i++) {
-      this.ambience.push({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        r: 2 + Math.random() * 4,
-        vx: (Math.random() - 0.5) * 1.5,
-        vy: 0.5 + Math.random() * 1.5,
-        phase: Math.random() * Math.PI * 2
-      });
-    }
-  },
-
-  draw(ctx, stageId, w, h, groundY, time) {
-    if (stageId === 'dojo') {
-      const grad = ctx.createLinearGradient(0, 0, 0, groundY);
-      grad.addColorStop(0, '#1d1135');
-      grad.addColorStop(0.55, '#8a2352');
-      grad.addColorStop(1, '#ff7547');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, groundY);
-
-      ctx.fillStyle = '#ffd166';
-      ctx.beginPath();
-      ctx.arc(w * 0.5, groundY * 0.52, Math.min(w, h) * 0.22, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#2b1338';
-      ctx.beginPath();
-      ctx.moveTo(0, groundY);
-      ctx.lineTo(w * 0.22, groundY * 0.45);
-      ctx.lineTo(w * 0.48, groundY);
-      ctx.lineTo(w * 0.78, groundY * 0.4);
-      ctx.lineTo(w, groundY);
-      ctx.fill();
-
-      ctx.fillStyle = '#180c24';
-      ctx.fillRect(w * 0.08, 0, 22, groundY);
-      ctx.fillRect(w * 0.92 - 22, 0, 22, groundY);
-
-      ctx.fillStyle = '#ffb3c6';
-      for (const p of this.ambience) {
-        p.x += Math.sin(time * 0.002 + p.phase) * 0.8 - 0.4;
-        p.y += p.vy * 0.7;
-        if (p.y > groundY) { p.y = -5; p.x = Math.random() * w; }
-        if (p.x < 0) p.x = w;
-        ctx.beginPath();
-        ctx.ellipse(p.x, p.y, p.r + 1, p.r * 0.6, p.phase, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.fillStyle = '#2d142c';
-      ctx.fillRect(0, groundY, w, h - groundY);
-      ctx.fillStyle = '#ff9e7d';
-      ctx.fillRect(0, groundY, w, 4);
-
-    } else if (stageId === 'cyber') {
-      const grad = ctx.createLinearGradient(0, 0, 0, groundY);
-      grad.addColorStop(0, '#050814');
-      grad.addColorStop(1, '#101d42');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, groundY);
-
-      ctx.fillStyle = '#091128';
-      for (let i = 0; i < 8; i++) {
-        const bw = w / 7;
-        const bh = 90 + ((i * 53) % 130);
-        ctx.fillRect(i * bw, groundY - bh, bw - 8, bh);
-      }
-
-      const pulse = 0.25 + Math.sin(time * 0.004) * 0.1;
-      ctx.strokeStyle = `rgba(0, 245, 212, ${pulse})`;
-      ctx.lineWidth = 1.5;
-      for (let gx = 0; gx < w; gx += 60) {
-        ctx.beginPath();
-        ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, groundY);
-        ctx.stroke();
-      }
-
-      ctx.strokeStyle = 'rgba(0, 229, 255, 0.4)';
-      ctx.lineWidth = 1.5;
-      for (const p of this.ambience) {
-        p.y += p.vy * 4.5;
-        if (p.y > groundY) { p.y = -10; p.x = Math.random() * w; }
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x - 2, p.y + 12);
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = '#070d1f';
-      ctx.fillRect(0, groundY, w, h - groundY);
-      ctx.fillStyle = '#00f5d4';
-      ctx.fillRect(0, groundY, w, 4);
-
-    } else if (stageId === 'volcano') {
-      const grad = ctx.createLinearGradient(0, 0, 0, groundY);
-      grad.addColorStop(0, '#1a0505');
-      grad.addColorStop(0.6, '#5c1010');
-      grad.addColorStop(1, '#b8290f');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, groundY);
-
-      ctx.fillStyle = '#240808';
-      ctx.beginPath();
-      ctx.moveTo(0, groundY);
-      ctx.lineTo(w * 0.35, groundY * 0.32);
-      ctx.lineTo(w * 0.65, groundY * 0.32);
-      ctx.lineTo(w, groundY);
-      ctx.fill();
-
-      ctx.fillStyle = '#ffbe0b';
-      for (const p of this.ambience) {
-        p.y -= p.vy * 1.2;
-        p.x += Math.sin(time * 0.003 + p.phase) * 0.6;
-        if (p.y < 0) { p.y = groundY; p.x = Math.random() * w; }
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r * 0.7, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.fillStyle = '#1f0909';
-      ctx.fillRect(0, groundY, w, h - groundY);
-      ctx.fillStyle = '#ff5400';
-      ctx.fillRect(0, groundY, w, 5);
-
-    } else {
-      const grad = ctx.createLinearGradient(0, 0, 0, groundY);
-      grad.addColorStop(0, '#071418');
-      grad.addColorStop(1, '#12352c');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, groundY);
-
-      ctx.fillStyle = '#e9f5db';
-      ctx.beginPath();
-      ctx.arc(w * 0.78, groundY * 0.28, 36, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#091f1a';
-      for (let i = 0; i < 7; i++) {
-        const tx = i * (w / 6);
-        ctx.fillRect(tx, groundY * 0.2, 26, groundY * 0.8);
-      }
-
-      for (const p of this.ambience) {
-        p.x += Math.cos(time * 0.002 + p.phase) * 0.7;
-        p.y += Math.sin(time * 0.0025 + p.phase) * 0.7;
-        const glow = 0.4 + Math.sin(time * 0.006 + p.phase) * 0.4;
-        ctx.fillStyle = `rgba(181, 228, 140, ${glow})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.fillStyle = '#0b241d';
-      ctx.fillRect(0, groundY, w, h - groundY);
-      ctx.fillStyle = '#52b788';
-      ctx.fillRect(0, groundY, w, 4);
-    }
-  }
-};
-
-// ----------------------------------------------------------------------------
-// 9. MOTOR DE BATALHA E LOOP 60 FPS
-// ----------------------------------------------------------------------------
-const Battle = {
-  canvas: document.getElementById('gameCanvas'),
-  ctx: null,
-  width: 800,
-  height: 450,
-  groundY: 370,
-
+// ... existing code ... -->
   p1: null,
   p2: null,
   syncTick: 0,
+  roundTimeoutId: null,
+
+  normalizeCharData(raw) {
+    const base = DEFAULT_CHARACTERS[0];
+    const d = Object.assign({}, base, raw || {});
+    d.speed = Number(d.speed) || 5.5;
+    d.jumpForce = Number(d.jumpForce) || 14.0;
+    d.weight = Number(d.weight) || 0.68;
+    d.atkMult = Number(d.atkMult) || 1.0;
+    d.defMult = Number(d.defMult) || 1.0;
+    d.projSpeed = Number(d.projSpeed) || 11.0;
+    d.auraColor = d.auraColor || hexToRgba(d.auraHex || d.color || '#00e5ff', 0.45);
+    return d;
+  },
+
+  startNewMatch() {
+    SoundFX.init();
+    if (this.roundTimeoutId) {
+      clearTimeout(this.roundTimeoutId);
+      this.roundTimeoutId = null;
+    }
+
+    CustomStorage.loadAll();
+    const rawC1 = (!GameState.isHost && GameState.mode === 'P2P' && GameState.remoteCustomChar)
+      ? GameState.remoteCustomChar
+      : (CHARACTERS[GameState.p1CharIdx] || CHARACTERS[0]);
+    const rawC2 = (GameState.isHost && GameState.mode === 'P2P' && GameState.remoteCustomChar)
+      ? GameState.remoteCustomChar
+      : (CHARACTERS[GameState.p2CharIdx] || CHARACTERS[1] || CHARACTERS[0]);
+
+    const c1 = this.normalizeCharData(rawC1);
+    const c2 = this.normalizeCharData(rawC2);
+
+    GameState.round = 1;
+    GameState.p1Wins = 0;
+    GameState.p2Wins = 0;
+    GameState.screenShake = 0;
+    GameState.hitStop = 0;
+    GameState.flashAlpha = 0;
+
+    Input.clearAll();
+    UI.showScreen('PLAYING');
+    this.resize();
+    TouchLayoutEditor.applyToBattleButtons();
+
+    const stageObj = STAGES[GameState.stageIdx] || STAGES[0];
+    StageRenderer.initStage(stageObj.id, this.width, this.height);
+
+    this.p1 = new Fighter(1, c1, Math.round(this.width * 0.25));
+    this.p2 = new Fighter(2, c2, Math.round(this.width * 0.75));
+    this.p1.sp = 0;
+    this.p2.sp = 0;
+
+    UI.setupBattleHUD(c1, c2);
+    UI.updateRoundDots();
+
+    // Escolhe música de batalha empolgante
+    SoundFX.setTrack(1 + (GameState.stageIdx % 3));
+    this.startRound();
+  },
+
+  startRound() {
+    Particles.length = 0;
+    Projectiles.length = 0;
+    AfterImages.length = 0;
+    Input.clearAll();
+
+    this.resize();
+    this.p1.reset(Math.round(this.width * 0.25), 1);
+    this.p2.reset(Math.round(this.width * 0.75), -1);
+
+    GameState.timer = 99;
+    GameState.timerAccum = 0;
+    GameState.roundOver = false;
+    GameState.bannerText = `ROUND ${GameState.round} - FIGHT!`;
+    GameState.bannerTimer = 85;
+    SoundFX.setTempoBoost(false);
+    SoundFX.roundStart();
+
+    document.getElementById('hud-timer').textContent = '99';
+    UI.updateBattleBars(this.p1, this.p2);
+  },
+
+  onFighterKO(loserSlot) {
+    if (GameState.roundOver) return;
+    GameState.roundOver = true;
+    SoundFX.setTempoBoost(false);
+
+    if (loserSlot === 1) {
+      GameState.p2Wins++;
+      GameState.bannerText = `${this.p2.data.name} VENCEU O ROUND!`;
+    } else {
+      GameState.p1Wins++;
+      GameState.bannerText = `${this.p1.data.name} VENCEU O ROUND!`;
+    }
+    GameState.bannerTimer = 110;
+    UI.updateRoundDots();
+
+    this.roundTimeoutId = setTimeout(() => {
+      if (GameState.p1Wins >= 2 || GameState.p2Wins >= 2) {
+        this.endMatch();
+      } else {
+        GameState.round++;
+        this.startRound();
+      }
+    }, 1900);
+  },
+
+  onTimeOut() {
+    if (GameState.roundOver) return;
+    GameState.roundOver = true;
+    SoundFX.setTempoBoost(false);
+
+    if (this.p1.hp >= this.p2.hp) {
+      GameState.p1Wins++;
+      GameState.bannerText = `TEMPO! ${this.p1.data.name} VENCEU!`;
+    } else {
+      GameState.p2Wins++;
+      GameState.bannerText = `TEMPO! ${this.p2.data.name} VENCEU!`;
+    }
+    GameState.bannerTimer = 110;
+    UI.updateRoundDots();
+
+    this.roundTimeoutId = setTimeout(() => {
+      if (GameState.p1Wins >= 2 || GameState.p2Wins >= 2) {
+        this.endMatch();
+      } else {
+        GameState.round++;
+        this.startRound();
+      }
+    }, 1900);
+  },
+
+  endMatch() {
+    const p1Won = GameState.p1Wins >= 2;
+    const winner = p1Won ? this.p1.data : this.p2.data;
+    const isLocalVictory = (GameState.mode === 'CPU') ? p1Won : (GameState.isHost ? p1Won : !p1Won);
+
+    document.getElementById('result-title').textContent = isLocalVictory ? '🏆 VITÓRIA!' : '💀 DERROTA!';
+    document.getElementById('result-title').style.color = isLocalVictory ? '#ffd166' : '#ff3e55';
+    document.getElementById('result-subtitle').textContent = `${winner.name} venceu a partida (${GameState.p1Wins} x ${GameState.p2Wins})!`;
+
+    SoundFX.victory();
+    UI.showScreen('RESULT');
+  },
+
+  togglePause() {
+    if (GameState.screen === 'PLAYING') {
+      Input.clearAll();
+      UI.showScreen('PAUSED');
+    } else if (GameState.screen === 'PAUSED') {
+      UI.showScreen('PLAYING');
+    }
+  },
 
   init() {
     this.ctx = this.canvas.getContext('2d', { alpha: false });
@@ -3851,12 +2867,15 @@ const UI = {
     SELECT: document.getElementById('screen-select'),
     PAUSED: document.getElementById('screen-pause'),
     SETTINGS: document.getElementById('screen-settings'),
+    TOUCH_EDITOR: document.getElementById('screen-touch-editor'),
     RESULT: document.getElementById('screen-result')
   },
 
   showScreen(name) {
     GameState.screen = name;
-    Object.values(this.screens).forEach(el => el.classList.add('hidden'));
+    Object.values(this.screens).forEach(el => {
+      if (el) el.classList.add('hidden');
+    });
 
     const hud = document.getElementById('battle-hud');
     const touch = document.getElementById('touch-controls');
@@ -3866,17 +2885,23 @@ const UI = {
       hud.classList.remove('hidden');
       touch.classList.remove('hidden');
       musicBar.classList.add('hidden');
+      TouchLayoutEditor.applyToBattleButtons();
     } else if (name === 'PAUSED' || name === 'RESULT') {
       hud.classList.remove('hidden');
       touch.classList.add('hidden');
       musicBar.classList.add('hidden');
       this.screens[name].classList.remove('hidden');
     } else if (name === 'SETTINGS') {
-      if (this.returnScreen === 'PAUSED') hud.classList.remove('hidden');
+      if (ScreenScaleManager.returnScreen === 'PAUSED') hud.classList.remove('hidden');
       else hud.classList.add('hidden');
       touch.classList.add('hidden');
       musicBar.classList.add('hidden');
       this.screens.SETTINGS.classList.remove('hidden');
+    } else if (name === 'TOUCH_EDITOR') {
+      hud.classList.add('hidden');
+      touch.classList.add('hidden');
+      musicBar.classList.add('hidden');
+      this.screens.TOUCH_EDITOR.classList.remove('hidden');
     } else {
       hud.classList.add('hidden');
       touch.classList.add('hidden');
@@ -3884,454 +2909,494 @@ const UI = {
       if (this.screens[name]) this.screens[name].classList.remove('hidden');
     }
   },
+// ... existing code ... -->
+// ----------------------------------------------------------------------------
+// 11.5 EDITOR VISUAL DE ESQUEMA DE TOQUE (SELEÇÃO INDIVIDUAL + MOLDURA QUADRADA)
+// ----------------------------------------------------------------------------
+const TouchLayoutEditor = {
+  KEY: 'bfp2p_touch_layout_v1',
+  selectedId: null,
+  dragState: null,
 
-  buildSelectionScreen() {
-    CustomStorage.loadAll();
-    const grid = document.getElementById('char-grid');
-    grid.innerHTML = '';
+  DEFAULTS: {
+    'btn-up':          { label: '▲',        x: 11, y: 63, w: 52, h: 52, scale: 1.0, bg: 'rgba(255,255,255,0.22)', shape: '14px' },
+    'btn-down':        { label: '▼',        x: 11, y: 86, w: 52, h: 52, scale: 1.0, bg: 'rgba(255,255,255,0.22)', shape: '14px' },
+    'btn-left':        { label: '◀',        x: 5,  y: 75, w: 52, h: 52, scale: 1.0, bg: 'rgba(255,255,255,0.22)', shape: '14px' },
+    'btn-right':       { label: '▶',        x: 17, y: 75, w: 52, h: 52, scale: 1.0, bg: 'rgba(255,255,255,0.22)', shape: '14px' },
+    'btn-hit':         { label: 'BATER',    x: 92, y: 84, w: 68, h: 68, scale: 1.0, bg: 'rgba(255,62,85,0.85)',   shape: '50%' },
+    'btn-power':       { label: 'PODER',    x: 81, y: 83, w: 58, h: 58, scale: 1.0, bg: 'rgba(0,180,216,0.85)',   shape: '50%' },
+    'btn-dash':        { label: 'DASH',     x: 91, y: 65, w: 54, h: 54, scale: 1.0, bg: 'rgba(16,185,129,0.85)',  shape: '50%' },
+    'btn-special':     { label: 'ESPECIAL', x: 81, y: 65, w: 62, h: 62, scale: 1.0, bg: 'rgba(255,183,3,0.88)',   shape: '50%' },
+    'btn-defend':      { label: 'DEFESA',   x: 71, y: 84, w: 52, h: 52, scale: 1.0, bg: 'rgba(59,130,246,0.85)',  shape: '50%' },
+    'btn-touch-pause': { label: '⏸',        x: 50, y: 15, w: 42, h: 42, scale: 1.0, bg: 'rgba(15,23,42,0.88)',    shape: '12px' }
+  },
 
-    CHARACTERS.forEach((c, idx) => {
-      const card = document.createElement('div');
-      card.className = 'char-card';
-      card.dataset.idx = idx;
+  layout: {},
 
-      const actionsHtml = c.isCustom ? `
-        <div class="custom-card-actions">
-          <button class="mini-icon-btn btn-edit-c" title="Editar">✏️</button>
-          <button class="mini-icon-btn btn-del-c" title="Excluir">🗑️</button>
-        </div>
-      ` : '';
+  init() {
+    this.load();
+    this.applyToBattleButtons();
 
-      card.innerHTML = `
-        <span class="char-badge badge-p1 hidden">P1</span>
-        <span class="char-badge badge-p2 hidden">P2</span>
-        ${actionsHtml}
-        <div class="char-preview-box" style="background:${c.color}; box-shadow: 0 0 14px ${c.auraColor};">
-          <div class="mini-eyes">
-            <div class="mini-eye"></div>
-            <div class="mini-eye"></div>
-          </div>
-        </div>
-        <div class="char-name" style="color:${c.color}">${c.name}</div>
-        <div class="char-element">${c.element}</div>
-      `;
+    const stage = document.getElementById('touch-editor-stage');
+    const frame = document.getElementById('selection-frame');
 
-      if (c.isCustom) {
-        card.querySelector('.btn-edit-c').addEventListener('click', (e) => {
-          e.stopPropagation();
-          SoundFX.uiClick();
-          CharacterCreator.open(c, 'SELECT');
-        });
-        card.querySelector('.btn-del-c').addEventListener('click', (e) => {
-          e.stopPropagation();
-          SoundFX.uiBack();
-          CustomStorage.remove(c.id);
-          GameState.p1CharIdx = 0;
-          GameState.p2CharIdx = 1;
-          this.openSelectScreen();
-        });
+    // Clicar no fundo vazio desmarca o botão atual
+    stage.addEventListener('pointerdown', (e) => {
+      if (e.target === stage) {
+        this.selectButton(null);
       }
+    });
 
-      card.addEventListener('click', () => {
-        SoundFX.uiSelect(idx);
-        if (GameState.mode === 'CPU') {
-          GameState.p1CharIdx = idx;
-          GameState.p2CharIdx = (idx + 1 + Math.floor(Math.random() * (CHARACTERS.length - 1))) % CHARACTERS.length;
-        } else {
-          if (GameState.isHost) {
-            GameState.p1CharIdx = idx;
-          } else {
-            GameState.p2CharIdx = idx;
+    // Arrastar o interior da moldura quadrada move apenas o botão selecionado
+    frame.addEventListener('pointerdown', (e) => {
+      if (!this.selectedId) return;
+      if (e.target.classList.contains('resize-handle')) return;
+      e.stopPropagation();
+      const item = this.layout[this.selectedId];
+      this.dragState = {
+        mode: 'move',
+        startX: e.clientX,
+        startY: e.clientY,
+        origX: item.x,
+        origY: item.y
+      };
+      frame.setPointerCapture(e.pointerId);
+    });
+
+    // Alças dos 4 cantos redimensionam apenas o botão selecionado
+    frame.querySelectorAll('.resize-handle').forEach(handle => {
+      handle.addEventListener('pointerdown', (e) => {
+        if (!this.selectedId) return;
+        e.stopPropagation();
+        const item = this.layout[this.selectedId];
+        this.dragState = {
+          mode: 'resize',
+          corner: handle.dataset.corner,
+          startX: e.clientX,
+          startY: e.clientY,
+          origScale: item.scale
+        };
+        handle.setPointerCapture(e.pointerId);
+      });
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!this.dragState || !this.selectedId) return;
+      const container = document.getElementById('game-container').getBoundingClientRect();
+      const item = this.layout[this.selectedId];
+
+      if (this.dragState.mode === 'move') {
+        const dxPct = ((e.clientX - this.dragState.startX) / container.width) * 100;
+        const dyPct = ((e.clientY - this.dragState.startY) / container.height) * 100;
+        item.x = Math.max(4, Math.min(96, this.dragState.origX + dxPct));
+        item.y = Math.max(8, Math.min(95, this.dragState.origY + dyPct));
+      } else if (this.dragState.mode === 'resize') {
+        const signX = this.dragState.corner.includes('e') ? 1 : -1;
+        const signY = this.dragState.corner.includes('s') ? 1 : -1;
+        const delta = ((e.clientX - this.dragState.startX) * signX + (e.clientY - this.dragState.startY) * signY) / 110;
+        item.scale = Math.max(0.55, Math.min(2.1, +(this.dragState.origScale + delta).toFixed(2)));
+      }
+      this.renderEditor();
+    });
+
+    window.addEventListener('pointerup', () => {
+      this.dragState = null;
+    });
+
+    document.getElementById('btn-open-touch-editor').addEventListener('click', () => {
+      SoundFX.uiClick();
+      this.open();
+    });
+
+    document.getElementById('btn-save-touch-layout').addEventListener('click', () => {
+      this.save();
+      this.applyToBattleButtons();
+      SoundFX.uiSave();
+      document.getElementById('touch-editor-hint').textContent = '✅ Esquema de toque salvo com sucesso!';
+    });
+
+    document.getElementById('btn-reset-touch-layout').addEventListener('click', () => {
+      SoundFX.uiEquip();
+      this.resetDefaults();
+      this.selectButton(null);
+      this.renderEditor();
+      document.getElementById('touch-editor-hint').textContent = '🔄 Posições e tamanhos restaurados ao padrão!';
+    });
+
+    document.getElementById('btn-size-minus').addEventListener('click', () => {
+      if (!this.selectedId) return;
+      SoundFX.uiEquip();
+      const item = this.layout[this.selectedId];
+      item.scale = Math.max(0.55, +(item.scale - 0.1).toFixed(2));
+      this.renderEditor();
+    });
+
+    document.getElementById('btn-size-plus').addEventListener('click', () => {
+      if (!this.selectedId) return;
+      SoundFX.uiEquip();
+      const item = this.layout[this.selectedId];
+      item.scale = Math.min(2.1, +(item.scale + 0.1).toFixed(2));
+      this.renderEditor();
+    });
+
+    document.getElementById('btn-close-touch-editor').addEventListener('click', () => {
+      SoundFX.uiBack();
+      this.applyToBattleButtons();
+      UI.showScreen('SETTINGS');
+    });
+  },
+
+  load() {
+    this.resetDefaults(false);
+    try {
+      const raw = localStorage.getItem(this.KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        Object.keys(this.DEFAULTS).forEach(id => {
+          if (parsed[id]) {
+            this.layout[id] = Object.assign({}, this.DEFAULTS[id], parsed[id]);
           }
-          NetP2P.send({
-            type: 'SELECT_UPDATE',
-            charIdx: idx,
-            stageIdx: GameState.stageIdx,
-            customChar: c.isCustom ? c : null
-          });
-        }
-        this.refreshSelectUI();
-      });
-
-      grid.appendChild(card);
-    });
-
-    const stageGrid = document.getElementById('stage-grid');
-    stageGrid.innerHTML = '';
-
-    STAGES.forEach((st, idx) => {
-      const btn = document.createElement('button');
-      btn.className = 'stage-btn';
-      btn.dataset.idx = idx;
-      btn.innerHTML = `<span class="stage-dot" style="background:${st.dot}"></span>${st.name}`;
-
-      btn.addEventListener('click', () => {
-        SoundFX.uiEquip();
-        if (GameState.mode === 'P2P' && !GameState.isHost) return;
-        GameState.stageIdx = idx;
-        StageRenderer.initStage(st.id, Battle.width, Battle.height);
-        if (GameState.mode === 'P2P') {
-          const myChar = CHARACTERS[GameState.p1CharIdx];
-          NetP2P.send({
-            type: 'SELECT_UPDATE',
-            charIdx: GameState.p1CharIdx,
-            stageIdx: idx,
-            customChar: myChar && myChar.isCustom ? myChar : null
-          });
-        }
-        this.refreshSelectUI();
-      });
-
-      stageGrid.appendChild(btn);
-    });
+        });
+      }
+    } catch (e) {}
   },
 
-  openSelectScreen() {
-    SoundFX.setTrack(0); // Música de seleção ("Arena Spirit")
-    this.buildSelectionScreen();
-    this.refreshSelectUI();
-    this.showScreen('SELECT');
+  save() {
+    try {
+      localStorage.setItem(this.KEY, JSON.stringify(this.layout));
+    } catch (e) {}
   },
 
-  refreshSelectUI() {
-    const cards = document.querySelectorAll('.char-card');
-    cards.forEach((card, idx) => {
-      card.classList.remove('selected-p1', 'selected-p2');
-      card.querySelector('.badge-p1').classList.add('hidden');
-      card.querySelector('.badge-p2').classList.add('hidden');
-
-      if (idx === GameState.p1CharIdx) {
-        card.classList.add('selected-p1');
-        card.querySelector('.badge-p1').classList.remove('hidden');
-      }
-      if (idx === GameState.p2CharIdx) {
-        card.classList.add('selected-p2');
-        card.querySelector('.badge-p2').classList.remove('hidden');
-      }
+  resetDefaults(saveNow = true) {
+    this.layout = {};
+    Object.keys(this.DEFAULTS).forEach(id => {
+      this.layout[id] = Object.assign({}, this.DEFAULTS[id]);
     });
+    if (saveNow) this.save();
+  },
 
-    const myIdx = (GameState.mode === 'P2P' && !GameState.isHost) ? GameState.p2CharIdx : GameState.p1CharIdx;
-    const c = CHARACTERS[myIdx] || CHARACTERS[0];
-    document.getElementById('detail-name').textContent = `${c.name} (${c.element})`;
-    document.getElementById('detail-name').style.color = c.color;
-    document.getElementById('detail-skills').innerHTML = `
-      <div><span class="skill-tag">⚡ PODER:</span> ${c.powerName}</div>
-      <div><span class="skill-tag">👊 COMBO 3x:</span> ${c.comboName}</div>
-      <div><span class="skill-tag">🔥 ESPECIAL:</span> ${c.specialName}</div>
-    `;
+  open() {
+    this.selectedId = null; // Nenhum botão selecionado inicialmente
+    UI.showScreen('TOUCH_EDITOR');
+    document.getElementById('touch-editor-hint').textContent = 'Toque em um botão para abrir a moldura quadrada de edição';
+    this.renderEditor();
+  },
 
-    document.querySelectorAll('.stage-btn').forEach((btn, idx) => {
-      btn.classList.toggle('active', idx === GameState.stageIdx);
-    });
-
-    const modeLabel = document.getElementById('select-mode-label');
-    const startBtn = document.getElementById('btn-start-fight');
-    const syncMsg = document.getElementById('select-sync-msg');
-
-    if (GameState.mode === 'CPU') {
-      modeLabel.textContent = 'MODO: VS CPU';
-      startBtn.classList.remove('hidden');
-      syncMsg.textContent = 'Escolha ou crie seu bloquinho!';
+  selectButton(id) {
+    this.selectedId = id;
+    if (id && this.layout[id]) {
+      SoundFX.uiSelect(2);
+      const item = this.layout[id];
+      document.getElementById('touch-editor-hint').textContent = `Editando [${item.label}] • Arraste para mover ou puxe os cantos (${Math.round(item.scale * 100)}%)`;
     } else {
-      modeLabel.textContent = `SALA P2P: ${GameState.roomCode}`;
-      if (GameState.isHost) {
-        startBtn.classList.remove('hidden');
-        syncMsg.textContent = 'Você é o Anfitrião (P1). Clique em Lutar!';
-      } else {
-        startBtn.classList.add('hidden');
-        syncMsg.textContent = 'Aguardando o Anfitrião (P1) iniciar a luta...';
-      }
+      document.getElementById('touch-editor-hint').textContent = 'Toque em um botão para abrir a moldura quadrada de edição';
+    }
+    this.renderEditor();
+  },
+
+  renderEditor() {
+    const stage = document.getElementById('touch-editor-stage');
+    const frame = document.getElementById('selection-frame');
+    const container = document.getElementById('game-container').getBoundingClientRect();
+    stage.innerHTML = '';
+
+    Object.keys(this.layout).forEach(id => {
+      const item = this.layout[id];
+      const el = document.createElement('div');
+      el.className = 'editor-proxy-btn' + (this.selectedId === id ? ' selected' : '');
+      const realW = item.w * item.scale;
+      const realH = item.h * item.scale;
+
+      el.style.width = realW + 'px';
+      el.style.height = realH + 'px';
+      el.style.left = `calc(${item.x}% - ${realW / 2}px)`;
+      el.style.top = `calc(${item.y}% - ${realH / 2}px)`;
+      el.style.background = item.bg;
+      el.style.borderRadius = item.shape;
+      el.style.border = '2px solid rgba(255,255,255,0.65)';
+      el.style.fontSize = Math.max(10, Math.round(12 * item.scale)) + 'px';
+      el.textContent = item.label;
+
+      el.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        if (this.selectedId !== id) {
+          this.selectButton(id);
+        } else {
+          // Já selecionado: inicia arraste direto
+          this.dragState = {
+            mode: 'move',
+            startX: e.clientX,
+            startY: e.clientY,
+            origX: item.x,
+            origY: item.y
+          };
+          frame.setPointerCapture(e.pointerId);
+        }
+      });
+
+      stage.appendChild(el);
+    });
+
+    // Atualiza moldura quadrada apenas ao redor do botão selecionado
+    if (this.selectedId && this.layout[this.selectedId]) {
+      const sel = this.layout[this.selectedId];
+      const pad = 8;
+      const boxW = sel.w * sel.scale + pad * 2;
+      const boxH = sel.h * sel.scale + pad * 2;
+      const cx = (sel.x / 100) * container.width;
+      const cy = (sel.y / 100) * container.height;
+
+      frame.classList.remove('hidden');
+      frame.style.width = boxW + 'px';
+      frame.style.height = boxH + 'px';
+      frame.style.left = (cx - boxW / 2) + 'px';
+      frame.style.top = (cy - boxH / 2) + 'px';
+    } else {
+      frame.classList.add('hidden');
     }
   },
 
-  setupBattleHUD(c1, c2) {
-    document.getElementById('hud-p1-name').textContent = c1.name;
-    document.getElementById('hud-p1-name').style.color = c1.color;
-    document.getElementById('hud-p2-name').textContent = GameState.mode === 'CPU' ? `${c2.name} (CPU)` : c2.name;
-    document.getElementById('hud-p2-name').style.color = c2.color;
-  },
-
-  updateRoundDots() {
-    const p1Dots = document.getElementById('hud-p1-rounds').children;
-    const p2Dots = document.getElementById('hud-p2-rounds').children;
-    for (let i = 0; i < 2; i++) {
-      p1Dots[i].classList.toggle('won', i < GameState.p1Wins);
-      p2Dots[i].classList.toggle('won', i < GameState.p2Wins);
-    }
-  },
-
-  updateBattleBars(p1, p2) {
-    if (!p1 || !p2) return;
-    document.getElementById('hud-p1-hp').style.width = `${p1.hp}%`;
-    document.getElementById('hud-p1-dmg').style.width = `${p1.hp}%`;
-    document.getElementById('hud-p2-hp').style.width = `${p2.hp}%`;
-    document.getElementById('hud-p2-dmg').style.width = `${p2.hp}%`;
-
-    const sp1 = document.getElementById('hud-p1-sp');
-    const sp2 = document.getElementById('hud-p2-sp');
-    sp1.style.width = `${p1.sp}%`;
-    sp2.style.width = `${p2.sp}%`;
-    sp1.classList.toggle('full', p1.sp >= 100);
-    sp2.classList.toggle('full', p2.sp >= 100);
-
-    const myFighter = (GameState.mode === 'P2P' && !GameState.isHost) ? p2 : p1;
-    document.getElementById('btn-special').classList.toggle('ready', myFighter.sp >= 100);
+  applyToBattleButtons() {
+    Object.keys(this.layout).forEach(id => {
+      const el = document.getElementById(id);
+      const item = this.layout[id];
+      if (!el || !item) return;
+      const realW = item.w * item.scale;
+      const realH = item.h * item.scale;
+      el.style.width = realW + 'px';
+      el.style.height = realH + 'px';
+      el.style.left = `calc(${item.x}% - ${realW / 2}px)`;
+      el.style.top = `calc(${item.y}% - ${realH / 2}px)`;
+      el.style.fontSize = Math.max(10, Math.round(12 * item.scale)) + 'px';
+    });
   }
 };
 
 // ----------------------------------------------------------------------------
-// 12. EVENTOS DE NAVEGAÇÃO, OFICINA E CONTROLES DE MÚSICA
+// 11.6 OFICINA DE CRIAÇÃO DE LUTADORES PERSONALIZADOS
 // ----------------------------------------------------------------------------
-document.getElementById('btn-mode-cpu').addEventListener('click', () => {
-  SoundFX.uiClick();
-  NetP2P.cleanup();
-  GameState.mode = 'CPU';
-  GameState.isHost = true;
-  UI.openSelectScreen();
-});
+const CharacterCreator = {
+  editingId: null,
+  returnScreen: 'MENU',
+  previewState: 'IDLE',
+  previewTimer: 0,
+  previewRot: 0,
 
-document.getElementById('btn-mode-p2p').addEventListener('click', () => {
-  SoundFX.uiClick();
-  document.getElementById('p2p-choice-area').classList.remove('hidden');
-  document.getElementById('p2p-host-area').classList.add('hidden');
-  document.getElementById('p2p-status').textContent = '';
-  UI.showScreen('P2P');
-});
+  PALETTE: ['#ff3e55', '#00d4ff', '#10b981', '#ffbe0b', '#9b5de5', '#f77f00', '#ec4899', '#ffffff', '#1e293b', '#38bdf8'],
 
-document.getElementById('btn-open-creator-menu').addEventListener('click', () => {
-  SoundFX.uiClick();
-  CharacterCreator.open(null, 'MENU');
-});
+  init() {
+    this.buildSwatches('palette-body', 'cust-body-color');
+    this.buildSwatches('palette-aura', 'cust-aura-color');
+    this.buildSwatches('palette-outfit', 'cust-outfit-color');
+  },
 
-document.getElementById('btn-open-settings-menu').addEventListener('click', () => {
-  SoundFX.uiClick();
-  ScreenScaleManager.open('MENU');
-});
+  buildSwatches(containerId, inputId) {
+    const container = document.getElementById(containerId);
+    const nativeInput = document.getElementById(inputId);
+    if (!container || !nativeInput) return;
 
-document.getElementById('btn-open-settings-pause').addEventListener('click', () => {
-  SoundFX.uiClick();
-  ScreenScaleManager.open('PAUSED');
-});
-
-document.getElementById('btn-apply-ratio').addEventListener('click', () => {
-  const val = document.getElementById('input-screen-ratio').value;
-  if (ScreenScaleManager.setCustomRatio(val)) {
-    SoundFX.uiSave();
-  } else {
-    SoundFX.uiBack();
-    const fb = document.getElementById('ratio-feedback');
-    fb.style.color = '#ff3e55';
-    fb.textContent = 'Formato inválido! Use LARGURAxALTURA (ex: 200x1000)';
-  }
-});
-
-document.getElementById('btn-reset-ratio').addEventListener('click', () => {
-  SoundFX.uiEquip();
-  ScreenScaleManager.resetAuto();
-});
-
-document.getElementById('btn-settings-close').addEventListener('click', () => {
-  SoundFX.uiBack();
-  UI.showScreen(ScreenScaleManager.returnScreen);
-});
-
-document.querySelectorAll('#ratio-presets .chip-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    SoundFX.uiEquip();
-    ScreenScaleManager.setCustomRatio(btn.dataset.ratio);
-  });
-});
-
-document.getElementById('btn-open-creator-select').addEventListener('click', () => {
-  SoundFX.uiClick();
-  CharacterCreator.open(null, 'SELECT');
-});
-
-document.getElementById('btn-creator-back').addEventListener('click', () => {
-  SoundFX.uiBack();
-  if (CharacterCreator.returnScreen === 'SELECT') UI.openSelectScreen();
-  else UI.showScreen('MENU');
-});
-
-document.getElementById('btn-save-custom').addEventListener('click', () => {
-  CharacterCreator.saveCurrent();
-});
-
-// Abas da Oficina
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    SoundFX.uiEquip();
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const targetId = btn.dataset.tab;
-    document.querySelectorAll('.tab-content').forEach(panel => {
-      panel.classList.toggle('hidden', panel.id !== targetId);
+    this.PALETTE.forEach(hex => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch';
+      sw.style.background = hex;
+      sw.addEventListener('click', () => {
+        SoundFX.uiEquip();
+        nativeInput.value = hex;
+      });
+      container.insertBefore(sw, nativeInput);
     });
-  });
-});
+  },
 
-// Botões +/- de Atributos
-document.querySelectorAll('.stat-step-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    CharacterCreator.stepStat(btn.dataset.stat, parseInt(btn.dataset.delta, 10));
-  });
-});
+  open(existingChar = null, fromScreen = 'MENU') {
+    this.returnScreen = fromScreen;
+    this.editingId = existingChar ? existingChar.id : null;
 
-// Selects da Oficina com som
-document.querySelectorAll('#screen-creator select').forEach(sel => {
-  sel.addEventListener('change', () => SoundFX.uiEquip());
-});
+    document.getElementById('cust-name').value = existingChar ? existingChar.name : 'TITÃ';
+    document.getElementById('cust-body-color').value = existingChar ? existingChar.color : '#ff3e55';
+    document.getElementById('cust-aura-color').value = existingChar ? (existingChar.auraHex || '#00e5ff') : '#00e5ff';
+    document.getElementById('cust-eyes').value = existingChar ? (existingChar.eyeStyle || 'cute') : 'cute';
+    document.getElementById('cust-hat').value = existingChar ? (existingChar.hat || 'none') : 'headband';
+    document.getElementById('cust-suit').value = existingChar ? (existingChar.suit || 'none') : 'kimono';
+    document.getElementById('cust-outfit-color').value = existingChar ? (existingChar.outfitColor || '#ffd166') : '#ffd166';
+    document.getElementById('cust-melee').value = existingChar ? (existingChar.meleeStyle || 'punch') : 'punch';
+    document.getElementById('cust-power').value = existingChar ? (existingChar.projType || 'fireball') : 'fireball';
+    document.getElementById('cust-effect').value = existingChar ? (existingChar.powerEffect || 'burn') : 'burn';
+    document.getElementById('cust-special').value = existingChar ? (existingChar.specialType || 'meteor') : 'meteor';
 
-// Botões de Teste da Oficina
-document.getElementById('btn-test-melee').addEventListener('click', () => CharacterCreator.triggerTest('ATTACK'));
-document.getElementById('btn-test-power').addEventListener('click', () => CharacterCreator.triggerTest('POWER'));
-document.getElementById('btn-test-special').addEventListener('click', () => CharacterCreator.triggerTest('SPECIAL'));
-document.getElementById('btn-test-jump').addEventListener('click', () => CharacterCreator.triggerTest('JUMP'));
+    document.getElementById('val-atk').textContent = existingChar ? (existingChar.statAtk || 5) : 5;
+    document.getElementById('val-spd').textContent = existingChar ? (existingChar.statSpd || 5) : 5;
+    document.getElementById('val-def').textContent = existingChar ? (existingChar.statDef || 5) : 5;
+    this.updatePointsLabel();
 
-// Controles P2P
-document.getElementById('btn-create-room').addEventListener('click', () => {
-  SoundFX.uiClick();
-  NetP2P.createRoom();
-});
+    UI.showScreen('CREATOR');
+  },
 
-document.getElementById('btn-join-room').addEventListener('click', () => {
-  SoundFX.uiClick();
-  NetP2P.joinRoom(document.getElementById('input-room-code').value);
-});
+  updatePointsLabel() {
+    const atk = parseInt(document.getElementById('val-atk').textContent, 10);
+    const spd = parseInt(document.getElementById('val-spd').textContent, 10);
+    const def = parseInt(document.getElementById('val-def').textContent, 10);
+    const free = 15 - (atk + spd + def);
+    document.getElementById('stat-points-left').textContent = `Pontos livres: ${free}`;
+    return free;
+  },
 
-document.getElementById('btn-p2p-back').addEventListener('click', () => {
-  SoundFX.uiBack();
-  NetP2P.cleanup();
-  UI.showScreen('MENU');
-});
-
-document.getElementById('btn-select-back').addEventListener('click', () => {
-  SoundFX.uiBack();
-  NetP2P.cleanup();
-  UI.showScreen('MENU');
-});
-
-document.getElementById('btn-start-fight').addEventListener('click', () => {
-  SoundFX.uiClick();
-  if (GameState.mode === 'P2P') {
-    const c1 = CHARACTERS[GameState.p1CharIdx];
-    const c2 = CHARACTERS[GameState.p2CharIdx];
-    NetP2P.send({
-      type: 'START_MATCH',
-      p1CharIdx: GameState.p1CharIdx,
-      p2CharIdx: GameState.p2CharIdx,
-      stageIdx: GameState.stageIdx,
-      p1Custom: c1 && c1.isCustom ? c1 : null,
-      p2Custom: c2 && c2.isCustom ? c2 : null
-    });
-  }
-  Battle.startNewMatch();
-});
-
-// Controles de Música e Pause
-document.getElementById('btn-bar-next-bgm').addEventListener('click', () => SoundFX.nextTrack());
-document.getElementById('btn-bar-mute-bgm').addEventListener('click', () => {
-  const muted = SoundFX.toggleBgm();
-  document.getElementById('btn-bar-mute-bgm').textContent = muted ? '🔇' : '🔊';
-  document.getElementById('btn-pause-toggle-bgm').textContent = muted ? '🎶 Música: OFF' : '🎶 Música: ON';
-});
-
-document.getElementById('btn-next-bgm').addEventListener('click', () => SoundFX.nextTrack());
-document.getElementById('btn-pause-next-bgm').addEventListener('click', () => SoundFX.nextTrack());
-document.getElementById('btn-pause-toggle-bgm').addEventListener('click', () => {
-  const muted = SoundFX.toggleBgm();
-  document.getElementById('btn-pause-toggle-bgm').textContent = muted ? '🎶 Música: OFF' : '🎶 Música: ON';
-  document.getElementById('btn-bar-mute-bgm').textContent = muted ? '🔇' : '🔊';
-});
-
-document.getElementById('btn-pause').addEventListener('click', () => {
-  SoundFX.uiClick();
-  Battle.togglePause();
-});
-
-document.getElementById('btn-mute').addEventListener('click', () => {
-  const isMuted = SoundFX.toggleMute();
-  document.getElementById('btn-mute').textContent = isMuted ? '🔇' : '🔊';
-});
-
-document.getElementById('btn-resume').addEventListener('click', () => {
-  SoundFX.uiClick();
-  UI.showScreen('PLAYING');
-});
-
-document.getElementById('btn-restart-fight').addEventListener('click', () => {
-  SoundFX.uiClick();
-  if (GameState.mode === 'P2P') NetP2P.send({ type: 'REMATCH' });
-  Battle.startNewMatch();
-});
-
-document.getElementById('btn-change-char').addEventListener('click', () => {
-  SoundFX.uiBack();
-  if (GameState.mode === 'P2P') NetP2P.send({ type: 'BACK_SELECT' });
-  UI.openSelectScreen();
-});
-
-document.getElementById('btn-quit-menu').addEventListener('click', () => {
-  SoundFX.uiBack();
-  NetP2P.cleanup();
-  SoundFX.setTrack(0);
-  UI.showScreen('MENU');
-});
-
-document.getElementById('btn-rematch').addEventListener('click', () => {
-  SoundFX.uiClick();
-  if (GameState.mode === 'P2P') NetP2P.send({ type: 'REMATCH' });
-  Battle.startNewMatch();
-});
-
-document.getElementById('btn-result-select').addEventListener('click', () => {
-  SoundFX.uiBack();
-  if (GameState.mode === 'P2P') NetP2P.send({ type: 'BACK_SELECT' });
-  UI.openSelectScreen();
-});
-
-document.getElementById('btn-result-menu').addEventListener('click', () => {
-  SoundFX.uiBack();
-  NetP2P.cleanup();
-  SoundFX.setTrack(0);
-  UI.showScreen('MENU');
-});
-
-// ----------------------------------------------------------------------------
-// 13. LOOP PRINCIPAL 60 FPS
-// ----------------------------------------------------------------------------
-let lastFrameTime = performance.now();
-let framesCount = 0;
-let fpsTimer = 0;
-
-function mainLoop(now) {
-  const dt = now - lastFrameTime;
-  lastFrameTime = now;
-
-  framesCount++;
-  fpsTimer += dt;
-  if (fpsTimer >= 1000) {
-    const fps = Math.round((framesCount * 1000) / fpsTimer);
-    const badge = document.getElementById('perf-badge');
-    if (badge) {
-      badge.textContent = GameState.mode === 'P2P'
-        ? `${fps} FPS • P2P (${GameState.ping}ms)`
-        : `${fps} FPS • LOCAL`;
+  stepStat(stat, delta) {
+    const el = document.getElementById('val-' + stat);
+    const cur = parseInt(el.textContent, 10);
+    const free = this.updatePointsLabel();
+    if (delta > 0 && free <= 0) return;
+    const next = Math.max(2, Math.min(8, cur + delta));
+    if (next !== cur) {
+      SoundFX.uiEquip();
+      el.textContent = next;
+      this.updatePointsLabel();
     }
-    framesCount = 0;
-    fpsTimer = 0;
+  },
+
+  readDraft() {
+    const name = (document.getElementById('cust-name').value.trim() || 'HERÓI').toUpperCase();
+    const color = document.getElementById('cust-body-color').value;
+    const auraHex = document.getElementById('cust-aura-color').value;
+    const eyeStyle = document.getElementById('cust-eyes').value;
+    const hat = document.getElementById('cust-hat').value;
+    const suit = document.getElementById('cust-suit').value;
+    const outfitColor = document.getElementById('cust-outfit-color').value;
+    const meleeStyle = document.getElementById('cust-melee').value;
+    const projType = document.getElementById('cust-power').value;
+    const powerEffect = document.getElementById('cust-effect').value;
+    const specialType = document.getElementById('cust-special').value;
+
+    const statAtk = parseInt(document.getElementById('val-atk').textContent, 10);
+    const statSpd = parseInt(document.getElementById('val-spd').textContent, 10);
+    const statDef = parseInt(document.getElementById('val-def').textContent, 10);
+
+    const powerNames = {
+      fireball: 'Bola de Energia',
+      shuriken: 'Shuriken Tripla',
+      laser: 'Raio Laser Veloz',
+      homing: 'Esfera Teleguiada',
+      shockwave: 'Onda de Choque'
+    };
+    const meleeNames = {
+      punch: 'Soco Flamejante 3x',
+      sword: 'Corte de Espada 3x',
+      seismic: 'Impacto Sísmico 3x',
+      claws: 'Garras Relâmpago 3x'
+    };
+    const specialNames = {
+      meteor: 'Meteoro Devastador',
+      beam: 'Feixe Kamehameha',
+      blades: 'Chuva de Lâminas',
+      nova: 'Explosão Nova',
+      teleport: 'Combo Teleporte'
+    };
+
+    return {
+      id: this.editingId || ('custom_' + Date.now()),
+      isCustom: true,
+      name,
+      element: 'Custom',
+      color,
+      auraHex,
+      auraColor: hexToRgba(auraHex, 0.46),
+      coreColor: '#ffffff',
+      eyeStyle,
+      hat,
+      suit,
+      outfitColor,
+      meleeStyle,
+      powerEffect,
+      specialType,
+      statAtk,
+      statSpd,
+      statDef,
+      speed: 4.5 + statSpd * 0.28,
+      jumpForce: 13.4 + statSpd * 0.16,
+      weight: 0.67,
+      atkMult: 0.8 + statAtk * 0.05,
+      defMult: 0.8 + statDef * 0.05,
+      powerName: powerNames[projType] || 'Poder Especial',
+      comboName: meleeNames[meleeStyle] || 'Combo 3x',
+      specialName: specialNames[specialType] || 'Ataque Supremo',
+      projType,
+      projSpeed: projType === 'laser' ? 15.5 : 11.5,
+      projColor: auraHex
+    };
+  },
+
+  triggerTest(anim) {
+    const draft = this.readDraft();
+    this.previewState = anim;
+    this.previewTimer = 28;
+    this.previewRot = 0;
+    if (anim === 'ATTACK') SoundFX.swingCombo(3, draft.meleeStyle);
+    else if (anim === 'POWER') SoundFX.powerByType(draft.projType);
+    else if (anim === 'SPECIAL') SoundFX.specialByType(draft.specialType);
+    else if (anim === 'JUMP') SoundFX.doubleJump();
+  },
+
+  saveCurrent() {
+    const draft = this.readDraft();
+    CustomStorage.upsert(draft);
+    SoundFX.uiSave();
+    const newIdx = CHARACTERS.findIndex(c => c.id === draft.id);
+    if (newIdx >= 0) {
+      if (GameState.mode === 'P2P' && !GameState.isHost) GameState.p2CharIdx = newIdx;
+      else GameState.p1CharIdx = newIdx;
+    }
+    UI.openSelectScreen();
+  },
+
+  drawPreview(now) {
+    if (GameState.screen !== 'CREATOR') return;
+    const canvas = document.getElementById('previewCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Chão da prévia
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 128, canvas.width, 27);
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillRect(0, 128, canvas.width, 2);
+
+    const draft = this.readDraft();
+    let bobY = Math.sin(now * 0.006) * 3;
+    if (this.previewTimer > 0) {
+      this.previewTimer--;
+      if (this.previewState === 'JUMP') {
+        bobY = -Math.sin((1 - this.previewTimer / 28) * Math.PI) * 42;
+        this.previewRot += 0.32;
+      }
+      if (this.previewTimer === 0) {
+        this.previewState = 'IDLE';
+        this.previewRot = 0;
+      }
+    }
+
+    ctx.save();
+    ctx.translate(canvas.width / 2, 100 + bobY);
+    drawBlockCharacter(ctx, draft, {
+      w: 54,
+      h: 54,
+      facing: 1,
+      lookDir: 1,
+      state: this.previewState,
+      comboStep: 3,
+      isBlinking: Math.floor(now / 150) % 24 === 0,
+      auraPhase: now * 0.008,
+      rotation: this.previewRot,
+      slowTimer: 0,
+      spFull: true
+    });
+    ctx.restore();
   }
-
-  Battle.update();
-  Battle.draw(now);
-  CharacterCreator.drawPreview(now);
-  Input.clearJustPressed();
-
-  requestAnimationFrame(mainLoop);
-}
-
+};
+// ... existing code ... -->
 window.onload = () => {
   Battle.init();
+  TouchLayoutEditor.init();
+  CharacterCreator.init();
   UI.showScreen('MENU');
   requestAnimationFrame(mainLoop);
 };
