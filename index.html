@@ -163,7 +163,6 @@
             }
         }
 
-        // Coleta informações detalhadas do dispositivo atual
         async function coletarInfosDispositivo() {
             let ip = "Desconhecido";
             try {
@@ -171,7 +170,7 @@
                 const data = await res.json();
                 ip = data.ip;
             } catch(e) {
-                ip = "Indisponível (Bloqueado por CORS/Rede)";
+                ip = "Indisponível";
             }
 
             let bateriaInfo = "Não suportada";
@@ -193,6 +192,12 @@
 
         // --- TRANSMISSOR ---
         async function iniciarTransmissao() {
+            // VERIFICAÇÃO DE COMPATIBILIDADE MOBILE
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                alert("Seu navegador ou dispositivo atual não suporta espelhamento de tela via web (getDisplayMedia). Tente usar um navegador atualizado como o Chrome mais recente ou execute o transmissor em um computador/notebook.");
+                return;
+            }
+
             try {
                 localStream = await navigator.mediaDevices.getDisplayMedia({ 
                     video: { cursor: "always", frameRate: { ideal: 15, max: 30 } }, 
@@ -202,7 +207,6 @@
                 peerConnection = new RTCPeerConnection(rtcConfig);
                 localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-                // Cria o canal de dados
                 dataChannel = peerConnection.createDataChannel("telemetriaChannel");
                 configurarDataChannelTransmissor();
 
@@ -276,7 +280,6 @@
                     document.getElementById('statusReceptor').innerText = "Status: Conectado 🟢";
                     logMsg("Conectado ao transmissor. Enviando telemetria...");
                     
-                    // Coleta e envia as informações do próprio dispositivo para o transmissor
                     const info = await coletarInfosDispositivo();
                     dataChannel.send(JSON.stringify({ tipo: 'telemetria', info: info }));
                 };
@@ -298,7 +301,6 @@
             document.getElementById('statusReceptor').innerText = "Status: Resposta Gerada 🟢";
         }
 
-        // Monitoramento de interações locais do espectador para envio de logs
         document.getElementById('videoRemoto').addEventListener('click', (e) => {
             const rect = e.target.getBoundingClientRect();
             const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
@@ -312,7 +314,6 @@
             }
         });
 
-        // Monitora se o usuário mudou de aba ou minimizou no receptor
         document.addEventListener('visibilitychange', () => {
             if (dataChannel && dataChannel.readyState === 'open') {
                 const estado = document.hidden ? "Espectador minimizou ou saiu da aba" : "Espectador retornou à aba";
