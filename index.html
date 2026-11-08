@@ -1,2378 +1,1386 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Block Blast - Painel Secreto Protegido por Senha</title>
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            -webkit-user-select: none;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Block Fighter P2P</title>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0d0d14;
+    color: #fff;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  /* Telas de Interface */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at center, #1b1d36 0%, #0b0c17 100%);
+    z-index: 10;
+    padding: 15px;
+  }
+  .hidden { display: none !important; }
+  
+  h1 {
+    font-size: clamp(24px, 5vw, 44px);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, #ff4757, #ffa502, #2ed573, #1e90ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: 900;
+  }
+  h2 {
+    font-size: clamp(16px, 3vw, 24px);
+    margin-bottom: 10px;
+    color: #dfe4ea;
+  }
 
-        html, body {
-            width: 100%;
-            height: 100%;
-            background-color: #0f172a;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            color: #f8fafc;
-            overflow: hidden;
-        }
+  .btn {
+    background: linear-gradient(180deg, #3742fa 0%, #2f3542 100%);
+    border: 2px solid #5352ed;
+    color: white;
+    padding: 12px 24px;
+    margin: 6px;
+    border-radius: 10px;
+    font-size: clamp(14px, 2.5vw, 18px);
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s;
+    min-width: 180px;
+    text-align: center;
+  }
+  .btn:active { transform: scale(0.94); }
+  .btn-gold { background: linear-gradient(180deg, #ffa502 0%, #eccc68 100%); border-color: #fff; color: #111; }
+  .btn-red { background: linear-gradient(180deg, #ff4757 0%, #b33939 100%); border-color: #ff6b81; }
+  .btn-green { background: linear-gradient(180deg, #2ed573 0%, #218c74 100%); border-color: #7bed9f; }
 
-        #bg-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.72);
-            z-index: 0;
-            pointer-events: none;
-            transition: background 0.4s;
-        }
+  /* Grid de Seleção */
+  .select-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 850px;
+  }
+  .char-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .char-card {
+    width: 82px;
+    height: 95px;
+    border-radius: 12px;
+    background: #1e2030;
+    border: 3px solid #3d3f54;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+  }
+  .char-card.selected-p1 { border-color: #1e90ff; box-shadow: 0 0 12px #1e90ff; }
+  .char-card.selected-p2 { border-color: #ff4757; box-shadow: 0 0 12px #ff4757; }
+  .char-card.locked { opacity: 0.45; cursor: not-allowed; }
+  .char-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 6px;
+  }
+  .char-preview::before, .char-preview::after {
+    content: '';
+    width: 7px;
+    height: 9px;
+    background: #fff;
+    border-radius: 50%;
+  }
+  .char-name { font-size: 11px; font-weight: bold; }
+  .char-info {
+    background: rgba(255,255,255,0.06);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 10px;
+    min-height: 48px;
+    width: 90%;
+  }
 
-        .screen {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 12px;
-            z-index: 10;
-        }
+  /* Seleção de Cenário */
+  .stage-grid {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .stage-btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: #2f3542;
+    border: 2px solid #57606f;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .stage-btn.active { border-color: #ffa502; background: #3d3d29; }
 
-        .hidden {
-            display: none !important;
-        }
+  /* P2P Box */
+  .p2p-box {
+    background: #1e2030;
+    padding: 15px;
+    border-radius: 12px;
+    border: 2px solid #3742fa;
+    text-align: center;
+    margin: 10px 0;
+    width: 90%;
+    max-width: 360px;
+  }
+  input[type="text"] {
+    padding: 10px;
+    border-radius: 8px;
+    border: 2px solid #5352ed;
+    background: #0d0d14;
+    color: #fff;
+    font-size: 18px;
+    text-align: center;
+    text-transform: uppercase;
+    width: 140px;
+    margin: 8px 0;
+  }
 
-        .card {
-            background: rgba(30, 41, 59, 0.95);
-            border: 2px solid #334155;
-            border-radius: 16px;
-            padding: 18px;
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
-            max-height: 92vh;
-            overflow-y: auto;
-        }
+  /* Controles Touch na Tela */
+  #touchControls {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .t-btn {
+    position: absolute;
+    pointer-events: auto;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    touch-action: none;
+  }
+  .t-btn:active, .t-btn.pressed {
+    background: rgba(255, 255, 255, 0.38);
+    transform: scale(0.92);
+  }
+  /* Direcionais Esquerda */
+  #btnLeft  { bottom: 25px; left: 20px; width: 62px; height: 62px; font-size: 22px; }
+  #btnRight { bottom: 25px; left: 95px; width: 62px; height: 62px; font-size: 22px; }
+  #btnDash  { bottom: 100px; left: 55px; width: 54px; height: 54px; font-size: 11px; border-color: #70a1ff; }
+  
+  /* Ações Direita */
+  #btnJump  { bottom: 95px; right: 25px; width: 58px; height: 58px; font-size: 12px; border-color: #7bed9f; }
+  #btnPunch { bottom: 22px; right: 95px; width: 64px; height: 64px; font-size: 13px; border-color: #ff6b81; }
+  #btnPower { bottom: 22px; right: 20px; width: 64px; height: 64px; font-size: 12px; border-color: #ffa502; }
+  #btnSpec  { bottom: 95px; right: 98px; width: 56px; height: 56px; font-size: 11px; border-color: #eccc68; background: rgba(255,165,2,0.22); }
+  #btnPause { top: 12px; left: 50%; transform: translateX(-50%); width: 42px; height: 42px; border-radius: 10px; font-size: 14px; }
 
-        h1 {
-            font-size: 22px;
-            font-weight: 900;
-            color: #38bdf8;
-            letter-spacing: 0.04em;
-            margin-bottom: 4px;
-        }
-
-        .subtitle {
-            font-size: 11px;
-            color: #94a3b8;
-            margin-bottom: 12px;
-        }
-
-        .input-group {
-            margin-bottom: 10px;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            font-size: 10px;
-            font-weight: 800;
-            color: #cbd5e1;
-            margin-bottom: 3px;
-            text-transform: uppercase;
-        }
-
-        input[type="text"], input[type="number"], input[type="url"], input[type="password"], select {
-            width: 100%;
-            padding: 8px 10px;
-            border-radius: 8px;
-            border: 1.5px solid #475569;
-            background: #0f172a;
-            color: #f8fafc;
-            font-size: 13px;
-            font-weight: 700;
-            outline: none;
-        }
-
-        input:focus {
-            border-color: #38bdf8;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 900;
-            cursor: pointer;
-            letter-spacing: 0.04em;
-            transition: transform 0.1s;
-            margin-top: 6px;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .btn:active {
-            transform: scale(0.97);
-        }
-
-        .btn-solo {
-            background: linear-gradient(180deg, #f59e0b, #d97706);
-            color: #0f172a;
-            font-size: 14px;
-            padding: 13px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(180deg, #0284c7, #0369a1);
-            color: #ffffff;
-        }
-
-        .btn-success {
-            background: linear-gradient(180deg, #16a34a, #15803d);
-            color: #ffffff;
-        }
-
-        .btn-secondary {
-            background: #334155;
-            color: #e2e8f0;
-        }
-
-        .code-box {
-            background: #0f172a;
-            border: 2px dashed #38bdf8;
-            border-radius: 10px;
-            padding: 10px;
-            margin: 10px 0;
-            font-size: 18px;
-            font-weight: 900;
-            letter-spacing: 0.15em;
-            color: #fbbf24;
-            cursor: pointer;
-        }
-
-        .divider {
-            margin: 10px 0;
-            font-size: 11px;
-            color: #64748b;
-            font-weight: 800;
-        }
-
-        /* ÁREA DO JOGO */
-        #game-screen {
-            justify-content: space-between;
-            padding: 6px 8px 10px;
-        }
-
-        .top-hud {
-            width: 100%;
-            max-width: 460px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .score-card {
-            flex: 1;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1.5px solid #334155;
-            border-radius: 9px;
-            padding: 4px 6px;
-            text-align: center;
-        }
-
-        .score-card.me {
-            border-color: #38bdf8;
-        }
-
-        .player-tag {
-            font-size: 8px;
-            font-weight: 800;
-            color: #94a3b8;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .score-val {
-            font-size: 15px;
-            font-weight: 900;
-            color: #f8fafc;
-        }
-
-        .target-box {
-            background: rgba(15, 23, 42, 0.94);
-            border: 1.5px solid #fbbf24;
-            border-radius: 9px;
-            padding: 4px 6px;
-            text-align: center;
-            min-width: 76px;
-        }
-
-        .target-label {
-            font-size: 8px;
-            font-weight: 800;
-            color: #fbbf24;
-        }
-
-        .target-val {
-            font-size: 12px;
-            font-weight: 900;
-            color: #fef3c7;
-        }
-
-        .lives-box {
-            background: rgba(15, 23, 42, 0.94);
-            border: 1.5px solid #ef4444;
-            border-radius: 9px;
-            padding: 4px 6px;
-            text-align: center;
-            min-width: 58px;
-        }
-
-        .lives-label {
-            font-size: 8px;
-            font-weight: 800;
-            color: #ef4444;
-        }
-
-        .lives-val {
-            font-size: 13px;
-            font-weight: 900;
-            color: #fca5a5;
-        }
-
-        .icon-btn {
-            background: rgba(30, 41, 59, 0.92);
-            border: 1.5px solid #475569;
-            color: #f8fafc;
-            width: 32px;
-            height: 32px;
-            border-radius: 9px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-
-        .power-bar {
-            width: 100%;
-            max-width: 460px;
-            display: flex;
-            gap: 5px;
-            margin-top: 4px;
-        }
-
-        .power-btn {
-            flex: 1;
-            background: rgba(30, 41, 59, 0.9);
-            border: 1.5px solid #38bdf8;
-            color: #38bdf8;
-            padding: 6px 4px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-weight: 800;
-            cursor: pointer;
-            text-align: center;
-        }
-
-        .power-btn.active {
-            background: #0284c7;
-            color: #fff;
-        }
-
-        #solo-mission-bar {
-            width: 100%;
-            max-width: 460px;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1.5px solid #475569;
-            border-radius: 9px;
-            padding: 4px 8px;
-            margin-top: 4px;
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-
-        .mission-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 10px;
-            font-weight: 800;
-        }
-
-        #mission-title {
-            color: #fbbf24;
-        }
-
-        #mission-extra {
-            color: #38bdf8;
-        }
-
-        .progress-track {
-            width: 100%;
-            height: 6px;
-            background: #1e293b;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        #mission-progress-fill {
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, #f59e0b, #22c55e);
-            transition: width 0.2s;
-        }
-
-        #canvas-wrap {
-            flex: 1;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #game-canvas {
-            display: block;
-            border-radius: 12px;
-        }
-
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(2, 6, 23, 0.85);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            z-index: 30;
-        }
-
-        .color-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        input[type="color"] {
-            width: 44px;
-            height: 38px;
-            border: none;
-            border-radius: 8px;
-            background: none;
-            cursor: pointer;
-        }
-
-        .status-text {
-            font-size: 11px;
-            color: #fbbf24;
-            margin-top: 5px;
-            min-height: 14px;
-            font-weight: 700;
-        }
-
-        .toast {
-            position: fixed;
-            top: 74px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.96);
-            border: 1.5px solid #38bdf8;
-            color: #bae6fd;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 800;
-            z-index: 40;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-            text-align: center;
-            max-width: 90%;
-        }
-    </style>
+  /* Aviso de Rotação */
+  #rotateNotice {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #0d0d14;
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    font-size: 20px;
+  }
+  @media (orientation: portrait) {
+    #rotateNotice { display: flex; }
+  }
+</style>
 </head>
 <body>
 
-<div id="bg-overlay"></div>
-<div id="toast" class="toast"></div>
+<div id="rotateNotice">📱 Vire o celular na horizontal para jogar!</div>
 
 <!-- TELA INICIAL -->
-<div id="lobby-screen" class="screen">
-    <div class="card">
-        <h1>BLOCK BLAST</h1>
-        <div class="subtitle">Modo King Full Auto • Painel Protegido</div>
-
-        <button class="btn btn-solo" id="btn-start-solo">🏆 JOGAR MODO SOLO (FULL AUTO)</button>
-
-        <div class="divider">— OU DISPUTAR MULTIPLAYER P2P —</div>
-
-        <div class="input-group">
-            <label>Seu Nome</label>
-            <input type="text" id="player-name" value="Paulo" maxlength="14">
-        </div>
-
-        <div id="create-section">
-            <div class="input-group">
-                <label>Meta de Pontos P2P</label>
-                <input type="number" id="target-score-input" value="15000" min="500" step="500">
-            </div>
-            <button class="btn btn-primary" id="btn-create-room">GERAR CÓDIGO P2P</button>
-
-            <div id="host-wait-box" class="hidden">
-                <div class="code-box" id="room-code-display" title="Toque para copiar">------</div>
-                <div style="font-size:10px; color:#94a3b8;">Toque no código para copiar e enviar!</div>
-            </div>
-        </div>
-
-        <div class="input-group" style="margin-top:8px;">
-            <label>Entrar com Código P2P</label>
-            <input type="text" id="join-code-input" placeholder="Ex: AB12CD" maxlength="8" style="text-transform:uppercase;">
-        </div>
-        <button class="btn-success btn" id="btn-join-room">CONECTAR P2P</button>
-
-        <button class="btn btn-secondary" id="btn-open-settings-lobby" style="margin-top:8px;">⚙️ CONFIGURAÇÕES & TRAPAÇAS</button>
-        <div class="status-text" id="conn-status"></div>
-    </div>
+<div id="menuScreen" class="screen">
+  <h1>BLOCK FIGHTER P2P</h1>
+  <button class="btn btn-gold" onclick="startStorySetup()">🏆 MODO HISTÓRIA</button>
+  <button class="btn btn-green" onclick="startVersusSetup()">⚔️ MODO SOLO (VS CPU)</button>
+  <button class="btn" onclick="openP2PMenu()">🌐 MULTIPLAYER P2P</button>
+  <p style="margin-top:14px; font-size:12px; color:#a4b0be;" id="unlockStatusText"></p>
 </div>
 
-<!-- TELA DO JOGO -->
-<div id="game-screen" class="screen hidden">
-    <div class="top-hud">
-        <div class="score-card me">
-            <div class="player-tag" id="hud-my-name">PAULO</div>
-            <div class="score-val" id="hud-my-score">0</div>
-        </div>
-
-        <div class="target-box">
-            <div class="target-label" id="hud-target-label">FASE</div>
-            <div class="target-val" id="hud-target">2.000</div>
-        </div>
-
-        <div class="lives-box" id="hud-lives-box">
-            <div class="lives-label">VIDAS</div>
-            <div class="lives-val" id="hud-lives-val">❤️ 5</div>
-        </div>
-
-        <div class="score-card rival hidden" id="hud-rival-card">
-            <div class="player-tag" id="hud-rival-name">RIVAL</div>
-            <div class="score-val" id="hud-rival-score">0</div>
-        </div>
-
-        <button class="icon-btn" id="btn-open-settings-game" title="Configurações">⚙️</button>
-        <button class="icon-btn" id="btn-back-menu" title="Menu Inicial">🏠</button>
+<!-- TELA MULTIPLAYER P2P -->
+<div id="p2pScreen" class="screen hidden">
+  <h2>MULTIPLAYER ONLINE (P2P)</h2>
+  <div class="p2p-box">
+    <button class="btn btn-green" onclick="createRoom()">CRIAR SALA</button>
+    <div id="hostRoomInfo" class="hidden" style="margin-top:10px;">
+      <p style="font-size:12px; color:#a4b0be;">Código da sua sala:</p>
+      <div id="roomCodeDisplay" style="font-size:28px; font-weight:900; color:#ffa502; letter-spacing:4px;">----</div>
+      <p id="p2pStatusHost" style="font-size:12px; color:#7bed9f; margin-top:5px;">Aguardando oponente entrar...</p>
     </div>
-
-    <!-- BARRA DE TRAPAÇAS (OCULTA ATÉ DIGITAR A SENHA) -->
-    <div class="power-bar hidden" id="cheats-power-bar">
-        <button class="power-btn" id="btn-toggle-autoplay">🤖 Auto-Jogar: OFF</button>
-        <button class="power-btn" id="btn-toggle-autobreak">💣 Quebra Auto: OFF</button>
-        <button class="power-btn" id="btn-power-rotate">🔄 Girar Manual</button>
-        <button class="power-btn" id="btn-power-bomb" style="border-color:#ef4444; color:#ef4444;">💥 Bomba</button>
-    </div>
-
-    <div id="solo-mission-bar" class="hidden">
-        <div class="mission-header">
-            <span id="mission-title">FASE 1: Alcance 2.000 pontos</span>
-            <span id="mission-extra"></span>
-        </div>
-        <div class="progress-track">
-            <div id="mission-progress-fill"></div>
-        </div>
-    </div>
-
-    <div id="canvas-wrap">
-        <canvas id="game-canvas"></canvas>
-    </div>
+  </div>
+  <div class="p2p-box">
+    <p style="font-size:13px;">Ou digite o código de um amigo:</p>
+    <input type="text" id="joinCodeInput" maxlength="4" placeholder="ABCD">
+    <br>
+    <button class="btn" onclick="joinRoom()">ENTRAR NA SALA</button>
+    <p id="p2pStatusJoin" style="font-size:12px; color:#ff6b81; margin-top:5px;"></p>
+  </div>
+  <button class="btn btn-red" onclick="backToMainMenu()">VOLTAR</button>
 </div>
 
-<!-- TELA DE FIM DE PARTIDA -->
-<div id="gameover-screen" class="screen hidden" style="background: rgba(2,6,23,0.92); z-index: 25;">
-    <div class="card">
-        <h1 id="winner-title" style="color:#fbbf24;">FIM DE JOGO!</h1>
-        <div class="subtitle" id="winner-desc">Resultado da partida</div>
-
-        <div style="display:flex; justify-content:space-around; margin: 12px 0; background:#0f172a; padding:10px; border-radius:10px;">
-            <div>
-                <div style="font-size:10px; color:#94a3b8;" id="end-my-label">PONTUAÇÃO</div>
-                <div style="font-size:18px; font-weight:900; color:#38bdf8;" id="end-my-score">0</div>
-            </div>
-            <div id="end-rival-box">
-                <div style="font-size:10px; color:#94a3b8;" id="end-rival-name">FASE ALCANÇADA</div>
-                <div style="font-size:18px; font-weight:900; color:#f43f5e;" id="end-rival-score">Fase 1</div>
-            </div>
-        </div>
-
-        <div class="input-group" id="p2p-next-target-group">
-            <label>Nova Meta de Pontos P2P</label>
-            <input type="number" id="new-target-input" value="15000" min="500" step="500">
-        </div>
-
-        <button class="btn btn-success" id="btn-restart-match">JOGAR NOVAMENTE</button>
-        <button class="btn btn-secondary" id="btn-menu-from-end">VOLTAR AO MENU</button>
+<!-- TELA DE SELEÇÃO DE PERSONAGEM E CENÁRIO -->
+<div id="selectScreen" class="screen hidden">
+  <h2 id="selectTitle">ESCOLHA SEU LUTADOR</h2>
+  <div class="select-container">
+    <div class="char-grid" id="charGrid"></div>
+    <div class="char-info" id="charInfo">Selecione um bloquinho para ver seus poderes!</div>
+    
+    <div id="stageSelectBox">
+      <div class="stage-grid" id="stageGrid"></div>
     </div>
+
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-red" onclick="backToMainMenu()">MENU</button>
+      <button class="btn btn-gold" id="confirmSelectBtn" onclick="confirmSelection()">LUTAR!</button>
+    </div>
+  </div>
 </div>
 
-<!-- MODAL CONFIGURAÇÕES & TRAPAÇAS OCULTAS -->
-<div id="settings-modal" class="modal-backdrop hidden">
-    <div class="card">
-        <h1 style="font-size:18px;">CONFIGURAÇÕES</h1>
-        <div class="subtitle">Painel de Trapaças Protegido por Senha</div>
+<!-- TELA DE PAUSE -->
+<div id="pauseScreen" class="screen hidden" style="background: rgba(10,10,18,0.85);">
+  <h2>JOGO PAUSADO</h2>
+  <button class="btn btn-green" onclick="togglePause()">CONTINUAR</button>
+  <button class="btn" onclick="returnToSelectFromMatch()">TROCAR PERSONAGEM</button>
+  <button class="btn btn-red" onclick="backToMainMenu()">MENU PRINCIPAL</button>
+</div>
 
-        <!-- CAMPO DE SENHA SEMPRE VISÍVEL -->
-        <div class="input-group" style="background: rgba(15, 23, 42, 0.6); padding: 8px; border-radius: 8px; border: 1.5px dashed #f59e0b;">
-            <label style="color:#f59e0b;">🔐 Senha do Painel Secreto</label>
-            <input type="password" id="cheat-password-input" placeholder="Digite a senha para liberar..." maxlength="12">
-            <button class="btn btn-primary" id="btn-verify-password" style="margin-top:6px; padding: 8px; font-size:11px;">🔓 DESBLOQUEAR TRAPAÇAS</button>
-        </div>
+<!-- TELA DE FIM DE LUTA -->
+<div id="endScreen" class="screen hidden" style="background: rgba(10,10,18,0.88);">
+  <h1 id="endTitle">VITÓRIA!</h1>
+  <p id="endSubtitle" style="margin-bottom:15px; font-size:16px; color:#dfe4ea;"></p>
+  <button class="btn btn-gold" id="nextStoryBtn" onclick="nextStoryStage()">PRÓXIMO DESAFIO</button>
+  <button class="btn" onclick="returnToSelectFromMatch()">SELEÇÃO DE LUTADORES</button>
+  <button class="btn btn-red" onclick="backToMainMenu()">MENU PRINCIPAL</button>
+</div>
 
-        <!-- CONTAINER DAS TRAPAÇAS (OCULTO ATÉ A SENHA ESTAR CORRETA) -->
-        <div id="cheats-container" class="hidden" style="border-top: 1px solid #334155; margin-top: 10px; padding-top: 10px;">
-            <div class="input-group">
-                <label style="color:#fbbf24; font-size:11px;">👑 MODO KING (IA com Giro Automático)</label>
-                <select id="king-mode-toggle">
-                    <option value="OFF">Desligado</option>
-                    <option value="ON">Ligado (Gira e Encaixa Sozinho)</option>
-                </select>
-            </div>
+<!-- CANVAS DO JOGO -->
+<canvas id="gameCanvas"></canvas>
 
-            <div class="input-group">
-                <label style="color:#38bdf8; font-size:11px;">🤖 AUTO-COLOCAR AUTOMÁTICO</label>
-                <select id="auto-place-toggle">
-                    <option value="OFF">Desligado</option>
-                    <option value="ON">Ligado (Joga Sozinho na Moldura)</option>
-                </select>
-            </div>
+<!-- CONTROLES TOUCH -->
+<div id="touchControls" class="hidden">
+  <div class="t-btn" id="btnLeft">◀</div>
+  <div class="t-btn" id="btnRight">▶</div>
+  <div class="t-btn" id="btnDash">DASH</div>
 
-            <div class="input-group">
-                <label style="color:#ef4444; font-size:11px;">💣 QUEBRA AUTOMÁTICA DE BLOQUEIOS</label>
-                <select id="auto-break-toggle">
-                    <option value="OFF">Desligado</option>
-                    <option value="ON">Ligado (Destrói Trancas Sozinho)</option>
-                </select>
-            </div>
-
-            <div class="input-group">
-                <label style="color:#22c55e; font-size:11px;">♾️ VIDAS INFINITAS</label>
-                <select id="infinite-lives-toggle">
-                    <option value="OFF">Desligado</option>
-                    <option value="ON">Ligado (Imortalidade)</option>
-                </select>
-            </div>
-
-            <div class="input-group" id="king-color-group">
-                <label>Cor da Moldura do Modo King</label>
-                <div class="color-row">
-                    <input type="color" id="king-frame-color" value="#fbbf24">
-                    <span style="font-size:11px; color:#94a3b8;">Cor da moldura</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="input-group">
-            <label>Estilo de Cor dos Blocos</label>
-            <select id="block-color-mode">
-                <option value="RANDOM_CELL">Aleatório em cada quadradinho</option>
-                <option value="RANDOM_PIECE">Uma cor aleatória por peça</option>
-                <option value="FIXED">Cor única escolhida abaixo</option>
-            </select>
-        </div>
-
-        <div class="input-group" id="fixed-color-group">
-            <label>Escolher Cor Única dos Blocos</label>
-            <div class="color-row">
-                <input type="color" id="block-fixed-color" value="#38bdf8">
-                <span style="font-size:11px; color:#94a3b8;">Cor fixa</span>
-            </div>
-        </div>
-
-        <div class="input-group">
-            <label>Link da Imagem de Fundo (URL)</label>
-            <input type="url" id="bg-image-url" placeholder="https://exemplo.com/imagem.jpg">
-        </div>
-
-        <button class="btn btn-primary" id="btn-save-settings">SALVAR E APLICAR</button>
-        <button class="btn btn-secondary" id="btn-clear-bg">REMOVER IMAGEM DE FUNDO</button>
-        <button class="btn btn-secondary" id="btn-close-settings">FECHAR</button>
-    </div>
+  <div class="t-btn" id="btnJump">PULO</div>
+  <div class="t-btn" id="btnPunch">SOCO</div>
+  <div class="t-btn" id="btnPower">PODER</div>
+  <div class="t-btn" id="btnSpec">ESP</div>
+  <div class="t-btn" id="btnPause">❚❚</div>
 </div>
 
 <script>
-const PALETTE = [
-    '#ef4444', '#f97316', '#f59e0b', '#22c55e',
-    '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'
+// ================= CONFIGURAÇÃO DE PERSONAGENS =================
+const CHARACTERS = [
+  {
+    id: 0, name: "RUBI", color: "#ff4757", aura: "rgba(255, 71, 87, 0.45)",
+    speed: 5.5, jump: -13.5, hp: 100, dmg: 8,
+    powerName: "Bola de Fogo", specName: "Meteoro Rubi",
+    desc: "Equilibrado. Poder: Bola de Fogo rápida | Especial: Explosão Ascendente.",
+    unlocked: true, boss: false
+  },
+  {
+    id: 1, name: "CIANO", color: "#1e90ff", aura: "rgba(30, 144, 255, 0.45)",
+    speed: 7.2, jump: -14.5, hp: 90, dmg: 7,
+    powerName: "Corte Relâmpago", specName: "Tempestade Azul",
+    desc: "Velocista. Poder: Avanço elétrico cortante | Especial: Rajada múltipla de raios.",
+    unlocked: true, boss: false
+  },
+  {
+    id: 2, name: "ESMERALDA", color: "#2ed573", aura: "rgba(46, 213, 115, 0.45)",
+    speed: 4.4, jump: -12.5, hp: 125, dmg: 11,
+    powerName: "Onda Sísmica", specName: "Terremoto Total",
+    desc: "Tanque pesado. Poder: Onda terrestre | Especial: Impacto colossal que atordoa.",
+    unlocked: true, boss: false
+  },
+  {
+    id: 3, name: "SOLARIS", color: "#ffa502", aura: "rgba(255, 165, 2, 0.55)",
+    speed: 6.5, jump: -14.5, hp: 130, dmg: 12,
+    powerName: "Feixe Solar", specName: "Supernova",
+    desc: "CHEFE DESBLOQUEÁVEL! Poder: Laser perfurante | Especial: Explosão solar gigante.",
+    unlocked: false, boss: true
+  },
+  {
+    id: 4, name: "SOMBRA", color: "#9c88ff", aura: "rgba(156, 136, 255, 0.6)",
+    speed: 7.8, jump: -15.5, hp: 145, dmg: 14,
+    powerName: "Esfera Gravitacional", specName: "Juízo Sombrio",
+    desc: "CHEFE FINAL APELÃO! Poder: Orbe que puxa o inimigo | Especial: Chuva de lâminas.",
+    unlocked: false, boss: true
+  }
 ];
 
-const CYCLE_THEMES = [
-    { name: 'Clássico', palette: ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'], bgTint: 'rgba(15, 23, 42, 0.72)' },
-    { name: 'Neon Cyber', palette: ['#00f5d4', '#00bbf9', '#fee440', '#f15bb5', '#9b5de5', '#ff006e', '#3a86ff', '#8338ec'], bgTint: 'rgba(18, 8, 38, 0.76)' },
-    { name: 'Forja Vulcânica', palette: ['#ff4d00', '#ff7b00', '#ffb700', '#dc2626', '#facc15', '#fb7185', '#ea580c', '#fde047'], bgTint: 'rgba(35, 10, 8, 0.76)' },
-    { name: 'Abismo Esmeralda', palette: ['#10b981', '#34d399', '#059669', '#06b6d4', '#22d3ee', '#a3e635', '#2dd4bf', '#38bdf8'], bgTint: 'rgba(6, 28, 24, 0.76)' }
+const STAGES = [
+  { id: 0, name: "Templo Celeste", sky1: "#1e272e", sky2: "#485460", ground: "#808e9b", accent: "#0fbcf9" },
+  { id: 1, name: "Cidade Neon", sky1: "#0f0c29", sky2: "#302b63", ground: "#191654", accent: "#ff007f" },
+  { id: 2, name: "Núcleo Vulcânico", sky1: "#2c0404", sky2: "#6b0f1a", ground: "#1e1e1e", accent: "#ff5e00" }
 ];
 
-let activePalette = PALETTE;
-
-let userPrefs = {
-    colorMode: localStorage.getItem('bb_colorMode') || 'RANDOM_CELL',
-    fixedColor: localStorage.getItem('bb_fixedColor') || '#38bdf8',
-    bgUrl: localStorage.getItem('bb_bgUrl') || '',
-    kingMode: localStorage.getItem('bb_kingMode') || 'ON',
-    autoPlace: localStorage.getItem('bb_autoPlace') || 'OFF',
-    autoBreak: localStorage.getItem('bb_autoBreak') || 'OFF',
-    infiniteLives: localStorage.getItem('bb_infiniteLives') || 'OFF',
-    kingColor: localStorage.getItem('bb_kingColor') || '#fbbf24',
-    cheatsUnlocked: localStorage.getItem('bb_cheatsUnlocked') === 'true'
-};
-
-const SECRET_CHEAT_PASSWORD = '123456798';
-
-function applyVisualPrefs() {
-    document.getElementById('block-color-mode').value = userPrefs.colorMode;
-    document.getElementById('block-fixed-color').value = userPrefs.fixedColor;
-    document.getElementById('bg-image-url').value = userPrefs.bgUrl;
-    document.getElementById('king-mode-toggle').value = userPrefs.kingMode;
-    document.getElementById('auto-place-toggle').value = userPrefs.autoPlace;
-    document.getElementById('auto-break-toggle').value = userPrefs.autoBreak;
-    document.getElementById('infinite-lives-toggle').value = userPrefs.infiniteLives;
-    document.getElementById('king-frame-color').value = userPrefs.kingColor;
-
-    const powerBarEl = document.getElementById('cheats-power-bar');
-    const cheatsContainerEl = document.getElementById('cheats-container');
-
-    if (userPrefs.cheatsUnlocked) {
-        cheatsContainerEl.classList.remove('hidden');
-        powerBarEl.classList.remove('hidden');
-        document.getElementById('cheat-password-input').value = '********';
-    } else {
-        cheatsContainerEl.classList.add('hidden');
-        powerBarEl.classList.add('hidden');
-        document.getElementById('cheat-password-input').value = '';
-    }
-
-    updateButtonsUI();
-
-    if (userPrefs.bgUrl && userPrefs.bgUrl.trim() !== '') {
-        document.body.style.backgroundImage = `url("${userPrefs.bgUrl.trim()}")`;
-        document.getElementById('bg-overlay').style.background = 'rgba(15, 23, 42, 0.55)';
-    } else {
-        document.body.style.backgroundImage = 'none';
-        document.getElementById('bg-overlay').style.background = 'rgba(15, 23, 42, 0.72)';
-    }
+// Carregar progresso salvo
+function loadUnlocks() {
+  const saved = JSON.parse(localStorage.getItem("bf_unlocks") || "[]");
+  saved.forEach(id => {
+    if (CHARACTERS[id]) CHARACTERS[id].unlocked = true;
+  });
+  updateUnlockText();
 }
-applyVisualPrefs();
-
-function updateButtonsUI() {
-    const btnAuto = document.getElementById('btn-toggle-autoplay');
-    if (userPrefs.autoPlace === 'ON') {
-        btnAuto.textContent = '🤖 Auto-Jogar: ON';
-        btnAuto.classList.add('active');
-    } else {
-        btnAuto.textContent = '🤖 Auto-Jogar: OFF';
-        btnAuto.classList.remove('active');
-    }
-
-    const btnBreak = document.getElementById('btn-toggle-autobreak');
-    if (userPrefs.autoBreak === 'ON') {
-        btnBreak.textContent = '💣 Quebra Auto: ON';
-        btnBreak.classList.add('active');
-    } else {
-        btnBreak.textContent = '💣 Quebra Auto: OFF';
-        btnBreak.classList.remove('active');
-    }
+function saveUnlock(id) {
+  CHARACTERS[id].unlocked = true;
+  const unlockedIds = CHARACTERS.filter(c => c.unlocked).map(c => c.id);
+  localStorage.setItem("bf_unlocks", JSON.stringify(unlockedIds));
+  updateUnlockText();
+}
+function updateUnlockText() {
+  const count = CHARACTERS.filter(c => c.unlocked).length;
+  document.getElementById("unlockStatusText").innerText = `Lutadores desbloqueados: ${count}/${CHARACTERS.length}`;
 }
 
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.style.opacity = '1';
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2600);
-}
+// ================= VARIÁVEIS GLOBAIS DO JOGO =================
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-const AudioFX = {
-    ctx: null,
-    musicTimer: null,
-    musicNoteIndex: 0,
-    isMusicPlaying: false,
+let gameMode = "versus"; // "story", "versus", "p2p"
+let gameState = "menu";  // "menu", "select", "playing", "paused", "ended"
+let selectedP1 = 0;
+let selectedP2 = 1;
+let selectStep = 1; // 1 = escolhendo P1, 2 = escolhendo CPU (no modo versus)
+let selectedStage = 0;
+let storyStageIndex = 0;
+const STORY_ORDER = [1, 2, 3, 4]; // Ordem dos oponentes no Modo História
 
-    ensure() {
-        if (!this.ctx) {
-            const AC = window.AudioContext || window.webkitAudioContext;
-            if (AC) this.ctx = new AC();
-        }
-        if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume().catch(() => {});
-        }
-        return this.ctx;
-    },
+let fighters = [];
+let projectiles = [];
+let particles = [];
+let screenShake = 0;
+let bgAnimTime = 0;
 
-    tone(freq1, freq2, dur, type = 'sine', vol = 0.14, delay = 0) {
-        try {
-            const ctx = this.ensure();
-            if (!ctx) return;
-            const t = ctx.currentTime + delay;
-            const osc = ctx.createOscillator();
-            const g = ctx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq1, t);
-            osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq2), t + dur);
-            g.gain.setValueAtTime(vol, t);
-            g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-            osc.connect(g);
-            g.connect(ctx.destination);
-            osc.start(t);
-            osc.stop(t + dur + 0.02);
-        } catch (e) {}
-    },
+// Controles locais
+const keys = { left: false, right: false, jump: false, dash: false, punch: false, power: false, spec: false };
+let prevKeys = { ...keys };
 
-    startBackgroundMusic() {
-        if (this.isMusicPlaying) return;
-        this.isMusicPlaying = true;
-        this.ensure();
-
-        const melody = [
-            261.63, 329.63, 392.00, 440.00, 523.25, 440.00, 392.00, 329.63,
-            293.66, 349.23, 440.00, 523.25, 587.33, 523.25, 440.00, 349.23
-        ];
-
-        this.musicTimer = setInterval(() => {
-            if (!this.isMusicPlaying) return;
-            const note = melody[this.musicNoteIndex % melody.length];
-            this.tone(note, note * 1.02, 0.42, 'sine', 0.045);
-            this.musicNoteIndex++;
-        }, 320);
-    },
-
-    stopBackgroundMusic() {
-        this.isMusicPlaying = false;
-        if (this.musicTimer) {
-            clearInterval(this.musicTimer);
-            this.musicTimer = null;
-        }
-    },
-
-    place() {
-        this.tone(240, 420, 0.08, 'triangle', 0.15, 0);
-        this.tone(520, 640, 0.06, 'sine', 0.08, 0.03);
-    },
-
-    combo(linesCount) {
-        const baseNotes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
-        const steps = Math.min(linesCount + 1, baseNotes.length);
-        for (let i = 0; i < steps; i++) {
-            const f = baseNotes[i] * (1 + (linesCount - 1) * 0.08);
-            this.tone(f, f * 1.15, 0.16, i >= 2 ? 'triangle' : 'sine', 0.16, i * 0.065);
-        }
-    },
-
-    boardAllClear() {
-        const fanfare = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
-        fanfare.forEach((f, idx) => {
-            this.tone(f, f * 1.05, 0.22, 'triangle', 0.18, idx * 0.075);
-        });
-        this.tone(1046.50, 2093.0, 0.45, 'sine', 0.15, 0.42);
-    },
-
-    lockedGameOver() {
-        const notes = [330, 293.66, 261.63, 196.00, 130.81];
-        notes.forEach((f, i) => {
-            this.tone(f, f * 0.85, 0.26, 'sawtooth', 0.15, i * 0.14);
-        });
-    },
-
-    rockBreak() { this.tone(180, 75, 0.14, 'square', 0.16, 0); },
-    rescueSuccess() { [587.33, 739.99, 880, 1174.66].forEach((f, i) => this.tone(f, f * 1.08, 0.2, 'sine', 0.17, i * 0.08)); },
-    bossHit() { this.tone(220, 65, 0.25, 'sawtooth', 0.22, 0); },
-    invalid() { this.tone(150, 95, 0.1, 'sawtooth', 0.1, 0); }
-};
-
-let gameMode = 'SOLO';
+// P2P Networking (PeerJS)
 let peer = null;
 let conn = null;
 let isHost = false;
-let myName = 'Paulo';
-let rivalName = 'Irmã';
-let myScore = 0;
-let rivalScore = 0;
-let targetScore = 15000;
-let matchActive = false;
-let soloLives = 5;
+let remoteInputs = { left: false, right: false, jump: false, dash: false, punch: false, power: false, spec: false };
+let prevRemoteInputs = { ...remoteInputs };
 
-function generateShortCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-    return code;
-}
-
-function setStatus(text) {
-    const el = document.getElementById('conn-status');
-    if (el) el.textContent = text;
-}
-
-function setupConnectionHandlers(connection) {
-    conn = connection;
-    conn.on('open', () => {
-        myName = document.getElementById('player-name').value.trim() || 'Jogador';
-        if (isHost) {
-            targetScore = Math.max(500, parseInt(document.getElementById('target-score-input').value, 10) || 15000);
-            conn.send({ type: 'WELCOME', hostName: myName, targetScore: targetScore });
-            startP2PMatch(targetScore);
-        } else {
-            conn.send({ type: 'HELLO', guestName: myName });
-        }
-    });
-
-    conn.on('data', (data) => {
-        if (!data || !data.type) return;
-        if (data.type === 'HELLO') {
-            rivalName = data.guestName || 'Convidado';
-            updateHUD();
-        } else if (data.type === 'WELCOME') {
-            rivalName = data.hostName || 'Anfitrião';
-            targetScore = data.targetScore || 15000;
-            startP2PMatch(targetScore);
-        } else if (data.type === 'SCORE_UPDATE') {
-            rivalScore = data.score;
-            updateHUD();
-            checkP2PVictory();
-        } else if (data.type === 'NEW_MATCH') {
-            targetScore = data.targetScore || 15000;
-            startP2PMatch(targetScore);
-            showToast(`Nova partida P2P! Meta: ${targetScore.toLocaleString('pt-BR')}`);
-        } else if (data.type === 'MATCH_WON') {
-            rivalScore = data.winnerScore;
-            updateHUD();
-            finishGameScreen(`${data.winnerName.toUpperCase()} VENCEU!`, `Atingiu ${targetScore.toLocaleString('pt-BR')} pontos!`);
-        }
-    });
-
-    conn.on('close', () => {
-        setStatus('Conexão encerrada pelo outro jogador.');
-        showToast('O outro jogador desconectou.');
-    });
-}
-
-const GRID_SIZE = 8;
-let board = [];
-let trayPieces = [null, null, null];
-let draggingIndex = -1;
-let dragPos = { x: 0, y: 0 };
-let hoverCell = null;
-let floatingTexts = [];
-let particles = [];
-let screenShake = 0;
-let kingBestMove = null;
-let autoPlayTimer = null;
-
-const SOLO_MILESTONES = [
-    { target: 2000,  type: 'SCORE',  label: 'Fase 1 • Aquecimento' },
-    { target: 3000,  type: 'SCORE',  label: 'Fase 2 • Ritmo Crescente' },
-    { target: 4500,  type: 'SCORE',  label: 'Fase 3 • Domínio do Tabuleiro' },
-    { target: 5000,  type: 'LOCKER', label: 'Fase 4 • Blocos Trancados!' },
-    { target: 6000,  type: 'LOCKER', label: 'Fase 5 • Ruínas Seladas' },
-    { target: 7500,  type: 'LOCKER', label: 'Fase 6 • Pressão Constante' },
-    { target: 9000,  type: 'LOCKER', label: 'Fase 7 • Muralha de Pedra' },
-    { target: 10000, type: 'RESCUE', label: 'Fase 8 • Missão Resgate!' },
-    { target: 11500, type: 'RESCUE', label: 'Fase 9 • Resgate Duplo' },
-    { target: 13000, type: 'RESCUE', label: 'Fase 10 • Prisão Reforçada' },
-    { target: 15000, type: 'RESCUE', label: 'Fase 11 • Último Socorro' },
-    { target: 16000, type: 'BOSS',   label: 'Fase 12 • BOSS: GUARDIÃO DE OBSIDIANA' }
-];
-
-let soloStageIndex = 0;
-let soloCycle = 1;
-let soloStageStartScore = 0;
-let soloStageTargetScore = 2000;
-let soloStageType = 'SCORE';
-let soloStageLabel = '';
-let rescueTimer = 0;
-let rescueMaxTimer = 45;
-let rescueTimerInterval = null;
-let movesInStage = 0;
-
-function getSoloStageConfig(index) {
-    if (index < SOLO_MILESTONES.length) {
-        const m = SOLO_MILESTONES[index];
-        const prevTarget = index === 0 ? 0 : SOLO_MILESTONES[index - 1].target;
-        return { stageNum: index + 1, cycle: 1, type: m.type, target: m.target, stepPoints: m.target - prevTarget, label: m.label };
-    }
-    const extraIdx = index - SOLO_MILESTONES.length;
-    const cycle = Math.floor(extraIdx / 4) + 2;
-    const patternPos = extraIdx % 4;
-    const types = ['SCORE', 'LOCKER', 'RESCUE', 'BOSS'];
-    const type = types[patternPos];
-    const stepPoints = 2000 + cycle * 600;
-    const target = soloStageTargetScore + stepPoints;
-
-    const bossNames = ['TITÃ DE MAGMA', 'COLOSSO DE CRISTAL', 'ESPECTRO DO VAZIO', 'IMPERADOR DOS BLOCOS'];
-    let label = `Ciclo ${cycle} • Fase ${index + 1}`;
-    if (type === 'LOCKER') label = `Ciclo ${cycle} • Armadilhas Selvagens`;
-    if (type === 'RESCUE') label = `Ciclo ${cycle} • Resgate Urgente`;
-    if (type === 'BOSS') label = `BOSS: ${bossNames[(cycle - 2) % bossNames.length]}`;
-
-    return { stageNum: index + 1, cycle, type, target, stepPoints, label };
-}
-
-function applyCycleTheme(cycle) {
-    const theme = CYCLE_THEMES[(cycle - 1) % CYCLE_THEMES.length];
-    activePalette = theme.palette;
-    if (!userPrefs.bgUrl || userPrefs.bgUrl.trim() === '') {
-        document.getElementById('bg-overlay').style.background = theme.bgTint;
-    }
-}
-
-function spawnFloatingText(x, y, text, color = '#fbbf24') {
-    floatingTexts.push({ x, y, text, color, life: 48 });
-}
-
-function spawnParticles(x, y, color, count = 12) {
-    for (let i = 0; i < count; i++) {
-        if (particles.length > 90) particles.shift();
-        particles.push({
-            x, y,
-            vx: (Math.random() - 0.5) * 7,
-            vy: (Math.random() - 0.6) * 7,
-            color,
-            life: 22 + Math.random() * 12
-        });
-    }
-}
-
-const SHAPES = [
-    [[1]],
-    [[1, 1]],
-    [[1], [1]],
-    [[1, 1, 1]],
-    [[1], [1], [1]],
-    [[1, 1, 1, 1]],
-    [[1], [1], [1], [1]],
-    [[1, 1, 1, 1, 1]],
-    [[1], [1], [1], [1], [1]],
-    [[1, 1], [1, 1]],
-    [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
-    [[1, 1, 1], [1, 1, 1]],
-    [[1, 1], [1, 1], [1, 1]],
-    [[1, 0], [1, 1]],
-    [[0, 1], [1, 1]],
-    [[1, 1], [1, 0]],
-    [[1, 1], [0, 1]],
-    [[1, 1, 1], [1, 0, 0]],
-    [[1, 1, 1], [0, 0, 1]],
-    [[1, 0, 0], [1, 1, 1]],
-    [[0, 0, 1], [1, 1, 1]],
-    [[1, 1, 1], [0, 1, 0]],
-    [[0, 1, 0], [1, 1, 1]],
-    [[1, 1, 0], [0, 1, 1]],
-    [[0, 1, 1], [1, 1, 0]],
-    [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-    [[0, 0, 1], [0, 1, 0], [1, 0, 0]]
-];
-
-function randomPaletteColor() {
-    return activePalette[Math.floor(Math.random() * activePalette.length)];
-}
-
-function createRandomPiece() {
-    const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-    const pieceBaseColor = randomPaletteColor();
-    const cellColors = shape.map(row =>
-        row.map(val => {
-            if (!val) return null;
-            if (userPrefs.colorMode === 'FIXED') return userPrefs.fixedColor;
-            if (userPrefs.colorMode === 'RANDOM_PIECE') return pieceBaseColor;
-            return randomPaletteColor();
-        })
-    );
-    return { shape, cellColors, rows: shape.length, cols: shape[0].length };
-}
-
-function rotatePiece(p) {
-    const newRows = p.cols;
-    const newCols = p.rows;
-    const newShape = Array.from({ length: newRows }, () => Array(newCols).fill(0));
-    const newColors = Array.from({ length: newRows }, () => Array(newCols).fill(null));
-
-    for (let r = 0; r < p.rows; r++) {
-        for (let c = 0; c < p.cols; c++) {
-            if (p.shape[r][c]) {
-                const nr = c;
-                const nc = p.rows - 1 - r;
-                newShape[nr][nc] = 1;
-                newColors[nr][nc] = p.cellColors[r][c];
-            }
-        }
-    }
-    return { shape: newShape, cellColors: newColors, rows: newRows, cols: newCols };
-}
-
-function refillTrayIfEmpty() {
-    if (trayPieces.every(p => p === null)) {
-        trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
-    }
-    calculateKingBestMove();
-}
-
-function recolorExistingBlocks() {
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
-            const cell = board[r][c];
-            if (cell && cell.kind === 'NORMAL') {
-                cell.color = userPrefs.colorMode === 'FIXED' ? userPrefs.fixedColor : randomPaletteColor();
-            }
-        }
-    }
-    trayPieces.forEach(p => {
-        if (!p) return;
-        const base = randomPaletteColor();
-        for (let r = 0; r < p.rows; r++) {
-            for (let c = 0; c < p.cols; c++) {
-                if (p.shape[r][c]) {
-                    p.cellColors[r][c] = userPrefs.colorMode === 'FIXED'
-                        ? userPrefs.fixedColor
-                        : (userPrefs.colorMode === 'RANDOM_PIECE' ? base : randomPaletteColor());
-                }
-            }
-        }
-    });
-}
-
-function clearBoardGrid() {
-    board = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
-}
-
-function spawnRandomLockers(count = 2) {
-    const emptyCells = [];
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
-            if (board[r][c] === null) emptyCells.push({ r, c });
-        }
-    }
-    for (let i = 0; i < count && emptyCells.length > 0; i++) {
-        const idx = Math.floor(Math.random() * emptyCells.length);
-        const pos = emptyCells.splice(idx, 1)[0];
-        board[pos.r][pos.c] = { kind: 'LOCKER', hp: 1, maxHp: 1 };
-    }
-}
-
-function setupRescueMission(cycle) {
-    clearBoardGrid();
-    const tr = 2 + Math.floor(Math.random() * 4);
-    const tc = 2 + Math.floor(Math.random() * 4);
-    const cageHp = Math.min(3, 1 + Math.floor(cycle / 2));
-
-    board[tr][tc] = { kind: 'RESCUE_TARGET' };
-
-    const neighbors = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
-    neighbors.forEach(([dr, dc]) => {
-        const nr = tr + dr;
-        const nc = tc + dc;
-        if (nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE) {
-            board[nr][nc] = { kind: 'RESCUE_CAGE', hp: cageHp, maxHp: cageHp };
-        }
-    });
-
-    rescueMaxTimer = Math.max(28, 48 - (cycle - 1) * 4);
-    rescueTimer = rescueMaxTimer;
-}
-
-function setupBossEncounter(cycle) {
-    clearBoardGrid();
-    const bossHp = 4 + cycle * 2;
-    const startR = 2;
-    const startC = 3;
-    for (let r = startR; r < startR + 2; r++) {
-        for (let c = startC; c < startC + 2; c++) {
-            board[r][c] = { kind: 'BOSS_CORE', hp: bossHp, maxHp: bossHp, isMain: (r === startR && c === startC) };
-        }
-    }
-    spawnRandomLockers(Math.min(4, cycle + 1));
-}
-
-function stopRescueTimer() {
-    if (rescueTimerInterval) {
-        clearInterval(rescueTimerInterval);
-        rescueTimerInterval = null;
-    }
-}
-
-function startSoloStage(index, preserveScore = false) {
-    stopRescueTimer();
-    soloStageIndex = index;
-    const cfg = getSoloStageConfig(index);
-    soloCycle = cfg.cycle;
-    soloStageType = cfg.type;
-    
-    if (!preserveScore) {
-        soloStageStartScore = myScore;
-    }
-    soloStageTargetScore = Math.max(cfg.target, soloStageStartScore + cfg.stepPoints);
-    soloStageLabel = cfg.label;
-    movesInStage = 0;
-
-    applyCycleTheme(soloCycle);
-
-    if (soloStageType === 'LOCKER') {
-        spawnRandomLockers(Math.min(4, 1 + soloCycle));
-    } else if (soloStageType === 'RESCUE') {
-        setupRescueMission(soloCycle);
-        rescueTimerInterval = setInterval(() => {
-            if (!matchActive || gameMode !== 'SOLO' || soloStageType !== 'RESCUE') return;
-            rescueTimer--;
-            updateSoloMissionHUD();
-            if (rescueTimer <= 0) {
-                stopRescueTimer();
-                handleSoloDeath("Tempo esgotado no resgate!");
-            }
-        }, 1000);
-    } else if (soloStageType === 'BOSS') {
-        setupBossEncounter(soloCycle);
-    }
-
-    trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
-    calculateKingBestMove();
-    updateHUD();
-    updateSoloMissionHUD();
-}
-
-function calculateKingBestMove() {
-    if (userPrefs.kingMode !== 'ON' || !userPrefs.cheatsUnlocked) {
-        kingBestMove = null;
-        return;
-    }
-
-    let bestScore = -99999;
-    let bestMove = null;
-
-    for (let i = 0; i < trayPieces.length; i++) {
-        let p = trayPieces[i];
-        if (!p) continue;
-
-        let currentP = p;
-        for (let rot = 0; rot < 4; rot++) {
-            if (rot > 0) currentP = rotatePiece(currentP);
-
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    if (canPlacePiece(currentP, r, c)) {
-                        let simBoard = board.map(row => row.map(cell => cell ? { ...cell } : null));
-                        let placedCount = 0;
-                        for (let pr = 0; pr < currentP.rows; pr++) {
-                            for (let pc = 0; pc < currentP.cols; pc++) {
-                                if (currentP.shape[pr][pc]) {
-                                    simBoard[r + pr][c + pc] = { kind: 'NORMAL' };
-                                    placedCount++;
-                                }
-                            }
-                        }
-
-                        let rowsCleared = 0;
-                        let colsCleared = 0;
-                        for (let tr = 0; tr < GRID_SIZE; tr++) {
-                            if (simBoard[tr].every(cell => cell !== null && cell.kind === 'NORMAL')) rowsCleared++;
-                        }
-                        for (let tc = 0; tc < GRID_SIZE; tc++) {
-                            let full = true;
-                            for (let tr = 0; tr < GRID_SIZE; tr++) {
-                                if (simBoard[tr][tc] === null || simBoard[tr][tc].kind !== 'NORMAL') { full = false; break; }
-                            }
-                            if (full) colsCleared++;
-                        }
-
-                        const totalCleared = rowsCleared + colsCleared;
-                        let score = placedCount * 12 + totalCleared * 700;
-                        if (totalCleared > 0) score += 2000;
-
-                        if (score > bestScore) {
-                            bestScore = score;
-                            bestMove = { pieceIndex: i, row: r, col: c, piece: currentP, rotationsNeeded: rot };
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    kingBestMove = bestMove;
-}
-
-function checkAutoPlayAndBreak() {
-    if (!matchActive || !userPrefs.cheatsUnlocked) return;
-
-    if (userPrefs.autoBreak === 'ON' && !kingBestMove) {
-        let cleared = false;
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
-                if (board[r][c] && board[r][c].kind !== 'NORMAL') {
-                    board[r][c] = null;
-                    spawnParticles(layout.boardX + c * layout.cellSize, layout.boardY + r * layout.cellSize, '#ef4444', 20);
-                    cleared = true;
-                    break;
-                }
-            }
-            if (cleared) break;
-        }
-        if (cleared) {
-            AudioFX.rockBreak();
-            showToast('💥 Quebra Automática destruiu um obstáculo!');
-            calculateKingBestMove();
-        }
-    }
-
-    if (userPrefs.autoPlace === 'ON' && kingBestMove && draggingIndex === -1) {
-        if (!autoPlayTimer) {
-            autoPlayTimer = setTimeout(() => {
-                autoPlayTimer = null;
-                if (userPrefs.autoPlace === 'ON' && kingBestMove && matchActive && draggingIndex === -1) {
-                    let pTarget = trayPieces[kingBestMove.pieceIndex];
-                    for (let rot = 0; rot < kingBestMove.rotationsNeeded; rot++) {
-                        pTarget = rotatePiece(pTarget);
-                    }
-                    trayPieces[kingBestMove.pieceIndex] = pTarget;
-                    placePieceOnBoard(kingBestMove.pieceIndex, kingBestMove.row, kingBestMove.col);
-                }
-            }, 350);
-        }
-    }
-}
-
-document.getElementById('btn-power-rotate').addEventListener('click', () => {
-    if (!matchActive || !userPrefs.cheatsUnlocked) return;
-    for (let i = 0; i < 3; i++) {
-        if (trayPieces[i]) {
-            trayPieces[i] = rotatePiece(trayPieces[i]);
-            calculateKingBestMove();
-            showToast('🔄 Peça rotacionada manualmente!');
-            AudioFX.place();
-            break;
-        }
-    }
-});
-
-document.getElementById('btn-power-bomb').addEventListener('click', () => {
-    if (!matchActive || !userPrefs.cheatsUnlocked) return;
-    let cleared = false;
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
-            if (board[r][c] && board[r][c].kind !== 'NORMAL') {
-                board[r][c] = null;
-                spawnParticles(layout.boardX + c * layout.cellSize, layout.boardY + r * layout.cellSize, '#ef4444', 20);
-                cleared = true;
-                break;
-            }
-        }
-        if (cleared) break;
-    }
-    if (!cleared) {
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
-                if (board[r][c] !== null) {
-                    board[r][c] = null;
-                    break;
-                }
-            }
-            break;
-        }
-    }
-    AudioFX.rockBreak();
-    showToast('💥 Bomba acionada!');
-    calculateKingBestMove();
-});
-
-function handleSoloDeath(reasonTitle) {
-    if (userPrefs.cheatsUnlocked && userPrefs.infiniteLives === 'ON') {
-        showToast('♾️ Vidas Infinitas ativas! Tabuleiro limpo para continuar.');
-        clearBoardGrid();
-        trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
-        calculateKingBestMove();
-        return;
-    }
-
-    stopRescueTimer();
-    soloLives--;
-    updateHUD();
-    screenShake = 16;
-    AudioFX.lockedGameOver();
-
-    if (soloLives > 0) {
-        showToast(`⚠️ ${reasonTitle} Você perdeu 1 vida! Restam ${soloLives} ❤️`);
-        setTimeout(() => {
-            if (!matchActive) return;
-            clearBoardGrid();
-            trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
-            calculateKingBestMove();
-            if (soloStageType === 'RESCUE') {
-                setupRescueMission(soloCycle);
-                rescueTimer = rescueMaxTimer;
-                rescueTimerInterval = setInterval(() => {
-                    if (!matchActive || gameMode !== 'SOLO' || soloStageType !== 'RESCUE') return;
-                    rescueTimer--;
-                    updateSoloMissionHUD();
-                    if (rescueTimer <= 0) {
-                        stopRescueTimer();
-                        handleSoloDeath("Tempo esgotado no resgate!");
-                    }
-                }, 1000);
-            } else if (soloStageType === 'BOSS') {
-                setupBossEncounter(soloCycle);
-            } else if (soloStageType === 'LOCKER') {
-                spawnRandomLockers(2);
-            }
-            updateSoloMissionHUD();
-        }, 1100);
-    } else {
-        finishGameScreen('GAME OVER!', 'Suas 5 vidas acabaram! Recomeçando da Fase 1.');
-    }
-}
-
-function updateSoloMissionHUD() {
-    if (gameMode !== 'SOLO') return;
-    const titleEl = document.getElementById('mission-title');
-    const extraEl = document.getElementById('mission-extra');
-    const fillEl = document.getElementById('mission-progress-fill');
-
-    if (titleEl) titleEl.textContent = soloStageLabel;
-
-    if (soloStageType === 'RESCUE') {
-        let cagesLeft = 0;
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
-                if (board[r][c] && board[r][c].kind === 'RESCUE_CAGE') cagesLeft += board[r][c].hp;
-            }
-        }
-        if (extraEl) extraEl.textContent = `⏱️ ${rescueTimer}s • Trancas: ${cagesLeft}`;
-        const pct = Math.max(0, Math.min(100, (rescueTimer / rescueMaxTimer) * 100));
-        if (fillEl) {
-            fillEl.style.width = pct + '%';
-            fillEl.style.background = rescueTimer <= 10 ? '#ef4444' : 'linear-gradient(90deg, #38bdf8, #22c55e)';
-        }
-    } else if (soloStageType === 'BOSS') {
-        let bossHp = 0, bossMax = 1;
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
-                if (board[r][c] && board[r][c].kind === 'BOSS_CORE' && board[r][c].isMain) {
-                    bossHp = board[r][c].hp;
-                    bossMax = board[r][c].maxHp;
-                }
-            }
-        }
-        if (extraEl) extraEl.textContent = `👹 HP BOSS: ${bossHp}/${bossMax}`;
-        if (fillEl) {
-            fillEl.style.width = Math.max(0, (bossHp / bossMax) * 100) + '%';
-            fillEl.style.background = 'linear-gradient(90deg, #dc2626, #f97316)';
-        }
-    } else {
-        const gained = myScore - soloStageStartScore;
-        const needed = soloStageTargetScore - soloStageStartScore;
-        const pct = Math.max(0, Math.min(100, (gained / needed) * 100));
-        if (extraEl) extraEl.textContent = `${myScore.toLocaleString('pt-BR')} / ${soloStageTargetScore.toLocaleString('pt-BR')}`;
-        if (fillEl) {
-            fillEl.style.width = pct + '%';
-            fillEl.style.background = 'linear-gradient(90deg, #f59e0b, #22c55e)';
-        }
-    }
-}
-
-function checkSoloStageCompletion() {
-    if (gameMode !== 'SOLO' || !matchActive) return;
-
-    if (soloStageType === 'RESCUE') {
-        let hasCages = false;
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
-                if (board[r][c] && board[r][c].kind === 'RESCUE_CAGE') hasCages = true;
-            }
-        }
-        if (!hasCages) {
-            stopRescueTimer();
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    if (board[r][c] && board[r][c].kind === 'RESCUE_TARGET') {
-                        const px = layout.boardX + c * layout.cellSize + layout.cellSize / 2;
-                        const py = layout.boardY + r * layout.cellSize + layout.cellSize / 2;
-                        spawnParticles(px, py, '#fde047', 24);
-                        board[r][c] = null;
-                    }
-                }
-            }
-            AudioFX.rescueSuccess();
-            myScore += 500 + rescueTimer * 15;
-            showToast('RESGATE CONCLUÍDO! +Bônus!');
-            startSoloStage(soloStageIndex + 1);
-        }
-        return;
-    }
-
-    if (soloStageType === 'BOSS') {
-        let bossAlive = false;
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
-                if (board[r][c] && board[r][c].kind === 'BOSS_CORE') bossAlive = true;
-            }
-        }
-        if (!bossAlive) {
-            stopRescueTimer();
-            AudioFX.boardAllClear();
-            myScore += 1500 * soloCycle;
-            screenShake = 14;
-            showToast(`BOSS DERROTADO! Iniciando Ciclo ${soloCycle + 1}!`);
-            startSoloStage(soloStageIndex + 1);
-        }
-        return;
-    }
-
-    if (myScore >= soloStageTargetScore) {
-        AudioFX.rescueSuccess();
-        showToast(`FASE ${soloStageIndex + 1} CONCLUÍDA!`);
-        startSoloStage(soloStageIndex + 1);
-    }
-}
-
-function bindClick(elementId, handler) {
-    const el = document.getElementById(elementId);
-    if (!el) return;
-    el.addEventListener('click', (e) => {
-        e.preventDefault();
-        handler(e);
-    });
-    el.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        handler(e);
-    }, { passive: false });
-}
-
-bindClick('btn-start-solo', () => {
-    AudioFX.ensure();
-    AudioFX.startBackgroundMusic();
-    gameMode = 'SOLO';
-    myName = document.getElementById('player-name').value.trim() || 'Paulo';
-    myScore = 0;
-    soloLives = 5;
-    matchActive = true;
-    clearBoardGrid();
-
-    document.getElementById('lobby-screen').classList.add('hidden');
-    document.getElementById('gameover-screen').classList.add('hidden');
-    document.getElementById('game-screen').classList.remove('hidden');
-    document.getElementById('solo-mission-bar').classList.remove('hidden');
-    document.getElementById('hud-rival-card').classList.add('hidden');
-    document.getElementById('hud-lives-box').classList.remove('hidden');
-
-    resizeCanvas();
-    startSoloStage(0);
-});
-
-function startP2PMatch(newTarget) {
-    stopRescueTimer();
-    AudioFX.startBackgroundMusic();
-    gameMode = 'P2P';
-    targetScore = newTarget;
-    myScore = 0;
-    rivalScore = 0;
-    matchActive = true;
-    activePalette = PALETTE;
-    clearBoardGrid();
-    trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
-    calculateKingBestMove();
-
-    document.getElementById('lobby-screen').classList.add('hidden');
-    document.getElementById('gameover-screen').classList.add('hidden');
-    document.getElementById('game-screen').classList.remove('hidden');
-    document.getElementById('solo-mission-bar').classList.add('hidden');
-    document.getElementById('hud-lives-box').classList.add('hidden');
-    document.getElementById('hud-rival-card').classList.remove('hidden');
-
-    resizeCanvas();
-    updateHUD();
-}
-
-function updateHUD() {
-    const myNameEl = document.getElementById('hud-my-name');
-    const myScoreEl = document.getElementById('hud-my-score');
-    if (myNameEl) myNameEl.textContent = myName.toUpperCase();
-    if (myScoreEl) myScoreEl.textContent = myScore.toLocaleString('pt-BR');
-
-    if (gameMode === 'SOLO') {
-        const lbl = document.getElementById('hud-target-label');
-        const tgt = document.getElementById('hud-target');
-        const liv = document.getElementById('hud-lives-val');
-        if (lbl) lbl.textContent = soloStageType === 'BOSS' ? 'CHEFE' : (soloStageType === 'RESCUE' ? 'RESGATE' : 'META FASE');
-        if (tgt) tgt.textContent = soloStageType === 'BOSS' ? 'BOSS' : (soloStageType === 'RESCUE' ? `${rescueTimer}s` : soloStageTargetScore.toLocaleString('pt-BR'));
-        if (liv) {
-            if (userPrefs.cheatsUnlocked && userPrefs.infiniteLives === 'ON') {
-                liv.innerHTML = '❤️ <span style="font-size:16px; color:#38bdf8;">∞</span>';
-            } else {
-                liv.textContent = `❤️ ${soloLives}`;
-            }
-        }
-    } else {
-        const lbl = document.getElementById('hud-target-label');
-        const tgt = document.getElementById('hud-target');
-        const rName = document.getElementById('hud-rival-name');
-        const rScore = document.getElementById('hud-rival-score');
-        if (lbl) lbl.textContent = 'META P2P';
-        if (tgt) tgt.textContent = targetScore.toLocaleString('pt-BR');
-        if (rName) rName.textContent = rivalName.toUpperCase();
-        if (rScore) rScore.textContent = rivalScore.toLocaleString('pt-BR');
-    }
-}
-
-function checkP2PVictory() {
-    if (gameMode !== 'P2P' || !matchActive) return;
-    if (myScore >= targetScore) {
-        if (conn && conn.open) conn.send({ type: 'MATCH_WON', winnerName: myName, winnerScore: myScore });
-        finishGameScreen(`${myName.toUpperCase()} VENCEU!`, `Atingiu ${targetScore.toLocaleString('pt-BR')} pontos!`);
-    } else if (rivalScore >= targetScore) {
-        finishGameScreen(`${rivalName.toUpperCase()} VENCEU!`, `Atingiu ${targetScore.toLocaleString('pt-BR')} pontos!`);
-    }
-}
-
-function finishGameScreen(title, desc) {
-    matchActive = false;
-    stopRescueTimer();
-    if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
-    draggingIndex = -1;
-
-    document.getElementById('winner-title').textContent = title;
-    document.getElementById('winner-desc').textContent = desc;
-    document.getElementById('end-my-label').textContent = gameMode === 'SOLO' ? 'PONTUAÇÃO FINAL' : 'PONTUAÇÃO';
-    document.getElementById('end-my-score').textContent = myScore.toLocaleString('pt-BR');
-
-    if (gameMode === 'SOLO') {
-        document.getElementById('end-rival-name').textContent = 'FASE ALCANÇADA';
-        document.getElementById('end-rival-score').textContent = `Fase ${soloStageIndex + 1}`;
-        document.getElementById('p2p-next-target-group').classList.add('hidden');
-    } else {
-        document.getElementById('end-rival-name').textContent = rivalName.toUpperCase();
-        document.getElementById('end-rival-score').textContent = rivalScore.toLocaleString('pt-BR');
-        document.getElementById('p2p-next-target-group').classList.remove('hidden');
-        document.getElementById('new-target-input').value = targetScore;
-    }
-
-    document.getElementById('gameover-screen').classList.remove('hidden');
-}
-
-bindClick('btn-restart-match', () => {
-    if (gameMode === 'SOLO') {
-        document.getElementById('btn-start-solo').click();
-    } else {
-        const nextTarget = Math.max(500, parseInt(document.getElementById('new-target-input').value, 10) || 15000);
-        if (conn && conn.open) conn.send({ type: 'NEW_MATCH', targetScore: nextTarget });
-        startP2PMatch(nextTarget);
-    }
-});
-
-function returnToLobby() {
-    matchActive = false;
-    stopRescueTimer();
-    if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
-    AudioFX.stopBackgroundMusic();
-    document.getElementById('gameover-screen').classList.add('hidden');
-    document.getElementById('game-screen').classList.add('hidden');
-    document.getElementById('lobby-screen').classList.remove('hidden');
-}
-
-bindClick('btn-back-menu', returnToLobby);
-bindClick('btn-menu-from-end', returnToLobby);
-bindClick('btn-create-room', () => {
-    myName = document.getElementById('player-name').value.trim() || 'Paulo';
-    isHost = true;
-    const shortCode = generateShortCode();
-    setStatus('Gerando sala P2P...');
-    if (peer) peer.destroy();
-
-    peer = new Peer('BBP2P-' + shortCode);
-    peer.on('open', () => {
-        document.getElementById('host-wait-box').classList.remove('hidden');
-        document.getElementById('room-code-display').textContent = shortCode;
-        setStatus('Aguardando conectar com o código...');
-    });
-    peer.on('connection', setupConnectionHandlers);
-    peer.on('error', (err) => setStatus('Erro ao criar sala: ' + err.type));
-});
-
-document.getElementById('room-code-display').addEventListener('click', () => {
-    const code = document.getElementById('room-code-display').textContent;
-    if (navigator.clipboard && code !== '------') {
-        navigator.clipboard.writeText(code).then(() => showToast('Código ' + code + ' copiado!')).catch(() => {});
-    }
-});
-
-bindClick('btn-join-room', () => {
-    const rawCode = document.getElementById('join-code-input').value.trim().toUpperCase();
-    if (rawCode.length < 4) {
-        setStatus('Digite o código da sala primeiro.');
-        return;
-    }
-    myName = document.getElementById('player-name').value.trim() || 'Tássia';
-    isHost = false;
-    setStatus('Conectando a ' + rawCode + '...');
-    if (peer) peer.destroy();
-    peer = new Peer();
-    peer.on('open', () => {
-        const outgoingConn = peer.connect('BBP2P-' + rawCode, { reliable: true });
-        setupConnectionHandlers(outgoingConn);
-    });
-    peer.on('error', (err) => setStatus('Erro ao conectar (' + err.type + ').'));
-});
-
-function canPlacePiece(piece, startRow, startCol) {
-    if (!piece) return false;
-    for (let r = 0; r < piece.rows; r++) {
-        for (let c = 0; c < piece.cols; c++) {
-            if (piece.shape[r][c]) {
-                const br = startRow + r;
-                const bc = startCol + c;
-                if (br < 0 || br >= GRID_SIZE || bc < 0 || bc >= GRID_SIZE) return false;
-                if (board[br][bc] !== null) return false;
-            }
-        }
-    }
-    return true;
-}
-
-function hasAnyValidMove() {
-    for (let i = 0; i < trayPieces.length; i++) {
-        let p = trayPieces[i];
-        if (!p) continue;
-        let testP = p;
-        for (let rot = 0; rot < 4; rot++) {
-            if (rot > 0) testP = rotatePiece(testP);
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    if (canPlacePiece(testP, r, c)) return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-function damageSpecialNeighbors(clearedCellsSet) {
-    let brokeAny = false;
-    let damagedBoss = false;
-
-    clearedCellsSet.forEach(key => {
-        const [r, c] = key.split(',').map(Number);
-        const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-
-        dirs.forEach(([dr, dc]) => {
-            const nr = r + dr;
-            const nc = c + dc;
-            if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE) return;
-            const target = board[nr][nc];
-            if (!target) return;
-
-            if (target.kind === 'LOCKER' || target.kind === 'RESCUE_CAGE') {
-                target.hp--;
-                brokeAny = true;
-                const px = layout.boardX + nc * layout.cellSize + layout.cellSize / 2;
-                const py = layout.boardY + nr * layout.cellSize + layout.cellSize / 2;
-                if (target.hp <= 0) {
-                    board[nr][nc] = null;
-                    spawnParticles(px, py, '#38bdf8', 12);
-                } else {
-                    spawnParticles(px, py, '#fbbf24', 6);
-                }
-            } else if (target.kind === 'BOSS_CORE' && !damagedBoss) {
-                damagedBoss = true;
-                for (let br = 0; br < GRID_SIZE; br++) {
-                    for (let bc = 0; bc < GRID_SIZE; bc++) {
-                        if (board[br][bc] && board[br][bc].kind === 'BOSS_CORE') {
-                            board[br][bc].hp--;
-                            if (board[br][bc].hp <= 0) board[br][bc] = null;
-                        }
-                    }
-                }
-                const bx = layout.boardX + nc * layout.cellSize;
-                const by = layout.boardY + nr * layout.cellSize;
-                spawnParticles(bx, by, '#ef4444', 18);
-                spawnFloatingText(bx, by - 10, '-1 HP BOSS!', '#ef4444');
-                screenShake = 9;
-                AudioFX.bossHit();
-            }
-        });
-    });
-
-    if (brokeAny) AudioFX.rockBreak();
-}
-
-function isBoardCompletelyEmpty() {
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
-            if (board[r][c] !== null) return false;
-        }
-    }
-    return true;
-}
-
-function placePieceOnBoard(pieceIndex, startRow, startCol) {
-    const piece = trayPieces[pieceIndex];
-    if (!canPlacePiece(piece, startRow, startCol)) return false;
-
-    let placedCells = 0;
-    for (let r = 0; r < piece.rows; r++) {
-        for (let c = 0; c < piece.cols; c++) {
-            if (piece.shape[r][c]) {
-                board[startRow + r][startCol + c] = { kind: 'NORMAL', color: piece.cellColors[r][c] };
-                placedCells++;
-            }
-        }
-    }
-
-    trayPieces[pieceIndex] = null;
-    AudioFX.place();
-    movesInStage++;
-
-    const fullRows = [];
-    const fullCols = [];
-
-    for (let r = 0; r < GRID_SIZE; r++) {
-        if (board[r].every(cell => cell !== null && cell.kind === 'NORMAL')) fullRows.push(r);
-    }
-    for (let c = 0; c < GRID_SIZE; c++) {
-        let full = true;
-        for (let r = 0; r < GRID_SIZE; r++) {
-            if (board[r][c] === null || board[r][c].kind !== 'NORMAL') { full = false; break; }
-        }
-        if (full) fullCols.push(c);
-    }
-
-    const totalCleared = fullRows.length + fullCols.length;
-    const clearedCoords = new Set();
-
-    if (totalCleared > 0) {
-        fullRows.forEach(r => {
-            for (let c = 0; c < GRID_SIZE; c++) {
-                clearedCoords.add(`${r},${c}`);
-                const px = layout.boardX + c * layout.cellSize + layout.cellSize / 2;
-                const py = layout.boardY + r * layout.cellSize + layout.cellSize / 2;
-                if (board[r][c]) spawnParticles(px, py, board[r][c].color || '#38bdf8', 5);
-                board[r][c] = null;
-            }
-        });
-        fullCols.forEach(c => {
-            for (let r = 0; r < GRID_SIZE; r++) {
-                clearedCoords.add(`${r},${c}`);
-                const px = layout.boardX + c * layout.cellSize + layout.cellSize / 2;
-                const py = layout.boardY + r * layout.cellSize + layout.cellSize / 2;
-                if (board[r][c]) spawnParticles(px, py, board[r][c].color || '#38bdf8', 5);
-                board[r][c] = null;
-            }
-        });
-
-        damageSpecialNeighbors(clearedCoords);
-
-        if (isBoardCompletelyEmpty()) {
-            AudioFX.boardAllClear();
-            myScore += 1000;
-            spawnFloatingText(canvas.width / 2, layout.boardY + 120, 'MUITO BOM! +1.000', '#22c55e');
-            showToast('MUITO BOM! Tabuleiro limpo (+1.000 pts)!');
-        } else {
-            AudioFX.combo(totalCleared);
-            if (totalCleared >= 2) {
-                spawnFloatingText(canvas.width / 2, layout.boardY + 120, `COMBO ${totalCleared}x!`, '#38bdf8');
-            }
-        }
-    }
-
-    const lineBonus = totalCleared > 0 ? (totalCleared * totalCleared * 180) : 0;
-    myScore += (placedCells * 15) + lineBonus;
-
-    if (gameMode === 'SOLO' && (soloStageType === 'LOCKER' || soloStageType === 'BOSS')) {
-        if (movesInStage % 3 === 0) {
-            spawnRandomLockers(soloStageType === 'BOSS' ? 1 : Math.min(2, soloCycle));
-        }
-    }
-
-    refillTrayIfEmpty();
-    updateHUD();
-
-    if (gameMode === 'P2P') {
-        sendScoreUpdate();
-        checkP2PVictory();
-    } else {
-        updateSoloMissionHUD();
-        checkSoloStageCompletion();
-    }
-
-    if (matchActive && !hasAnyValidMove()) {
-        if (userPrefs.cheatsUnlocked && userPrefs.infiniteLives === 'ON') {
-            showToast('♾️ Vidas Infinitas: Tabuleiro sem espaço limpo automaticamente!');
-            clearBoardGrid();
-            trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
-            calculateKingBestMove();
-        } else {
-            if (gameMode === 'SOLO') {
-                handleSoloDeath("Tabuleiro totalmente trancado!");
-            } else {
-                showToast('Sem espaço! Tabuleiro renovado no P2P!');
-                setTimeout(() => {
-                    if (matchActive) {
-                        clearBoardGrid();
-                        trayPieces = [createRandomPiece(), createRandomPiece(), createRandomPiece()];
-                        calculateKingBestMove();
-                    }
-                }, 750);
-            }
-        }
-    }
-
-    calculateKingBestMove();
-    return true;
-}
-
-function sendScoreUpdate() {
-    if (conn && conn.open) conn.send({ type: 'SCORE_UPDATE', score: myScore });
-}
-
-const canvas = document.getElementById('game-canvas');
-const ctx = canvas.getContext('2d');
-let animFrame = 0;
-
-let layout = {
-    cellSize: 38,
-    boardX: 0,
-    boardY: 10,
-    trayY: 340,
-    slotCenters: []
-};
-
+// ================= INICIALIZAÇÃO E RESIZE =================
 function resizeCanvas() {
-    const wrap = document.getElementById('canvas-wrap');
-    if (!wrap) return;
-    const maxW = Math.min(440, wrap.clientWidth - 8);
-    const maxH = wrap.clientHeight - 8;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+loadUnlocks();
 
-    const cellFromW = Math.floor((maxW - 16) / GRID_SIZE);
-    const cellFromH = Math.floor((maxH - 20) / (GRID_SIZE + 3.5));
-    const cellSize = Math.max(26, Math.min(46, cellFromW, cellFromH));
+// ================= NAVEGAÇÃO DE TELAS =================
+function hideAllScreens() {
+  document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
+  document.getElementById("touchControls").classList.add("hidden");
+}
 
-    const boardPx = cellSize * GRID_SIZE;
-    const totalW = Math.max(boardPx + 16, maxW);
-    const totalH = boardPx + Math.round(cellSize * 3.4);
+function backToMainMenu() {
+  if (peer) { peer.destroy(); peer = null; conn = null; }
+  gameState = "menu";
+  hideAllScreens();
+  document.getElementById("menuScreen").classList.remove("hidden");
+}
 
-    canvas.width = totalW;
-    canvas.height = totalH;
+function startStorySetup() {
+  gameMode = "story";
+  storyStageIndex = 0;
+  selectStep = 1;
+  openSelectScreen("MODO HISTÓRIA: ESCOLHA SEU HERÓI", true);
+}
 
-    const boardX = Math.floor((totalW - boardPx) / 2);
-    const boardY = 6;
-    const trayY = boardY + boardPx + Math.round(cellSize * 1.6);
+function startVersusSetup() {
+  gameMode = "versus";
+  selectStep = 1;
+  openSelectScreen("MODO SOLO: ESCOLHA SEU LUTADOR", true);
+}
 
-    layout = {
-        cellSize,
-        boardX,
-        boardY,
-        trayY,
-        slotCenters: [
-            boardX + boardPx * 0.17,
-            boardX + boardPx * 0.50,
-            boardX + boardPx * 0.83
-        ]
+function openSelectScreen(title, showStages) {
+  gameState = "select";
+  hideAllScreens();
+  document.getElementById("selectScreen").classList.remove("hidden");
+  document.getElementById("selectTitle").innerText = title;
+  document.getElementById("stageSelectBox").style.display = showStages ? "block" : "none";
+  renderCharGrid();
+  renderStageGrid();
+}
+
+function renderCharGrid() {
+  const grid = document.getElementById("charGrid");
+  grid.innerHTML = "";
+  CHARACTERS.forEach(c => {
+    const card = document.createElement("div");
+    card.className = "char-card" + (!c.unlocked ? " locked" : "");
+    if (c.id === selectedP1) card.classList.add("selected-p1");
+    if (gameMode === "versus" && selectStep === 2 && c.id === selectedP2) card.classList.add("selected-p2");
+
+    card.innerHTML = `
+      <div class="char-preview" style="background:${c.color}; box-shadow: 0 0 10px ${c.color};"></div>
+      <div class="char-name">${c.unlocked ? c.name : "🔒 ???"}</div>
+    `;
+    card.onclick = () => {
+      if (!c.unlocked) return;
+      if (selectStep === 1) {
+        selectedP1 = c.id;
+        document.getElementById("charInfo").innerHTML = `<strong>${c.name}</strong>: ${c.desc}`;
+      } else {
+        selectedP2 = c.id;
+        document.getElementById("charInfo").innerHTML = `<strong>OPONENTE - ${c.name}</strong>: ${c.desc}`;
+      }
+      renderCharGrid();
     };
-}
-window.addEventListener('resize', () => {
-    if (!document.getElementById('game-screen').classList.contains('hidden')) resizeCanvas();
-});
-
-function drawRoundedCell(x, y, size, color, alpha = 1) {
-    const pad = 2;
-    const s = size - pad * 2;
-    const r = Math.max(4, Math.floor(size * 0.16));
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.roundRect(x + pad, y + pad, s, s, r);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.24)';
-    ctx.fillRect(x + pad + 3, y + pad + 2, s - 6, Math.max(3, Math.floor(s * 0.18)));
-    ctx.restore();
+    grid.appendChild(card);
+  });
+  const activeChar = CHARACTERS[selectStep === 1 ? selectedP1 : selectedP2];
+  document.getElementById("charInfo").innerHTML = `<strong>${activeChar.name}</strong>: ${activeChar.desc}`;
 }
 
-function drawSpecialCell(cx, cy, size, cell) {
-    const pad = 2;
-    const s = size - pad * 2;
-    const centerX = cx + size / 2;
-    const centerY = cy + size / 2;
+function renderStageGrid() {
+  const grid = document.getElementById("stageGrid");
+  grid.innerHTML = "";
+  STAGES.forEach(s => {
+    const btn = document.createElement("button");
+    btn.className = "stage-btn" + (selectedStage === s.id ? " active" : "");
+    btn.innerText = s.name;
+    btn.onclick = () => {
+      selectedStage = s.id;
+      renderStageGrid();
+    };
+    grid.appendChild(btn);
+  });
+}
 
-    if (cell.kind === 'LOCKER') {
-        drawRoundedCell(cx, cy, size, '#475569', 1);
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(cx + 5, cy + 5, size - 10, size - 10);
-        ctx.beginPath();
-        ctx.moveTo(cx + 8, cy + 8);
-        ctx.lineTo(cx + size - 8, cy + size - 8);
-        ctx.moveTo(cx + size - 8, cy + 8);
-        ctx.lineTo(cx + 8, cy + size - 8);
-        ctx.stroke();
-    } else if (cell.kind === 'RESCUE_CAGE') {
-        const cageColor = cell.hp >= 2 ? '#b45309' : '#d97706';
-        drawRoundedCell(cx, cy, size, cageColor, 1);
-        ctx.strokeStyle = '#fef3c7';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(cx + size * 0.35, cy + 3);
-        ctx.lineTo(cx + size * 0.35, cy + size - 3);
-        ctx.moveTo(cx + size * 0.65, cy + 3);
-        ctx.lineTo(cx + size * 0.65, cy + size - 3);
-        ctx.stroke();
-    } else if (cell.kind === 'RESCUE_TARGET') {
-        const trembleX = Math.sin(animFrame * 0.35) * 1.5;
-        const eyeLookX = Math.sin(animFrame * 0.08) * 2.5;
-        const eyeLookY = Math.cos(animFrame * 0.06) * 1.5;
+function confirmSelection() {
+  if (gameMode === "versus" && selectStep === 1) {
+    selectStep = 2;
+    document.getElementById("selectTitle").innerText = "ESCOLHA SEU ADVERSÁRIO (CPU)";
+    renderCharGrid();
+    return;
+  }
+  if (gameMode === "story") {
+    selectedP2 = STORY_ORDER[storyStageIndex];
+    selectedStage = storyStageIndex % STAGES.length;
+  }
+  if (gameMode === "p2p") {
+    if (conn && conn.open) {
+      conn.send({ type: "charSelect", charId: selectedP1, stageId: selectedStage });
+    }
+    document.getElementById("selectTitle").innerText = "AGUARDANDO OPONENTE...";
+    checkP2PReady();
+    return;
+  }
+  startMatch();
+}
 
-        ctx.save();
-        ctx.translate(centerX + trembleX, centerY);
-        ctx.fillStyle = '#fde047';
-        ctx.beginPath();
-        ctx.arc(0, 0, s * 0.44, 0, Math.PI * 2);
-        ctx.fill();
+// ================= MULTIPLAYER P2P (PEERJS) =================
+let p1ReadyP2P = false;
+let p2ReadyP2P = false;
 
-        ctx.fillStyle = '#fb7185';
-        ctx.beginPath();
-        ctx.arc(-s * 0.24, s * 0.08, s * 0.08, 0, Math.PI * 2);
-        ctx.arc(s * 0.24, s * 0.08, s * 0.08, 0, Math.PI * 2);
-        ctx.fill();
+function openP2PMenu() {
+  gameMode = "p2p";
+  hideAllScreens();
+  document.getElementById("p2pScreen").classList.remove("hidden");
+  document.getElementById("hostRoomInfo").classList.add("hidden");
+  document.getElementById("p2pStatusJoin").innerText = "";
+}
 
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(-s * 0.15, -s * 0.06, s * 0.13, 0, Math.PI * 2);
-        ctx.arc(s * 0.15, -s * 0.06, s * 0.13, 0, Math.PI * 2);
-        ctx.fill();
+function generateRoomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
 
-        ctx.fillStyle = '#0f172a';
-        ctx.beginPath();
-        ctx.arc(-s * 0.15 + eyeLookX, -s * 0.06 + eyeLookY, s * 0.06, 0, Math.PI * 2);
-        ctx.arc(s * 0.15 + eyeLookX, -s * 0.06 + eyeLookY, s * 0.06, 0, Math.PI * 2);
-        ctx.fill();
+function createRoom() {
+  const code = generateRoomCode();
+  isHost = true;
+  document.getElementById("hostRoomInfo").classList.remove("hidden");
+  document.getElementById("roomCodeDisplay").innerText = code;
+  document.getElementById("p2pStatusHost").innerText = "Conectando servidor...";
 
-        ctx.strokeStyle = '#78350f';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(0, s * 0.18, s * 0.1, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-    } else if (cell.kind === 'BOSS_CORE') {
-        drawRoundedCell(cx, cy, size, '#7f1d1d', 1);
-        if (cell.isMain) {
-            const bw = size * 2;
-            const pulse = Math.sin(animFrame * 0.12) * 2;
-            ctx.save();
-            ctx.translate(cx + size, cy + size + pulse);
+  if (peer) peer.destroy();
+  peer = new Peer("BF-" + code);
 
-            ctx.fillStyle = '#991b1b';
-            ctx.beginPath();
-            ctx.roundRect(-bw * 0.42, -bw * 0.42, bw * 0.84, bw * 0.84, 12);
-            ctx.fill();
-            ctx.strokeStyle = '#f59e0b';
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
+  peer.on("open", () => {
+    document.getElementById("p2pStatusHost").innerText = "Sala aberta! Passe o código para seu amigo.";
+  });
 
-            ctx.fillStyle = '#fef08a';
-            ctx.beginPath();
-            ctx.arc(-bw * 0.18, -bw * 0.08, bw * 0.08, 0, Math.PI * 2);
-            ctx.arc(bw * 0.18, -bw * 0.08, bw * 0.08, 0, Math.PI * 2);
-            ctx.fill();
+  peer.on("connection", connection => {
+    conn = connection;
+    setupP2PConnection();
+    p1ReadyP2P = false;
+    p2ReadyP2P = false;
+    openSelectScreen("P2P: ESCOLHA SEU LUTADOR E CENÁRIO", true);
+  });
 
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '900 12px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(`HP ${cell.hp}`, 0, bw * 0.26);
-            ctx.restore();
+  peer.on("error", err => {
+    document.getElementById("p2pStatusHost").innerText = "Erro ao criar sala. Tente novamente.";
+  });
+}
+
+function joinRoom() {
+  const code = document.getElementById("joinCodeInput").value.trim().toUpperCase();
+  if (code.length !== 4) {
+    document.getElementById("p2pStatusJoin").innerText = "Digite um código de 4 caracteres!";
+    return;
+  }
+  isHost = false;
+  document.getElementById("p2pStatusJoin").innerText = "Conectando à sala " + code + "...";
+
+  if (peer) peer.destroy();
+  peer = new Peer();
+
+  peer.on("open", () => {
+    conn = peer.connect("BF-" + code);
+    setupP2PConnection();
+  });
+
+  peer.on("error", () => {
+    document.getElementById("p2pStatusJoin").innerText = "Sala não encontrada!";
+  });
+}
+
+function setupP2PConnection() {
+  conn.on("open", () => {
+    if (!isHost) {
+      p1ReadyP2P = false;
+      p2ReadyP2P = false;
+      openSelectScreen("P2P: ESCOLHA SEU LUTADOR", false);
+    }
+  });
+
+  conn.on("data", data => {
+    if (data.type === "charSelect") {
+      if (isHost) {
+        selectedP2 = data.charId;
+        p2ReadyP2P = true;
+      } else {
+        selectedP1 = data.charId;
+        selectedStage = data.stageId;
+        p1ReadyP2P = true;
+      }
+      checkP2PReady();
+    } else if (data.type === "startMatch") {
+      selectedP1 = data.p1;
+      selectedP2 = data.p2;
+      selectedStage = data.stage;
+      startMatch();
+    } else if (data.type === "inputs") {
+      remoteInputs = data.keys;
+    } else if (data.type === "state") {
+      applyHostState(data);
+    }
+  });
+
+  conn.on("close", () => {
+    alert("Oponente desconectou!");
+    backToMainMenu();
+  });
+}
+
+function checkP2PReady() {
+  if (isHost) p1ReadyP2P = true;
+  else p2ReadyP2P = true;
+
+  if (isHost && p1ReadyP2P && p2ReadyP2P) {
+    conn.send({ type: "startMatch", p1: selectedP1, p2: selectedP2, stage: selectedStage });
+    startMatch();
+  }
+}
+
+// ================= CLASSE DO LUTADOR (BLOQUINHO) =================
+class Fighter {
+  constructor(x, y, charId, isPlayer1) {
+    const data = CHARACTERS[charId];
+    this.charId = charId;
+    this.name = data.name;
+    this.color = data.color;
+    this.auraColor = data.aura;
+    this.speed = data.speed;
+    this.jumpForce = data.jump;
+    this.maxHp = data.hp;
+    this.hp = data.hp;
+    this.baseDmg = data.dmg;
+    this.isP1 = isPlayer1;
+
+    this.w = 48;
+    this.h = 48;
+    this.x = x;
+    this.y = y;
+    this.vx = 0;
+    this.vy = 0;
+    this.facing = isPlayer1 ? 1 : -1;
+
+    // Estados de Pulo e Giro
+    this.onGround = false;
+    this.jumpsLeft = 2;
+    this.spinAngle = 0;
+    this.isSpinning = false;
+
+    // Dash e Aura
+    this.dashCooldown = 0;
+    this.dashTimer = 0;
+    this.afterimages = [];
+
+    // Combate e Combos
+    this.attackCooldown = 0;
+    this.attackTimer = 0;
+    this.attackType = ""; // "punch", "air", "power", "spec"
+    this.comboStep = 0;
+    this.comboResetTimer = 0;
+    this.hasHitThisSwing = false;
+
+    // Barra de Especial (0 a 100)
+    this.special = 0;
+    this.hitstun = 0;
+    this.squashX = 1;
+    this.squashY = 1;
+  }
+
+  get groundY() {
+    return canvas.height - 65;
+  }
+
+  update(inputs, prevInp, opponent) {
+    if (this.hitstun > 0) {
+      this.hitstun--;
+      this.applyPhysics();
+      return;
+    }
+
+    // Atualiza cooldowns
+    if (this.dashCooldown > 0) this.dashCooldown--;
+    if (this.attackCooldown > 0) this.attackCooldown--;
+    if (this.comboResetTimer > 0) this.comboResetTimer--;
+    else this.comboStep = 0;
+
+    // Virar automaticamente na direção do oponente quando parado no chão
+    if (this.onGround && this.attackTimer === 0 && this.dashTimer === 0) {
+      this.facing = opponent.x >= this.x ? 1 : -1;
+    }
+
+    // Movimento Horizontal
+    if (this.dashTimer > 0) {
+      this.dashTimer--;
+      this.vx = this.facing * (this.speed * 2.6);
+      this.vy = 0;
+      if (this.dashTimer % 2 === 0) {
+        this.afterimages.push({ x: this.x, y: this.y, alpha: 0.7, angle: this.spinAngle });
+      }
+    } else {
+      if (inputs.left) {
+        this.vx = -this.speed;
+        if (!this.onGround) this.facing = -1;
+      } else if (inputs.right) {
+        this.vx = this.speed;
+        if (!this.onGround) this.facing = 1;
+      } else {
+        this.vx *= 0.75;
+      }
+    }
+
+    // Pulo e Pulo Duplo Giratório
+    if (inputs.jump && !prevInp.jump && this.jumpsLeft > 0) {
+      this.vy = this.jumpForce;
+      this.onGround = false;
+      this.squashX = 0.75;
+      this.squashY = 1.25;
+      if (this.jumpsLeft === 1) {
+        // Segundo pulo ativa o giro da esquerda para direita (ou vice-versa)
+        this.isSpinning = true;
+        this.spinAngle = 0;
+      }
+      this.jumpsLeft--;
+      spawnParticles(this.x + this.w / 2, this.y + this.h, this.color, 8);
+    }
+
+    // Dash
+    if (inputs.dash && !prevInp.dash && this.dashCooldown === 0) {
+      this.dashTimer = 9;
+      this.dashCooldown = 38;
+      this.squashX = 1.35;
+      this.squashY = 0.7;
+      spawnParticles(this.x + this.w / 2, this.y + this.h / 2, this.color, 10);
+    }
+
+    // Ataque Normal / Combo / Aéreo
+    if (inputs.punch && !prevInp.punch && this.attackCooldown === 0) {
+      this.attackTimer = 12;
+      this.attackCooldown = 16;
+      this.hasHitThisSwing = false;
+      if (!this.onGround) {
+        this.attackType = "air";
+        this.isSpinning = true;
+      } else {
+        this.attackType = "punch";
+        this.comboStep = (this.comboStep % 3) + 1;
+        this.comboResetTimer = 45;
+        this.vx = this.facing * (this.comboStep === 3 ? 9 : 4);
+      }
+    }
+
+    // Poder Simples Único de cada personagem
+    if (inputs.power && !prevInp.power && this.attackCooldown === 0) {
+      this.attackTimer = 16;
+      this.attackCooldown = 36;
+      this.attackType = "power";
+      this.hasHitThisSwing = false;
+      this.useCharacterPower(opponent);
+    }
+
+    // Especial (Quando barra = 100)
+    if (inputs.spec && !prevInp.spec && this.special >= 100 && this.attackCooldown === 0) {
+      this.special = 0;
+      this.attackTimer = 24;
+      this.attackCooldown = 45;
+      this.attackType = "spec";
+      this.hasHitThisSwing = false;
+      this.useCharacterSpecial(opponent);
+    }
+
+    // Processa Hitbox de Ataques Corpo a Corpo
+    if (this.attackTimer > 0) {
+      this.attackTimer--;
+      if (!this.hasHitThisSwing && (this.attackType === "punch" || this.attackType === "air")) {
+        const reach = this.attackType === "air" ? 56 : 52 + (this.comboStep * 6);
+        const hitX = this.facing === 1 ? this.x + this.w : this.x - reach;
+        const hitBox = { x: hitX, y: this.y - 5, w: reach, h: this.h + 10 };
+
+        if (rectIntersect(hitBox, opponent)) {
+          this.hasHitThisSwing = true;
+          const isFinisher = this.comboStep === 3 || this.attackType === "air";
+          const dmg = this.baseDmg + (this.comboStep * 2);
+          const kbX = this.facing * (isFinisher ? 11 : 4.5);
+          const kbY = isFinisher ? -7 : -2;
+          opponent.takeDamage(dmg, kbX, kbY, this);
         }
+      }
     }
-}
 
-function renderLoop() {
-    animFrame++;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    this.applyPhysics();
+  }
+
+  useCharacterPower(opponent) {
+    const cx = this.x + this.w / 2;
+    const cy = this.y + this.h / 2;
+    spawnParticles(cx, cy, this.color, 12);
+
+    if (this.charId === 0) { // RUBI: Bola de Fogo
+      projectiles.push(new Projectile(cx + this.facing * 25, cy - 8, this.facing * 9.5, 0, 18, "#ff4757", 11, this, "fireball"));
+    } else if (this.charId === 1) { // CIANO: Corte Relâmpago (Avanço rápido)
+      this.vx = this.facing * 18;
+      this.dashTimer = 10;
+      projectiles.push(new Projectile(cx, cy - 15, this.facing * 12, 0, 26, "#1e90ff", 10, this, "slash"));
+    } else if (this.charId === 2) { // ESMERALDA: Onda Sísmica rasteira
+      projectiles.push(new Projectile(cx + this.facing * 20, this.groundY - 18, this.facing * 7.5, 0, 24, "#2ed573", 14, this, "wave"));
+    } else if (this.charId === 3) { // SOLARIS: Feixe Solar rápido
+      projectiles.push(new Projectile(cx + this.facing * 30, cy - 10, this.facing * 14, 0, 32, "#ffa502", 15, this, "beam"));
+    } else if (this.charId === 4) { // SOMBRA: Esfera Gravitacional que puxa
+      projectiles.push(new Projectile(cx + this.facing * 25, cy - 12, this.facing * 6, 0, 28, "#9c88ff", 16, this, "gravity"));
+    }
+  }
+
+  useCharacterSpecial(opponent) {
+    screenShake = 14;
+    const cx = this.x + this.w / 2;
+    const cy = this.y + this.h / 2;
+    spawnParticles(cx, cy, "#fff", 25);
+
+    if (this.charId === 0) { // RUBI: 3 Meteoros de Fogo
+      for (let i = -1; i <= 1; i++) {
+        projectiles.push(new Projectile(cx + this.facing * 30, cy - 20 + i * 25, this.facing * 11, i * 1.5, 28, "#ff4757", 14, this, "fireball"));
+      }
+    } else if (this.charId === 1) { // CIANO: Tempestade de Raios no oponente
+      for (let i = 0; i < 4; i++) {
+        projectiles.push(new Projectile(opponent.x + (i - 1.5) * 35, 20, 0, 14, 24, "#1e90ff", 10, this, "beam"));
+      }
+    } else if (this.charId === 2) { // ESMERALDA: Terremoto duplo
+      projectiles.push(new Projectile(cx, this.groundY - 30, 10, 0, 36, "#2ed573", 28, this, "wave"));
+      projectiles.push(new Projectile(cx, this.groundY - 30, -10, 0, 36, "#2ed573", 28, this, "wave"));
+    } else if (this.charId === 3) { // SOLARIS: Supernova gigante
+      projectiles.push(new Projectile(cx + this.facing * 40, cy - 35, this.facing * 9, 0, 65, "#ffa502", 34, this, "fireball"));
+    } else if (this.charId === 4) { // SOMBRA: Chuva de lâminas sombrias
+      for (let i = 0; i < 6; i++) {
+        projectiles.push(new Projectile(100 + i * (canvas.width / 6), 10, this.facing * 3, 13, 22, "#9c88ff", 11, this, "slash"));
+      }
+    }
+  }
+
+  takeDamage(amount, kbX, kbY, attacker) {
+    if (this.dashTimer > 0) return; // Esquiva durante o dash!
+    this.hp = Math.max(0, this.hp - amount);
+    this.vx = kbX;
+    this.vy = kbY;
+    this.hitstun = 10;
+    this.squashX = 1.3;
+    this.squashY = 0.7;
+    screenShake = Math.min(12, amount * 0.7);
+
+    // Enche barra de especial
+    this.special = Math.min(100, this.special + amount * 1.1);
+    if (attacker) attacker.special = Math.min(100, attacker.special + amount * 1.5);
+
+    spawnParticles(this.x + this.w / 2, this.y + this.h / 2, "#fff", 12);
+    spawnParticles(this.x + this.w / 2, this.y + this.h / 2, this.color, 10);
+  }
+
+  applyPhysics() {
+    this.vy += 0.68; // Gravidade
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // Rotação no pulo duplo
+    if (this.isSpinning) {
+      this.spinAngle += 0.32 * this.facing;
+      if (Math.abs(this.spinAngle) >= Math.PI * 2) {
+        this.isSpinning = false;
+        this.spinAngle = 0;
+      }
+    }
+
+    // Colisão com o chão
+    if (this.y + this.h >= this.groundY) {
+      if (!this.onGround && this.vy > 4) {
+        this.squashX = 1.25;
+        this.squashY = 0.78;
+      }
+      this.y = this.groundY - this.h;
+      this.vy = 0;
+      this.onGround = true;
+      this.jumpsLeft = 2;
+      this.isSpinning = false;
+      this.spinAngle = 0;
+    } else {
+      this.onGround = false;
+    }
+
+    // Limites da arena
+    if (this.x < 15) this.x = 15;
+    if (this.x + this.w > canvas.width - 15) this.x = canvas.width - 15 - this.w;
+
+    // Retorno suave do efeito squash & stretch
+    this.squashX += (1 - this.squashX) * 0.2;
+    this.squashY += (1 - this.squashY) * 0.2;
+
+    // Rastro de aura em movimento rápido
+    if ((Math.abs(this.vx) > 4.5 || !this.onGround) && Math.random() < 0.45) {
+      this.afterimages.push({ x: this.x, y: this.y, alpha: 0.35, angle: this.spinAngle });
+    }
+    this.afterimages.forEach(a => a.alpha -= 0.05);
+    this.afterimages = this.afterimages.filter(a => a.alpha > 0);
+  }
+
+  draw(ctx) {
+    // 1. Desenha rastros da aura
+    this.afterimages.forEach(a => {
+      ctx.save();
+      ctx.translate(a.x + this.w / 2, a.y + this.h / 2);
+      ctx.rotate(a.angle);
+      ctx.fillStyle = this.auraColor;
+      ctx.globalAlpha = a.alpha;
+      ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
+      ctx.restore();
+    });
 
     ctx.save();
-    if (screenShake > 0) {
-        ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
-        screenShake *= 0.82;
-        if (screenShake < 0.4) screenShake = 0;
-    }
+    ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
+    ctx.rotate(this.spinAngle);
+    ctx.scale(this.squashX, this.squashY);
 
-    const { cellSize, boardX, boardY, trayY, slotCenters } = layout;
-    const boardPx = cellSize * GRID_SIZE;
-
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    // 2. Aura pulsante em volta do personagem
+    const pulse = Math.sin(bgAnimTime * 0.15) * 4;
+    ctx.fillStyle = this.auraColor;
     ctx.beginPath();
-    ctx.roundRect(boardX - 6, boardY - 6, boardPx + 12, boardPx + 12, 12);
+    ctx.roundRect(-this.w / 2 - 6 - pulse / 2, -this.h / 2 - 6 - pulse / 2, this.w + 12 + pulse, this.h + 12 + pulse, 14);
     ctx.fill();
-    ctx.strokeStyle = soloStageType === 'BOSS' && gameMode === 'SOLO' ? '#ef4444' : '#334155';
-    ctx.lineWidth = 2;
+
+    // 3. Corpo quadrado arredondado do bloquinho
+    ctx.fillStyle = this.hitstun > 0 ? "#ffffff" : this.color;
+    ctx.beginPath();
+    ctx.roundRect(-this.w / 2, -this.h / 2, this.w, this.h, 10);
+    ctx.fill();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "#ffffff";
     ctx.stroke();
 
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
-            const cx = boardX + c * cellSize;
-            const cy = boardY + r * cellSize;
+    // 4. Olhinhos fofinhos e expressivos
+    const eyeOffsetX = this.facing * 7;
+    const eyeY = -4;
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(eyeOffsetX - 7, eyeY, 6.5, 0, Math.PI * 2);
+    ctx.arc(eyeOffsetX + 7, eyeY, 6.5, 0, Math.PI * 2);
+    ctx.fill();
 
-            ctx.fillStyle = 'rgba(30, 41, 59, 0.65)';
-            ctx.beginPath();
-            ctx.roundRect(cx + 2, cy + 2, cellSize - 4, cellSize - 4, 5);
-            ctx.fill();
+    // Pupilas
+    ctx.fillStyle = "#111";
+    ctx.beginPath();
+    ctx.arc(eyeOffsetX - 7 + this.facing * 2, eyeY, 3.2, 0, Math.PI * 2);
+    ctx.arc(eyeOffsetX + 7 + this.facing * 2, eyeY, 3.2, 0, Math.PI * 2);
+    ctx.fill();
 
-            const cell = board[r] && board[r][c];
-            if (cell) {
-                if (cell.kind === 'NORMAL') {
-                    drawRoundedCell(cx, cy, cellSize, cell.color, 1);
-                } else if (cell.kind !== 'BOSS_CORE') {
-                    drawSpecialCell(cx, cy, cellSize, cell);
-                }
-            }
-        }
-    }
+    // Brilho nos olhos
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(eyeOffsetX - 8 + this.facing * 2, eyeY - 1.5, 1.3, 0, Math.PI * 2);
+    ctx.arc(eyeOffsetX + 6 + this.facing * 2, eyeY - 1.5, 1.3, 0, Math.PI * 2);
+    ctx.fill();
 
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
-            const cell = board[r] && board[r][c];
-            if (cell && cell.kind === 'BOSS_CORE') {
-                drawSpecialCell(boardX + c * cellSize, boardY + r * cellSize, cellSize, cell);
-            }
-        }
-    }
-
-    checkAutoPlayAndBreak();
-
-    if (userPrefs.cheatsUnlocked && userPrefs.kingMode === 'ON' && kingBestMove && matchActive) {
-        const p = kingBestMove.piece;
-        const bRow = kingBestMove.row;
-        const bCol = kingBestMove.col;
-        const pulseAlpha = 0.5 + Math.sin(animFrame * 0.18) * 0.45;
-
-        for (let pr = 0; pr < p.rows; pr++) {
-            for (let pc = 0; pc < p.cols; pc++) {
-                if (p.shape[pr][pc]) {
-                    const kx = boardX + (bCol + pc) * cellSize;
-                    const ky = boardY + (bRow + pr) * cellSize;
-
-                    ctx.save();
-                    ctx.strokeStyle = userPrefs.kingColor;
-                    ctx.lineWidth = 3;
-                    ctx.globalAlpha = pulseAlpha;
-                    ctx.beginPath();
-                    ctx.roundRect(kx + 2, ky + 2, cellSize - 4, cellSize - 4, 6);
-                    ctx.stroke();
-
-                    ctx.fillStyle = userPrefs.kingColor;
-                    ctx.globalAlpha = pulseAlpha * 0.22;
-                    ctx.fill();
-                    ctx.restore();
-                }
-            }
-        }
-    }
-
-    if (draggingIndex !== -1 && hoverCell && trayPieces[draggingIndex]) {
-        const piece = trayPieces[draggingIndex];
-        if (canPlacePiece(piece, hoverCell.row, hoverCell.col)) {
-            for (let r = 0; r < piece.rows; r++) {
-                for (let c = 0; c < piece.cols; c++) {
-                    if (piece.shape[r][c]) {
-                        const px = boardX + (hoverCell.col + c) * cellSize;
-                        const py = boardY + (hoverCell.row + r) * cellSize;
-                        drawRoundedCell(px, py, cellSize, piece.cellColors[r][c], 0.38);
-                    }
-                }
-            }
-        }
-    }
-
-    const miniSize = Math.floor(cellSize * 0.56);
-    for (let i = 0; i < 3; i++) {
-        const p = trayPieces[i];
-        if (!p || i === draggingIndex) continue;
-
-        const pw = p.cols * miniSize;
-        const ph = p.rows * miniSize;
-        const startX = slotCenters[i] - pw / 2;
-        const startY = trayY - ph / 2;
-
-        for (let r = 0; r < p.rows; r++) {
-            for (let c = 0; c < p.cols; c++) {
-                if (p.shape[r][c]) {
-                    drawRoundedCell(startX + c * miniSize, startY + r * miniSize, miniSize, p.cellColors[r][c], 1);
-                }
-            }
-        }
-    }
-
-    if (draggingIndex !== -1 && trayPieces[draggingIndex]) {
-        const p = trayPieces[draggingIndex];
-        const pw = p.cols * cellSize;
-        const ph = p.rows * cellSize;
-        const offsetY = cellSize * 1.45;
-        const startX = dragPos.x - pw / 2;
-        const startY = dragPos.y - ph / 2 - offsetY;
-
-        for (let r = 0; r < p.rows; r++) {
-            for (let c = 0; c < p.cols; c++) {
-                if (p.shape[r][c]) {
-                    drawRoundedCell(startX + c * cellSize, startY + r * cellSize, cellSize, p.cellColors[r][c], 0.95);
-                }
-            }
-        }
-    }
-
-    for (let i = particles.length - 1; i >= 0; i--) {
-        const pt = particles[i];
-        pt.x += pt.vx;
-        pt.y += pt.vy;
-        pt.life--;
-        ctx.fillStyle = pt.color;
-        ctx.fillRect(pt.x - 2, pt.y - 2, 5, 5);
-        if (pt.life <= 0) particles.splice(i, 1);
-    }
-
-    for (let i = floatingTexts.length - 1; i >= 0; i--) {
-        const ft = floatingTexts[i];
-        ft.y -= 0.9;
-        ft.life--;
-        ctx.save();
-        ctx.globalAlpha = Math.min(1, ft.life / 18);
-        ctx.font = '900 18px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#0f172a';
-        ctx.fillText(ft.text, ft.x + 2, ft.y + 2);
-        ctx.fillStyle = ft.color;
-        ctx.fillText(ft.text, ft.x, ft.y);
-        ctx.restore();
-        if (ft.life <= 0) floatingTexts.splice(i, 1);
+    // 5. Animação de Soco / Ataque visual
+    if (this.attackTimer > 0 && (this.attackType === "punch" || this.attackType === "air")) {
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 3;
+      const punchReach = 24 + (this.comboStep * 6);
+      ctx.beginPath();
+      ctx.arc(this.facing * (this.w / 2 + punchReach * 0.6), 2, 12 + this.comboStep * 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
     }
 
     ctx.restore();
-    requestAnimationFrame(renderLoop);
-}
-requestAnimationFrame(renderLoop);
-
-function getCanvasCoords(e) {
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {
-        x: (clientX - rect.left) * (canvas.width / rect.width),
-        y: (clientY - rect.top) * (canvas.height / rect.height)
-    };
+  }
 }
 
-function updateHoverCell() {
-    if (draggingIndex === -1 || !trayPieces[draggingIndex]) {
-        hoverCell = null;
-        return;
+// ================= CLASSE DE PROJÉTEIS E PODERES =================
+class Projectile {
+  constructor(x, y, vx, vy, radius, color, dmg, owner, style) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.r = radius;
+    this.color = color;
+    this.dmg = dmg;
+    this.owner = owner;
+    this.style = style;
+    this.life = 90;
+  }
+
+  update(opponent) {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life--;
+
+    if (Math.random() < 0.5) {
+      spawnParticles(this.x, this.y, this.color, 1);
     }
-    const p = trayPieces[draggingIndex];
-    const { cellSize, boardX, boardY } = layout;
-    const pw = p.cols * cellSize;
-    const ph = p.rows * cellSize;
-    const offsetY = cellSize * 1.45;
 
-    const topLeftX = dragPos.x - pw / 2;
-    const topLeftY = dragPos.y - ph / 2 - offsetY;
+    // Colisão com oponente
+    const box = { x: this.x - this.r, y: this.y - this.r, w: this.r * 2, h: this.r * 2 };
+    if (rectIntersect(box, opponent)) {
+      const pullDir = this.style === "gravity" ? -this.owner.facing * 9 : this.owner.facing * 7;
+      opponent.takeDamage(this.dmg, pullDir, -4, this.owner);
+      this.life = 0;
+    }
+  }
 
-    const col = Math.round((topLeftX - boardX) / cellSize);
-    const row = Math.round((topLeftY - boardY) / cellSize);
+  draw(ctx) {
+    ctx.save();
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fill();
 
-    if (row >= -1 && row <= GRID_SIZE && col >= -1 && col <= GRID_SIZE) {
-        hoverCell = { row, col };
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ================= PARTÍCULAS =================
+function spawnParticles(x, y, color, count) {
+  if (particles.length > 90) return; // Limite leve para manter 60 FPS no A10s
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 9,
+      vy: (Math.random() - 0.5) * 9,
+      size: Math.random() * 5 + 2,
+      color,
+      life: 18 + Math.random() * 10
+    });
+  }
+}
+
+function rectIntersect(r1, r2) {
+  return !(r2.x > r1.x + r1.w || r2.x + r2.w < r1.x || r2.y > r1.y + r1.h || r2.y + r2.h < r1.y);
+}
+
+// ================= IA DO MODO SOLO / HISTÓRIA =================
+function getCPUInputs(cpu, player) {
+  const inp = { left: false, right: false, jump: false, dash: false, punch: false, power: false, spec: false };
+  const dist = player.x - cpu.x;
+  const absDist = Math.abs(dist);
+  const aggro = CHARACTERS[cpu.charId].boss ? 0.08 : 0.04;
+
+  if (absDist > 65) {
+    if (dist > 0) inp.right = true;
+    else inp.left = true;
+    if (absDist > 220 && Math.random() < aggro) inp.power = true;
+    if (absDist > 180 && Math.random() < aggro * 0.7) inp.dash = true;
+  } else {
+    if (Math.random() < aggro * 2.5) inp.punch = true;
+    if (Math.random() < aggro * 0.8) inp.jump = true;
+  }
+
+  if (cpu.special >= 100 && Math.random() < 0.05) inp.spec = true;
+  if (player.y < cpu.y - 40 && Math.random() < 0.04) inp.jump = true;
+
+  return inp;
+}
+let prevCpuInputs = {};
+
+// ================= INICIAR E GERENCIAR PARTIDA =================
+function startMatch() {
+  gameState = "playing";
+  hideAllScreens();
+  document.getElementById("touchControls").classList.remove("hidden");
+
+  fighters = [
+    new Fighter(100, canvas.height - 150, selectedP1, true),
+    new Fighter(canvas.width - 150, canvas.height - 150, selectedP2, false)
+  ];
+  projectiles = [];
+  particles = [];
+}
+
+function togglePause() {
+  if (gameMode === "p2p") return; // Sem pause em P2P online
+  if (gameState === "playing") {
+    gameState = "paused";
+    document.getElementById("pauseScreen").classList.remove("hidden");
+  } else if (gameState === "paused") {
+    gameState = "playing";
+    document.getElementById("pauseScreen").classList.add("hidden");
+  }
+}
+
+function returnToSelectFromMatch() {
+  if (gameMode === "p2p") {
+    backToMainMenu();
+    return;
+  }
+  selectStep = 1;
+  openSelectScreen("ESCOLHA SEU LUTADOR", true);
+}
+
+function checkMatchEnd() {
+  const p1 = fighters[0];
+  const p2 = fighters[1];
+  if (p1.hp <= 0 || p2.hp <= 0) {
+    gameState = "ended";
+    document.getElementById("touchControls").classList.add("hidden");
+    const endScreen = document.getElementById("endScreen");
+    endScreen.classList.remove("hidden");
+
+    const p1Won = p2.hp <= 0;
+    const nextBtn = document.getElementById("nextStoryBtn");
+    nextBtn.classList.add("hidden");
+
+    if (gameMode === "story") {
+      if (p1Won) {
+        const defeatedChar = CHARACTERS[selectedP2];
+        let msg = `Você derrotou ${defeatedChar.name}!`;
+        if (!defeatedChar.unlocked) {
+          saveUnlock(defeatedChar.id);
+          msg += ` 🎉 NOVO PERSONAGEM DESBLOQUEADO: ${defeatedChar.name}!`;
+        }
+        if (storyStageIndex + 1 < STORY_ORDER.length) {
+          document.getElementById("endTitle").innerText = "VITÓRIA!";
+          document.getElementById("endSubtitle").innerText = msg;
+          nextBtn.classList.remove("hidden");
+        } else {
+          document.getElementById("endTitle").innerText = "CAMPEÃO SUPREMO!";
+          document.getElementById("endSubtitle").innerText = "Você zerou o Modo História e desbloqueou todos os lutadores!";
+        }
+      } else {
+        document.getElementById("endTitle").innerText = "DERROTA!";
+        document.getElementById("endSubtitle").innerText = `${p2.name} venceu esta batalha.`;
+      }
+    } else if (gameMode === "p2p") {
+      const iWon = (isHost && p1Won) || (!isHost && !p1Won);
+      document.getElementById("endTitle").innerText = iWon ? "VITÓRIA ONLINE!" : "DERROTA ONLINE!";
+      document.getElementById("endSubtitle").innerText = p1Won ? `${p1.name} venceu!` : `${p2.name} venceu!`;
     } else {
-        hoverCell = null;
+      document.getElementById("endTitle").innerText = p1Won ? "VITÓRIA!" : "DERROTA!";
+      document.getElementById("endSubtitle").innerText = p1Won ? `${p1.name} dominou a arena!` : `${p2.name} venceu!`;
     }
+  }
 }
 
-function onPointerDown(e) {
-    if (!matchActive) return;
-    if (userPrefs.cheatsUnlocked && userPrefs.autoPlace === 'ON') return;
-    if (e.cancelable) e.preventDefault();
-    AudioFX.ensure();
-    const pos = getCanvasCoords(e);
+function nextStoryStage() {
+  storyStageIndex++;
+  selectedP2 = STORY_ORDER[storyStageIndex];
+  selectedStage = storyStageIndex % STAGES.length;
+  startMatch();
+}
 
-    for (let i = 0; i < 3; i++) {
-        if (!trayPieces[i]) continue;
-        const dx = Math.abs(pos.x - layout.slotCenters[i]);
-        const dy = Math.abs(pos.y - layout.trayY);
-        if (dx < layout.cellSize * 1.45 && dy < layout.cellSize * 1.45) {
-            draggingIndex = i;
-            dragPos = pos;
-            updateHoverCell();
-            break;
-        }
+// ================= DESENHO DO CENÁRIO E HUD =================
+function drawBackground() {
+  const st = STAGES[selectedStage];
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, st.sky1);
+  grad.addColorStop(1, st.sky2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Elementos animados leves de fundo
+  ctx.fillStyle = st.accent;
+  ctx.globalAlpha = 0.14;
+  for (let i = 0; i < 6; i++) {
+    const bx = ((i * 190 + bgAnimTime * 0.4) % (canvas.width + 100)) - 50;
+    const by = 80 + Math.sin(bgAnimTime * 0.03 + i) * 25 + (i % 3) * 45;
+    ctx.beginPath();
+    ctx.arc(bx, by, 22 + (i % 3) * 10, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Chão da Arena
+  const groundY = canvas.height - 65;
+  ctx.fillStyle = st.ground;
+  ctx.fillRect(0, groundY, canvas.width, 65);
+  ctx.fillStyle = st.accent;
+  ctx.fillRect(0, groundY, canvas.width, 5);
+}
+
+function drawHUD() {
+  const p1 = fighters[0];
+  const p2 = fighters[1];
+  const barW = Math.min(260, canvas.width * 0.34);
+
+  // Barra P1 (Esquerda)
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.fillRect(20, 16, barW, 20);
+  ctx.fillStyle = p1.color;
+  ctx.fillRect(20, 16, barW * (p1.hp / p1.maxHp), 20);
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(20, 16, barW, 20);
+
+  // Barra Especial P1
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.fillRect(20, 40, barW * 0.7, 9);
+  ctx.fillStyle = p1.special >= 100 ? "#ffa502" : "#70a1ff";
+  ctx.fillRect(20, 40, (barW * 0.7) * (p1.special / 100), 9);
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 13px sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(p1.name + (p1.special >= 100 ? " [ESPECIAL PRONTO!]" : ""), 20, 64);
+
+  // Barra P2 (Direita)
+  const p2X = canvas.width - 20 - barW;
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.fillRect(p2X, 16, barW, 20);
+  const p2FillW = barW * (p2.hp / p2.maxHp);
+  ctx.fillStyle = p2.color;
+  ctx.fillRect(p2X + (barW - p2FillW), 16, p2FillW, 20);
+  ctx.strokeStyle = "#fff";
+  ctx.strokeRect(p2X, 16, barW, 20);
+
+  // Barra Especial P2
+  const specW = barW * 0.7;
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.fillRect(canvas.width - 20 - specW, 40, specW, 9);
+  const specFill = specW * (p2.special / 100);
+  ctx.fillStyle = p2.special >= 100 ? "#ffa502" : "#70a1ff";
+  ctx.fillRect(canvas.width - 20 - specFill, 40, specFill, 9);
+
+  ctx.textAlign = "right";
+  ctx.fillText(p2.name, canvas.width - 20, 64);
+}
+
+// ================= SINCRONIZAÇÃO DE ESTADO P2P =================
+function applyHostState(state) {
+  if (!fighters[0] || !fighters[1]) return;
+  [0, 1].forEach(i => {
+    const s = state.f[i];
+    const f = fighters[i];
+    f.x = s.x; f.y = s.y; f.hp = s.hp; f.special = s.sp;
+    f.facing = s.fc; f.spinAngle = s.sa; f.attackTimer = s.at;
+    f.attackType = s.aty; f.comboStep = s.cs; f.hitstun = s.hs;
+  });
+  projectiles = state.pr.map(p => new Projectile(p.x, p.y, 0, 0, p.r, p.c, 0, null, p.st));
+}
+
+// ================= LOOP PRINCIPAL (60 FPS) =================
+function gameLoop() {
+  bgAnimTime++;
+
+  if (gameState === "playing") {
+    ctx.save();
+    if (screenShake > 0) {
+      ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+      screenShake *= 0.82;
+      if (screenShake < 0.5) screenShake = 0;
     }
-}
 
-function onPointerMove(e) {
-    if (draggingIndex === -1) return;
-    if (e.cancelable) e.preventDefault();
-    dragPos = getCanvasCoords(e);
-    updateHoverCell();
-}
+    drawBackground();
 
-function onPointerUp(e) {
-    if (draggingIndex === -1) return;
-    if (e.cancelable) e.preventDefault();
-
-    if (hoverCell) {
-        const placed = placePieceOnBoard(draggingIndex, hoverCell.row, hoverCell.col);
-        if (!placed) AudioFX.invalid();
-    }
-    draggingIndex = -1;
-    hoverCell = null;
-}
-
-canvas.addEventListener('touchstart', onPointerDown, { passive: false });
-canvas.addEventListener('touchmove', onPointerMove, { passive: false });
-canvas.addEventListener('touchend', onPointerUp, { passive: false });
-canvas.addEventListener('mousedown', onPointerDown);
-window.addEventListener('mousemove', onPointerMove);
-window.addEventListener('mouseup', onPointerUp);
-
-function openSettings() {
-    applyVisualPrefs();
-    document.getElementById('settings-modal').classList.remove('hidden');
-}
-
-bindClick('btn-open-settings-lobby', openSettings);
-bindClick('btn-open-settings-game', openSettings);
-bindClick('btn-close-settings', () => {
-    document.getElementById('settings-modal').classList.add('hidden');
-});
-
-// BOTÃO PARA VERIFICAR A SENHA E LIBERAR AS TRAPAÇAS
-bindClick('btn-verify-password', () => {
-    const typedPassword = document.getElementById('cheat-password-input').value.trim();
-    if (typedPassword === SECRET_CHEAT_PASSWORD) {
-        userPrefs.cheatsUnlocked = true;
-        localStorage.setItem('bb_cheatsUnlocked', 'true');
-        document.getElementById('cheats-container').classList.remove('hidden');
-        document.getElementById('cheats-power-bar').classList.remove('hidden');
-        showToast('🔓 Painel de Trapaças Desbloqueado com Sucesso!');
+    if (gameMode === "p2p" && !isHost) {
+      // Cliente envia apenas seus botões e renderiza o estado recebido
+      if (conn && conn.open) conn.send({ type: "inputs", keys });
     } else {
-        showToast('❌ Senha incorreta! Painel continua oculto.');
+      // Host ou Modo Solo processa a física
+      fighters[0].update(keys, prevKeys, fighters[1]);
+
+      if (gameMode === "p2p" && isHost) {
+        fighters[1].update(remoteInputs, prevRemoteInputs, fighters[0]);
+        prevRemoteInputs = { ...remoteInputs };
+      } else {
+        const cpuInp = getCPUInputs(fighters[1], fighters[0]);
+        fighters[1].update(cpuInp, prevCpuInputs, fighters[0]);
+        prevCpuInputs = { ...cpuInp };
+      }
+
+      projectiles.forEach(p => p.update(p.owner === fighters[0] ? fighters[1] : fighters[0]));
+      projectiles = projectiles.filter(p => p.life > 0 && p.x > -50 && p.x < canvas.width + 50);
+
+      if (gameMode === "p2p" && isHost && conn && conn.open) {
+        conn.send({
+          type: "state",
+          f: fighters.map(f => ({
+            x: f.x, y: f.y, hp: f.hp, sp: f.special, fc: f.facing,
+            sa: f.spinAngle, at: f.attackTimer, aty: f.attackType, cs: f.comboStep, hs: f.hitstun
+          })),
+          pr: projectiles.map(p => ({ x: p.x, y: p.y, r: p.r, c: p.color, st: p.style }))
+        });
+      }
     }
+
+    // Atualiza e desenha partículas
+    particles.forEach(pt => {
+      pt.x += pt.vx;
+      pt.y += pt.vy;
+      pt.life--;
+      ctx.fillStyle = pt.color;
+      ctx.globalAlpha = Math.max(0, pt.life / 25);
+      ctx.fillRect(pt.x, pt.y, pt.size, pt.size);
+    });
+    ctx.globalAlpha = 1;
+    particles = particles.filter(pt => pt.life > 0);
+
+    // Desenha projéteis, lutadores e HUD
+    projectiles.forEach(p => p.draw(ctx));
+    fighters[0].draw(ctx);
+    fighters[1].draw(ctx);
+    drawHUD();
+
+    ctx.restore();
+
+    prevKeys = { ...keys };
+    checkMatchEnd();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ================= EVENTOS TOUCH E TECLADO =================
+function bindTouchButton(id, keyName) {
+  const el = document.getElementById(id);
+  const start = (e) => { e.preventDefault(); keys[keyName] = true; el.classList.add("pressed"); };
+  const end = (e) => { e.preventDefault(); keys[keyName] = false; el.classList.remove("pressed"); };
+  el.addEventListener("touchstart", start, { passive: false });
+  el.addEventListener("touchend", end, { passive: false });
+  el.addEventListener("touchcancel", end, { passive: false });
+  el.addEventListener("mousedown", start);
+  el.addEventListener("mouseup", end);
+  el.addEventListener("mouseleave", end);
+}
+
+bindTouchButton("btnLeft", "left");
+bindTouchButton("btnRight", "right");
+bindTouchButton("btnJump", "jump");
+bindTouchButton("btnDash", "dash");
+bindTouchButton("btnPunch", "punch");
+bindTouchButton("btnPower", "power");
+bindTouchButton("btnSpec", "spec");
+
+document.getElementById("btnPause").addEventListener("touchstart", (e) => { e.preventDefault(); togglePause(); });
+document.getElementById("btnPause").addEventListener("click", togglePause);
+
+// Suporte a teclado caso teste no PC
+window.addEventListener("keydown", e => {
+  if (e.code === "ArrowLeft" || e.code === "KeyA") keys.left = true;
+  if (e.code === "ArrowRight" || e.code === "KeyD") keys.right = true;
+  if (e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Space") keys.jump = true;
+  if (e.code === "ShiftLeft" || e.code === "KeyL") keys.dash = true;
+  if (e.code === "KeyJ" || e.code === "KeyZ") keys.punch = true;
+  if (e.code === "KeyK" || e.code === "KeyX") keys.power = true;
+  if (e.code === "KeyI" || e.code === "KeyC") keys.spec = true;
+  if (e.code === "Escape") togglePause();
+});
+window.addEventListener("keyup", e => {
+  if (e.code === "ArrowLeft" || e.code === "KeyA") keys.left = false;
+  if (e.code === "ArrowRight" || e.code === "KeyD") keys.right = false;
+  if (e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Space") keys.jump = false;
+  if (e.code === "ShiftLeft" || e.code === "KeyL") keys.dash = false;
+  if (e.code === "KeyJ" || e.code === "KeyZ") keys.punch = false;
+  if (e.code === "KeyK" || e.code === "KeyX") keys.power = false;
+  if (e.code === "KeyI" || e.code === "KeyC") keys.spec = false;
 });
 
-bindClick('btn-save-settings', () => {
-    userPrefs.colorMode = document.getElementById('block-color-mode').value;
-    userPrefs.fixedColor = document.getElementById('block-fixed-color').value;
-    userPrefs.bgUrl = document.getElementById('bg-image-url').value.trim();
-    userPrefs.kingColor = document.getElementById('king-frame-color').value;
-
-    if (userPrefs.cheatsUnlocked) {
-        userPrefs.kingMode = document.getElementById('king-mode-toggle').value;
-        userPrefs.autoPlace = document.getElementById('auto-place-toggle').value;
-        userPrefs.autoBreak = document.getElementById('auto-break-toggle').value;
-        userPrefs.infiniteLives = document.getElementById('infinite-lives-toggle').value;
-
-        localStorage.setItem('bb_kingMode', userPrefs.kingMode);
-        localStorage.setItem('bb_autoPlace', userPrefs.autoPlace);
-        localStorage.setItem('bb_autoBreak', userPrefs.autoBreak);
-        localStorage.setItem('bb_infiniteLives', userPrefs.infiniteLives);
-    }
-
-    localStorage.setItem('bb_colorMode', userPrefs.colorMode);
-    localStorage.setItem('bb_fixedColor', userPrefs.fixedColor);
-    localStorage.setItem('bb_bgUrl', userPrefs.bgUrl);
-    localStorage.setItem('bb_kingColor', userPrefs.kingColor);
-
-    applyVisualPrefs();
-    updateHUD();
-    if (board.length > 0) {
-        recolorExistingBlocks();
-        calculateKingBestMove();
-    }
-    document.getElementById('settings-modal').classList.add('hidden');
-    showToast('Configurações salvas com sucesso!');
-});
-
-bindClick('btn-clear-bg', () => {
-    userPrefs.bgUrl = '';
-    document.getElementById('bg-image-url').value = '';
-    localStorage.setItem('bb_bgUrl', '');
-    applyVisualPrefs();
-    showToast('Imagem de fundo removida.');
-});
-
-bindClick('btn-toggle-autoplay', () => {
-    if (!userPrefs.cheatsUnlocked) return;
-    userPrefs.autoPlace = userPrefs.autoPlace === 'ON' ? 'OFF' : 'ON';
-    userPrefs.kingMode = 'ON';
-    localStorage.setItem('bb_autoPlace', userPrefs.autoPlace);
-    localStorage.setItem('bb_kingMode', userPrefs.kingMode);
-    applyVisualPrefs();
-    showToast(userPrefs.autoPlace === 'ON' ? 'Auto-Colocar ATIVADO!' : 'Auto-Colocar DESATIVADO!');
-});
-
-bindClick('btn-toggle-autobreak', () => {
-    if (!userPrefs.cheatsUnlocked) return;
-    userPrefs.autoBreak = userPrefs.autoBreak === 'ON' ? 'OFF' : 'ON';
-    localStorage.setItem('bb_autoBreak', userPrefs.autoBreak);
-    applyVisualPrefs();
-    showToast(userPrefs.autoBreak === 'ON' ? 'Quebra Automática ATIVADA!' : 'Quebra Automática DESATIVADA!');
-});
-
-bindClick('btn-power-rotate', () => {
-    if (!matchActive || !userPrefs.cheatsUnlocked) return;
-    for (let i = 0; i < 3; i++) {
-        if (trayPieces[i]) {
-            trayPieces[i] = rotatePiece(trayPieces[i]);
-            calculateKingBestMove();
-            showToast('🔄 Peça rotacionada manualmente!');
-            AudioFX.place();
-            break;
-        }
-    }
-});
-
-bindClick('btn-power-bomb', () => {
-    if (!matchActive || !userPrefs.cheatsUnlocked) return;
-    let cleared = false;
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
-            if (board[r][c] && board[r][c].kind !== 'NORMAL') {
-                board[r][c] = null;
-                spawnParticles(layout.boardX + c * layout.cellSize, layout.boardY + r * layout.cellSize, '#ef4444', 20);
-                cleared = true;
-                break;
-            }
-        }
-        if (cleared) break;
-    }
-    if (!cleared) {
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
-                if (board[r][c] !== null) {
-                    board[r][c] = null;
-                    break;
-                }
-            }
-            break;
-        }
-    }
-    AudioFX.rockBreak();
-    showToast('💥 Bomba acionada!');
-    calculateKingBestMove();
-});
+// Inicia o loop do jogo
+requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
