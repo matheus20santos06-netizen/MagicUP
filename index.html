@@ -58,6 +58,8 @@
     }
     button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
     button.danger { background: #3d1414; border-color: var(--danger); color: #ffb3b3; }
+    button.sound-on { border-color: #2ea043; color: #7ee787; }
+    button.sound-off { border-color: #444444; color: #888888; }
     .grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -120,6 +122,7 @@
 
   <div class="controls">
     <button class="primary" id="btnMark">+ Marcar Ponto</button>
+    <button class="sound-on" id="btnSound">Som: ON</button>
     <button id="btnCloseLoop">Fechar Cerco</button>
     <button id="btnUndo">Desfazer Último</button>
     <button class="danger" id="btnRemoveSel">Remover Selecionado</button>
@@ -195,14 +198,41 @@
       height: 2.8,
       unit: 'm',
       style: 'wireframe',
-      lineColor: '#00ff88'
+      lineColor: '#00ff88',
+      soundEnabled: true
     };
+
+    let audioCtx = null;
+    function playBeep() {
+      if (!state.soundEnabled) return;
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        if (!audioCtx) audioCtx = new AudioContextClass();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(920, audioCtx.currentTime);
+
+        gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.18, audioCtx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.13);
+      } catch (_) {}
+    }
 
     const gpsStatus = document.getElementById('gpsStatus');
     const canvas2d = document.getElementById('canvas2d');
     const ctx2d = canvas2d.getContext('2d');
     const ptsListEl = document.getElementById('ptsList');
     const summary2dEl = document.getElementById('summary2d');
+    const btnSound = document.getElementById('btnSound');
 
     const editX = document.getElementById('editX');
     const editY = document.getElementById('editY');
@@ -249,6 +279,13 @@
       gpsStatus.textContent = 'Geolocalização não suportada neste navegador';
     }
 
+    btnSound.addEventListener('click', () => {
+      state.soundEnabled = !state.soundEnabled;
+      btnSound.textContent = state.soundEnabled ? 'Som: ON' : 'Som: OFF';
+      btnSound.className = state.soundEnabled ? 'sound-on' : 'sound-off';
+      if (state.soundEnabled) playBeep();
+    });
+
     document.getElementById('btnMark').addEventListener('click', () => {
       if (!state.liveGPS) {
         const last = state.points[state.points.length - 1] || { x: 0, y: 0 };
@@ -260,6 +297,7 @@
         const m = latLonToMeters(state.liveGPS.lat, state.liveGPS.lon, p0.lat, p0.lon);
         state.points.push({ x: m.x, y: m.y, lat: state.liveGPS.lat, lon: state.liveGPS.lon });
       }
+      playBeep();
       state.selectedIdx = state.points.length - 1;
       syncEditor();
       renderAll();
@@ -379,7 +417,6 @@
       ctx2d.fillStyle = '#000000';
       ctx2d.fillRect(0, 0, w, h);
 
-      // Grade sutil sobre o fundo preto
       ctx2d.strokeStyle = state.style === 'blueprint' ? '#0f2537' : '#121212';
       ctx2d.lineWidth = 1;
       for (let gx = 0; gx < w; gx += 25) {
@@ -410,7 +447,6 @@
       if (state.closed && state.points.length >= 3) ctx2d.closePath();
       ctx2d.stroke();
 
-      // Cotas de segmento
       ctx2d.fillStyle = '#ffffff';
       ctx2d.font = '11px monospace';
       for (let i = 1; i < state.points.length; i++) {
@@ -423,7 +459,6 @@
         ctx2d.fillText(fmtVal(dist), (a.px + b.px) / 2 + 4, (a.py + b.py) / 2 - 4);
       }
 
-      // Pontos
       state.points.forEach((p, i) => {
         const { px, py } = toScreen(p);
         ctx2d.fillStyle = i === state.selectedIdx ? '#ff4d4d' : state.lineColor;
@@ -478,7 +513,6 @@
       });
     }
 
-    // Cena 3D com fundo preto
     const container3d = document.getElementById('view3d');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
