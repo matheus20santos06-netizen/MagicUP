@@ -128,13 +128,13 @@
     }
     #camModal.open { display: flex; }
     .cam-top {
-      padding: 8px 12px;
+      padding: 8px 10px;
       background: #0a0a0a;
       border-bottom: 1px solid #222;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     .cam-stage {
       position: relative;
@@ -148,6 +148,14 @@
       height: 100%;
       object-fit: cover;
     }
+    canvas#camFrozen {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      pointer-events: none;
+    }
     canvas#camOverlay {
       position: absolute;
       inset: 0;
@@ -160,7 +168,7 @@
       top: 8px;
       left: 8px;
       right: 8px;
-      background: rgba(0, 0, 0, 0.78);
+      background: rgba(0, 0, 0, 0.8);
       border: 1px solid #333;
       border-radius: 8px;
       padding: 7px 10px;
@@ -169,6 +177,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
       pointer-events: none;
     }
     .cam-bottom {
@@ -230,8 +239,8 @@
     </label>
 
     <select id="unitSelect" title="Unidade">
+      <option value="cm" selected>Centímetros (cm)</option>
       <option value="m">Metros (m)</option>
-      <option value="cm">Centímetros (cm)</option>
     </select>
 
     <select id="styleSelect" title="Estilo da Planta e 3D">
@@ -264,7 +273,7 @@
         </label>
         <label>
           Altura 3D
-          <input type="number" step="0.1" id="editHeight" value="2.8" />
+          <input type="number" step="1" id="editHeight" value="280" />
         </label>
       </div>
       <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
@@ -284,30 +293,32 @@
     </div>
   </div>
 
-  <!-- MODAL MODO CÂMERA COM CALIBRAÇÃO POR TRENA -->
+  <!-- MODAL MODO CÂMERA COM CONGELAMENTO E CALIBRAÇÃO POR TRENA -->
   <div id="camModal">
     <div class="cam-top">
-      <strong>Câmera (Toque em 2 pontos na tela)</strong>
+      <button class="warn-btn" id="btnFreezeCam">Congelar Imagem</button>
+      <span id="calibStatusBadge" style="font-family:monospace;font-size:11px;color:#7ee787;">Escala: padrão</span>
       <button class="danger" id="btnCloseCam">Fechar</button>
     </div>
 
     <div class="cam-stage">
       <video id="camVideo" autoplay playsinline muted></video>
+      <canvas id="camFrozen"></canvas>
       <canvas id="camOverlay"></canvas>
       <div class="cam-hud">
-        <span id="camReadout">Toque no 1º ponto na imagem</span>
-        <span id="camLiveDist" style="color:#00ff88;font-weight:700;">0.00 m</span>
+        <span id="camReadout">Enquadre a trena e toque em Congelar Imagem</span>
+        <span id="camLiveDist" style="color:#00ff88;font-weight:700;">0.0 cm</span>
       </div>
     </div>
 
     <div class="cam-bottom">
-      <!-- Barra de Treino / Calibração com Trena -->
+      <!-- Barra de Treino / Calibração com Trena em cm -->
       <div class="cam-calib-bar">
         <label>
-          Tamanho real na trena (<span id="calibUnitLabel">m</span>)
-          <input type="number" step="0.01" id="calibRealInput" value="1.00" />
+          Tamanho real na trena (cm)
+          <input type="number" step="0.5" id="calibRealCmInput" value="100" />
         </label>
-        <button class="warn-btn" id="btnCalibrate">Calibrar com Trena</button>
+        <button class="primary" id="btnCalibrate">Confirmar Calibração</button>
       </div>
 
       <div class="cam-params">
@@ -321,15 +332,14 @@
           </select>
         </label>
         <label>
-          Medida calculada (<span id="measUnitLabel">m</span>)
-          <input type="number" step="0.01" id="camMeasuredVal" value="0.00" />
+          Medida atual (<span id="measUnitLabel">cm</span>)
+          <input type="number" step="0.1" id="camMeasuredVal" value="0" />
         </label>
       </div>
 
       <div class="cam-actions">
-        <button class="cam-btn" id="btnCamMarkCenter">Marcar no Centro</button>
         <button id="btnCamReset">Limpar Pontos</button>
-        <button class="primary" id="btnCamCommit">+ Adicionar à Planta</button>
+        <button class="cam-btn" id="btnCamCommit">+ Adicionar à Planta</button>
       </div>
     </div>
   </div>
@@ -337,17 +347,20 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     const savedPxPerMeter = parseFloat(localStorage.getItem('camPxPerMeter'));
+    const hasSavedCalib = !Number.isNaN(savedPxPerMeter) && savedPxPerMeter > 0;
+
     const state = {
       liveGPS: null,
       points: [],
       selectedIdx: null,
       closed: false,
       height: 2.8,
-      unit: 'm',
+      unit: 'cm',
       style: 'wireframe',
       lineColor: '#00ff88',
       soundEnabled: true,
-      pxPerMeter: !Number.isNaN(savedPxPerMeter) && savedPxPerMeter > 0 ? savedPxPerMeter : 250
+      pxPerMeter: hasSavedCalib ? savedPxPerMeter : 250,
+      calibrated: hasSavedCalib
     };
 
     let audioCtx = null;
@@ -503,9 +516,7 @@
 
     document.getElementById('unitSelect').addEventListener('change', (e) => {
       state.unit = e.target.value;
-      document.getElementById('calibUnitLabel').textContent = state.unit;
       document.getElementById('measUnitLabel').textContent = state.unit;
-      document.getElementById('calibRealInput').value = state.unit === 'cm' ? '100' : '1.00';
       syncEditor();
       updateCameraCalculation();
       renderAll();
@@ -557,20 +568,33 @@
       renderAll();
     });
 
-    /* ================= MODO CÂMERA (CALIBRAÇÃO POR TRENA) ================= */
+    /* ================= MODO CÂMERA (CONGELAR + TRENA EM CM) ================= */
     const camModal = document.getElementById('camModal');
     const camVideo = document.getElementById('camVideo');
+    const camFrozen = document.getElementById('camFrozen');
+    const camFrozenCtx = camFrozen.getContext('2d');
     const camOverlay = document.getElementById('camOverlay');
     const camCtx = camOverlay.getContext('2d');
     const camReadout = document.getElementById('camReadout');
     const camLiveDist = document.getElementById('camLiveDist');
     const camMeasuredVal = document.getElementById('camMeasuredVal');
     const camDirSelect = document.getElementById('camDirSelect');
-    const calibRealInput = document.getElementById('calibRealInput');
+    const calibRealCmInput = document.getElementById('calibRealCmInput');
+    const btnFreezeCam = document.getElementById('btnFreezeCam');
+    const calibStatusBadge = document.getElementById('calibStatusBadge');
 
     let camStream = null;
-    let camPts = []; // [{ x, y }, { x, y }] em coordenadas de tela do overlay
+    let camPts = [];
     let draggingCamPt = null;
+    let isFrozen = false;
+
+    function updateCalibBadge() {
+      const pxPerCm = state.pxPerMeter / 100;
+      calibStatusBadge.textContent = state.calibrated
+        ? `Calibrado: ${pxPerCm.toFixed(2)} px/cm`
+        : 'Escala: não calibrada';
+      calibStatusBadge.style.color = state.calibrated ? '#7ee787' : '#ffd97d';
+    }
 
     function getCamPixelDist() {
       if (camPts.length < 2) return 0;
@@ -589,6 +613,42 @@
       camMeasuredVal.value = toInputUnit(meters);
     }
 
+    function setFreezeState(freeze) {
+      isFrozen = freeze;
+      if (isFrozen) {
+        const w = camOverlay.clientWidth;
+        const h = camOverlay.clientHeight;
+        camFrozen.width = w;
+        camFrozen.height = h;
+
+        if (camVideo.videoWidth && camVideo.videoHeight) {
+          // Reproduz object-fit: cover no canvas congelado para alinhar exato com os toques
+          const vw = camVideo.videoWidth;
+          const vh = camVideo.videoHeight;
+          const scale = Math.max(w / vw, h / vh);
+          const sw = vw * scale;
+          const sh = vh * scale;
+          const sx = (w - sw) / 2;
+          const sy = (h - sh) / 2;
+          camFrozenCtx.drawImage(camVideo, sx, sy, sw, sh);
+        }
+        camFrozen.style.display = 'block';
+        btnFreezeCam.textContent = 'Destravar Câmera';
+        btnFreezeCam.className = 'cam-btn';
+        camReadout.textContent = 'Imagem travada! Marque e arraste os 2 pontos na trena';
+        playBeep();
+      } else {
+        camFrozen.style.display = 'none';
+        btnFreezeCam.textContent = 'Congelar Imagem';
+        btnFreezeCam.className = 'warn-btn';
+        camReadout.textContent = 'Câmera ao vivo — toque para marcar ou congele a imagem';
+      }
+    }
+
+    btnFreezeCam.addEventListener('click', () => {
+      setFreezeState(!isFrozen);
+    });
+
     function drawCamOverlay() {
       const w = camOverlay.clientWidth;
       const h = camOverlay.clientHeight;
@@ -598,19 +658,9 @@
       }
       camCtx.clearRect(0, 0, w, h);
 
-      const cx = w / 2;
-      const cy = h / 2;
       const color = state.lineColor;
 
-      // Mira central discreta
-      camCtx.strokeStyle = 'rgba(255,255,255,0.45)';
-      camCtx.lineWidth = 1.5;
-      camCtx.beginPath();
-      camCtx.moveTo(cx - 16, cy); camCtx.lineTo(cx + 16, cy);
-      camCtx.moveTo(cx, cy - 16); camCtx.lineTo(cx, cy + 16);
-      camCtx.stroke();
-
-      // Linha entre os 2 pontos marcados na imagem
+      // Linha entre os 2 pontos marcados
       if (camPts.length === 2) {
         camCtx.strokeStyle = color;
         camCtx.lineWidth = 3;
@@ -623,29 +673,34 @@
         const my = (camPts[0].y + camPts[1].y) / 2;
         const meters = getCamPixelDist() / state.pxPerMeter;
 
-        camCtx.fillStyle = 'rgba(0,0,0,0.75)';
-        camCtx.fillRect(mx - 42, my - 24, 84, 20);
+        camCtx.fillStyle = 'rgba(0,0,0,0.82)';
+        camCtx.fillRect(mx - 48, my - 26, 96, 22);
         camCtx.fillStyle = '#ffffff';
         camCtx.font = 'bold 12px monospace';
         camCtx.textAlign = 'center';
-        camCtx.fillText(fmtVal(meters), mx, my - 10);
+        camCtx.fillText(fmtVal(meters), mx, my - 11);
         camCtx.textAlign = 'left';
       }
 
-      // Desenha os pontos P1 e P2 (grandes para facilitar ajuste fino com o dedo)
+      // Pontos P1 e P2 com mira interna fina para alinhar no risco da trena
       camPts.forEach((pt, idx) => {
-        camCtx.fillStyle = color;
+        camCtx.strokeStyle = color;
+        camCtx.lineWidth = 2.5;
         camCtx.beginPath();
-        camCtx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
-        camCtx.fill();
-
-        camCtx.strokeStyle = '#000000';
-        camCtx.lineWidth = 2;
+        camCtx.arc(pt.x, pt.y, 15, 0, Math.PI * 2);
         camCtx.stroke();
 
+        // Cruz de precisão no exato pixel marcado
+        camCtx.beginPath();
+        camCtx.moveTo(pt.x - 18, pt.y); camCtx.lineTo(pt.x + 18, pt.y);
+        camCtx.moveTo(pt.x, pt.y - 18); camCtx.lineTo(pt.x, pt.y + 18);
+        camCtx.stroke();
+
+        camCtx.fillStyle = 'rgba(0,0,0,0.75)';
+        camCtx.fillRect(pt.x + 16, pt.y - 10, 46, 16);
         camCtx.fillStyle = '#ffffff';
-        camCtx.font = 'bold 11px monospace';
-        camCtx.fillText(idx === 0 ? 'INÍCIO' : 'FIM', pt.x + 14, pt.y + 4);
+        camCtx.font = 'bold 10px monospace';
+        camCtx.fillText(idx === 0 ? 'INÍCIO' : 'FIM', pt.x + 19, pt.y + 2);
       });
     }
 
@@ -654,7 +709,6 @@
         camPts.push({ x, y });
         playBeep();
       } else {
-        // Move o ponto mais próximo do toque
         const d0 = Math.hypot(x - camPts[0].x, y - camPts[0].y);
         const d1 = Math.hypot(x - camPts[1].x, y - camPts[1].y);
         if (d0 < d1) camPts[0] = { x, y };
@@ -662,9 +716,9 @@
       }
 
       if (camPts.length === 1) {
-        camReadout.textContent = 'Agora toque no 2º ponto (fim da trena ou objeto)';
+        camReadout.textContent = 'Agora marque o 2º ponto (FIM da trena)';
       } else {
-        camReadout.textContent = 'Arraste os pontos para ajuste fino ou calibre';
+        camReadout.textContent = 'Ajuste os 2 pontos, digite os cm abaixo e Confirme';
       }
       updateCameraCalculation();
       drawCamOverlay();
@@ -675,9 +729,8 @@
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
-      // Verifica se agarrou algum ponto existente para arrastar
       for (let i = 0; i < camPts.length; i++) {
-        if (Math.hypot(x - camPts[i].x, y - camPts[i].y) < 28) {
+        if (Math.hypot(x - camPts[i].x, y - camPts[i].y) < 32) {
           draggingCamPt = i;
           return;
         }
@@ -700,33 +753,37 @@
       draggingCamPt = null;
     });
 
-    document.getElementById('btnCamMarkCenter').addEventListener('click', () => {
-      const w = camOverlay.clientWidth;
-      const h = camOverlay.clientHeight;
-      addOrMoveCamPoint(w / 2, h / 2);
-    });
-
+    // Confirma a calibração em cm, salva e libera para testar a precisão
     document.getElementById('btnCalibrate').addEventListener('click', () => {
       const pxDist = getCamPixelDist();
-      const realMeters = fromInputUnit(calibRealInput.value);
-      if (pxDist < 10 || realMeters <= 0) {
-        camReadout.textContent = 'Marque 2 pontos na trena e informe um tamanho > 0!';
+      const realCm = parseFloat(calibRealCmInput.value);
+      if (pxDist < 10 || Number.isNaN(realCm) || realCm <= 0) {
+        camReadout.textContent = 'Marque os 2 pontos na trena e digite os cm (> 0)!';
         return;
       }
+      const realMeters = realCm / 100;
       state.pxPerMeter = pxDist / realMeters;
+      state.calibrated = true;
       localStorage.setItem('camPxPerMeter', String(state.pxPerMeter));
+
       playBeep();
+      updateCalibBadge();
       updateCameraCalculation();
       drawCamOverlay();
-      camReadout.textContent = `Calibrado! (${state.pxPerMeter.toFixed(0)} px/m) — agora meça o objeto`;
+
+      // Destrava a câmera para você já apontar e testar objetos reais com a nova precisão
+      if (isFrozen) setFreezeState(false);
+      camReadout.textContent = `Pronto (${realCm} cm confirmados)! Teste agora em qualquer medida`;
     });
 
     document.getElementById('btnOpenCam').addEventListener('click', async () => {
       camModal.classList.add('open');
       camPts = [];
+      setFreezeState(false);
+      updateCalibBadge();
       camMeasuredVal.value = toInputUnit(0);
       camLiveDist.textContent = fmtVal(0);
-      camReadout.textContent = 'Toque no início e fim da trena para calibrar (ou meça direto)';
+      camReadout.textContent = 'Aponte para a trena e toque em Congelar Imagem';
 
       try {
         camStream = await navigator.mediaDevices.getUserMedia({
@@ -742,6 +799,7 @@
 
     function closeCameraModal() {
       camModal.classList.remove('open');
+      setFreezeState(false);
       if (camStream) {
         camStream.getTracks().forEach((t) => t.stop());
         camStream = null;
@@ -754,11 +812,13 @@
       camPts = [];
       updateCameraCalculation();
       drawCamOverlay();
-      camReadout.textContent = 'Toque no 1º ponto na imagem';
+      camReadout.textContent = isFrozen
+        ? 'Imagem travada — toque para marcar os 2 pontos'
+        : 'Toque na imagem para marcar ou congele a tela';
     });
 
     document.getElementById('btnCamCommit').addEventListener('click', () => {
-      const distM = Math.max(0.01, fromInputUnit(camMeasuredVal.value));
+      const distM = Math.max(0.005, fromInputUnit(camMeasuredVal.value));
       const dirRad = (parseFloat(camDirSelect.value) * Math.PI) / 180;
 
       if (state.points.length === 0) {
