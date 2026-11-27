@@ -14,6 +14,7 @@
       --accent: #2ea043;
       --danger: #da3633;
       --cam: #1f6feb;
+      --warn: #d29922;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
@@ -59,6 +60,7 @@
     }
     button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
     button.cam-btn { background: var(--cam); border-color: var(--cam); color: #fff; font-weight: 600; }
+    button.warn-btn { background: #5a3e06; border-color: var(--warn); color: #ffd97d; font-weight: 600; }
     button.danger { background: #3d1414; border-color: var(--danger); color: #ffb3b3; }
     button.sound-on { border-color: #2ea043; color: #7ee787; }
     button.sound-off { border-color: #444444; color: #888888; }
@@ -139,9 +141,7 @@
       flex: 1;
       background: #000;
       overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      touch-action: none;
     }
     video#camVideo {
       width: 100%;
@@ -153,34 +153,52 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      pointer-events: none;
+      cursor: crosshair;
     }
     .cam-hud {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      background: rgba(0, 0, 0, 0.72);
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.78);
       border: 1px solid #333;
       border-radius: 8px;
-      padding: 8px 10px;
+      padding: 7px 10px;
       font-family: monospace;
-      font-size: 12px;
+      font-size: 11px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      pointer-events: none;
     }
     .cam-bottom {
       background: #0a0a0a;
       border-top: 1px solid #222;
-      padding: 10px 12px;
+      padding: 8px 10px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 7px;
+    }
+    .cam-calib-bar {
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+      background: #111;
+      border: 1px solid #262626;
+      border-radius: 6px;
+      padding: 6px;
+    }
+    .cam-calib-bar label {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 10px;
+      color: var(--muted);
     }
     .cam-params {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 6px;
     }
     .cam-actions {
@@ -266,28 +284,33 @@
     </div>
   </div>
 
-  <!-- MODAL MODO CÂMERA -->
+  <!-- MODAL MODO CÂMERA COM CALIBRAÇÃO POR TRENA -->
   <div id="camModal">
     <div class="cam-top">
-      <strong>Medição Óptica / Câmera</strong>
-      <button class="danger" id="btnCloseCam">Fechar Câmera</button>
+      <strong>Câmera (Toque em 2 pontos na tela)</strong>
+      <button class="danger" id="btnCloseCam">Fechar</button>
     </div>
 
     <div class="cam-stage">
       <video id="camVideo" autoplay playsinline muted></video>
       <canvas id="camOverlay"></canvas>
       <div class="cam-hud">
-        <span id="camReadout">Aponte a mira e marque P1</span>
+        <span id="camReadout">Toque no 1º ponto na imagem</span>
         <span id="camLiveDist" style="color:#00ff88;font-weight:700;">0.00 m</span>
       </div>
     </div>
 
     <div class="cam-bottom">
-      <div class="cam-params">
+      <!-- Barra de Treino / Calibração com Trena -->
+      <div class="cam-calib-bar">
         <label>
-          Dist. até alvo (m)
-          <input type="number" step="0.1" id="camTargetDist" value="2.0" />
+          Tamanho real na trena (<span id="calibUnitLabel">m</span>)
+          <input type="number" step="0.01" id="calibRealInput" value="1.00" />
         </label>
+        <button class="warn-btn" id="btnCalibrate">Calibrar com Trena</button>
+      </div>
+
+      <div class="cam-params">
         <label>
           Direção na planta
           <select id="camDirSelect">
@@ -298,22 +321,22 @@
           </select>
         </label>
         <label>
-          Medida final (editável)
+          Medida calculada (<span id="measUnitLabel">m</span>)
           <input type="number" step="0.01" id="camMeasuredVal" value="0.00" />
         </label>
       </div>
 
       <div class="cam-actions">
-        <button class="cam-btn" id="btnCamP1">1. Marcar Início</button>
-        <button class="cam-btn" id="btnCamP2">2. Marcar Fim</button>
+        <button class="cam-btn" id="btnCamMarkCenter">Marcar no Centro</button>
+        <button id="btnCamReset">Limpar Pontos</button>
         <button class="primary" id="btnCamCommit">+ Adicionar à Planta</button>
-        <button id="btnCamReset">Zerar</button>
       </div>
     </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
+    const savedPxPerMeter = parseFloat(localStorage.getItem('camPxPerMeter'));
     const state = {
       liveGPS: null,
       points: [],
@@ -323,7 +346,8 @@
       unit: 'm',
       style: 'wireframe',
       lineColor: '#00ff88',
-      soundEnabled: true
+      soundEnabled: true,
+      pxPerMeter: !Number.isNaN(savedPxPerMeter) && savedPxPerMeter > 0 ? savedPxPerMeter : 250
     };
 
     let audioCtx = null;
@@ -376,7 +400,7 @@
     }
 
     function fmtVal(meters) {
-      return state.unit === 'cm' ? (meters * 100).toFixed(0) + ' cm' : meters.toFixed(2) + ' m';
+      return state.unit === 'cm' ? (meters * 100).toFixed(1) + ' cm' : meters.toFixed(2) + ' m';
     }
 
     function toInputUnit(meters) {
@@ -479,7 +503,11 @@
 
     document.getElementById('unitSelect').addEventListener('change', (e) => {
       state.unit = e.target.value;
+      document.getElementById('calibUnitLabel').textContent = state.unit;
+      document.getElementById('measUnitLabel').textContent = state.unit;
+      document.getElementById('calibRealInput').value = state.unit === 'cm' ? '100' : '1.00';
       syncEditor();
+      updateCameraCalculation();
       renderAll();
     });
 
@@ -529,51 +557,39 @@
       renderAll();
     });
 
-    /* ================= MODO CÂMERA ================= */
+    /* ================= MODO CÂMERA (CALIBRAÇÃO POR TRENA) ================= */
     const camModal = document.getElementById('camModal');
     const camVideo = document.getElementById('camVideo');
     const camOverlay = document.getElementById('camOverlay');
     const camCtx = camOverlay.getContext('2d');
     const camReadout = document.getElementById('camReadout');
     const camLiveDist = document.getElementById('camLiveDist');
-    const camTargetDist = document.getElementById('camTargetDist');
     const camMeasuredVal = document.getElementById('camMeasuredVal');
     const camDirSelect = document.getElementById('camDirSelect');
+    const calibRealInput = document.getElementById('calibRealInput');
 
     let camStream = null;
-    let camAnimId = null;
-    let currentYaw = 0;
-    let currentPitch = 0;
-    let camStart = null;
-    let camEnd = null;
+    let camPts = []; // [{ x, y }, { x, y }] em coordenadas de tela do overlay
+    let draggingCamPt = null;
 
-    function handleOrientation(e) {
-      if (e.alpha !== null) currentYaw = e.alpha;
-      if (e.beta !== null) currentPitch = e.beta;
+    function getCamPixelDist() {
+      if (camPts.length < 2) return 0;
+      return Math.hypot(camPts[1].x - camPts[0].x, camPts[1].y - camPts[0].y);
     }
 
-    function angularDiffDeg(a, b) {
-      let d = (a - b + 540) % 360 - 180;
-      return d;
+    function updateCameraCalculation() {
+      const pxDist = getCamPixelDist();
+      if (pxDist <= 0) {
+        camLiveDist.textContent = fmtVal(0);
+        camMeasuredVal.value = toInputUnit(0);
+        return;
+      }
+      const meters = pxDist / state.pxPerMeter;
+      camLiveDist.textContent = fmtVal(meters);
+      camMeasuredVal.value = toInputUnit(meters);
     }
 
-    function computeCameraMeters() {
-      if (!camStart) return 0;
-      const targetD = Math.max(0.2, parseFloat(camTargetDist.value) || 2.0);
-      const refYaw = camEnd ? camEnd.yaw : currentYaw;
-      const refPitch = camEnd ? camEnd.pitch : currentPitch;
-
-      const dYawRad = (angularDiffDeg(refYaw, camStart.yaw) * Math.PI) / 180;
-      const dPitchRad = ((refPitch - camStart.pitch) * Math.PI) / 180;
-      const totalAngle = Math.hypot(dYawRad, dPitchRad);
-
-      // Cálculo trigonométrico: L = 2 * D * tan(theta / 2)
-      const dist = 2 * targetD * Math.tan(Math.min(totalAngle, 1.4) / 2);
-      return Math.max(0, dist);
-    }
-
-    function drawCamHUD() {
-      if (!camModal.classList.contains('open')) return;
+    function drawCamOverlay() {
       const w = camOverlay.clientWidth;
       const h = camOverlay.clientHeight;
       if (camOverlay.width !== w || camOverlay.height !== h) {
@@ -586,57 +602,131 @@
       const cy = h / 2;
       const color = state.lineColor;
 
-      // Mira central
-      camCtx.strokeStyle = color;
-      camCtx.lineWidth = 2;
+      // Mira central discreta
+      camCtx.strokeStyle = 'rgba(255,255,255,0.45)';
+      camCtx.lineWidth = 1.5;
       camCtx.beginPath();
-      camCtx.arc(cx, cy, 18, 0, Math.PI * 2);
-      camCtx.moveTo(cx - 28, cy); camCtx.lineTo(cx + 28, cy);
-      camCtx.moveTo(cx, cy - 28); camCtx.lineTo(cx, cy + 28);
+      camCtx.moveTo(cx - 16, cy); camCtx.lineTo(cx + 16, cy);
+      camCtx.moveTo(cx, cy - 16); camCtx.lineTo(cx, cy + 16);
       camCtx.stroke();
 
-      // Linha virtual projetada conforme movimento do aparelho
-      if (camStart) {
-        const refYaw = camEnd ? camEnd.yaw : currentYaw;
-        const refPitch = camEnd ? camEnd.pitch : currentPitch;
-        const dxPx = angularDiffDeg(camStart.yaw, refYaw) * 6;
-        const dyPx = (refPitch - camStart.pitch) * 6;
-
-        const p1x = cx + dxPx;
-        const p1y = cy + dyPx;
-
+      // Linha entre os 2 pontos marcados na imagem
+      if (camPts.length === 2) {
         camCtx.strokeStyle = color;
         camCtx.lineWidth = 3;
         camCtx.beginPath();
-        camCtx.moveTo(p1x, p1y);
-        camCtx.lineTo(cx, cy);
+        camCtx.moveTo(camPts[0].x, camPts[0].y);
+        camCtx.lineTo(camPts[1].x, camPts[1].y);
         camCtx.stroke();
 
-        camCtx.fillStyle = color;
-        camCtx.beginPath();
-        camCtx.arc(p1x, p1y, 7, 0, Math.PI * 2);
-        camCtx.fill();
+        const mx = (camPts[0].x + camPts[1].x) / 2;
+        const my = (camPts[0].y + camPts[1].y) / 2;
+        const meters = getCamPixelDist() / state.pxPerMeter;
 
-        const liveM = computeCameraMeters();
-        camLiveDist.textContent = fmtVal(liveM);
-        if (!camEnd) camMeasuredVal.value = liveM.toFixed(2);
+        camCtx.fillStyle = 'rgba(0,0,0,0.75)';
+        camCtx.fillRect(mx - 42, my - 24, 84, 20);
+        camCtx.fillStyle = '#ffffff';
+        camCtx.font = 'bold 12px monospace';
+        camCtx.textAlign = 'center';
+        camCtx.fillText(fmtVal(meters), mx, my - 10);
+        camCtx.textAlign = 'left';
       }
 
-      camAnimId = requestAnimationFrame(drawCamHUD);
+      // Desenha os pontos P1 e P2 (grandes para facilitar ajuste fino com o dedo)
+      camPts.forEach((pt, idx) => {
+        camCtx.fillStyle = color;
+        camCtx.beginPath();
+        camCtx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
+        camCtx.fill();
+
+        camCtx.strokeStyle = '#000000';
+        camCtx.lineWidth = 2;
+        camCtx.stroke();
+
+        camCtx.fillStyle = '#ffffff';
+        camCtx.font = 'bold 11px monospace';
+        camCtx.fillText(idx === 0 ? 'INÍCIO' : 'FIM', pt.x + 14, pt.y + 4);
+      });
     }
+
+    function addOrMoveCamPoint(x, y) {
+      if (camPts.length < 2) {
+        camPts.push({ x, y });
+        playBeep();
+      } else {
+        // Move o ponto mais próximo do toque
+        const d0 = Math.hypot(x - camPts[0].x, y - camPts[0].y);
+        const d1 = Math.hypot(x - camPts[1].x, y - camPts[1].y);
+        if (d0 < d1) camPts[0] = { x, y };
+        else camPts[1] = { x, y };
+      }
+
+      if (camPts.length === 1) {
+        camReadout.textContent = 'Agora toque no 2º ponto (fim da trena ou objeto)';
+      } else {
+        camReadout.textContent = 'Arraste os pontos para ajuste fino ou calibre';
+      }
+      updateCameraCalculation();
+      drawCamOverlay();
+    }
+
+    camOverlay.addEventListener('pointerdown', (e) => {
+      const rect = camOverlay.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Verifica se agarrou algum ponto existente para arrastar
+      for (let i = 0; i < camPts.length; i++) {
+        if (Math.hypot(x - camPts[i].x, y - camPts[i].y) < 28) {
+          draggingCamPt = i;
+          return;
+        }
+      }
+      addOrMoveCamPoint(x, y);
+    });
+
+    camOverlay.addEventListener('pointermove', (e) => {
+      if (draggingCamPt === null) return;
+      const rect = camOverlay.getBoundingClientRect();
+      camPts[draggingCamPt] = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+      updateCameraCalculation();
+      drawCamOverlay();
+    });
+
+    window.addEventListener('pointerup', () => {
+      draggingCamPt = null;
+    });
+
+    document.getElementById('btnCamMarkCenter').addEventListener('click', () => {
+      const w = camOverlay.clientWidth;
+      const h = camOverlay.clientHeight;
+      addOrMoveCamPoint(w / 2, h / 2);
+    });
+
+    document.getElementById('btnCalibrate').addEventListener('click', () => {
+      const pxDist = getCamPixelDist();
+      const realMeters = fromInputUnit(calibRealInput.value);
+      if (pxDist < 10 || realMeters <= 0) {
+        camReadout.textContent = 'Marque 2 pontos na trena e informe um tamanho > 0!';
+        return;
+      }
+      state.pxPerMeter = pxDist / realMeters;
+      localStorage.setItem('camPxPerMeter', String(state.pxPerMeter));
+      playBeep();
+      updateCameraCalculation();
+      drawCamOverlay();
+      camReadout.textContent = `Calibrado! (${state.pxPerMeter.toFixed(0)} px/m) — agora meça o objeto`;
+    });
 
     document.getElementById('btnOpenCam').addEventListener('click', async () => {
       camModal.classList.add('open');
-      camStart = null;
-      camEnd = null;
-      camMeasuredVal.value = '0.00';
-      camLiveDist.textContent = '0.00 m';
-      camReadout.textContent = 'Aponte a mira e marque P1';
-
-      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try { await DeviceOrientationEvent.requestPermission(); } catch (_) {}
-      }
-      window.addEventListener('deviceorientation', handleOrientation);
+      camPts = [];
+      camMeasuredVal.value = toInputUnit(0);
+      camLiveDist.textContent = fmtVal(0);
+      camReadout.textContent = 'Toque no início e fim da trena para calibrar (ou meça direto)';
 
       try {
         camStream = await navigator.mediaDevices.getUserMedia({
@@ -645,15 +735,13 @@
         });
         camVideo.srcObject = camStream;
       } catch (err) {
-        camReadout.textContent = 'Câmera indisponível — digite a medida abaixo';
+        camReadout.textContent = 'Câmera indisponível — digite a medida manualmente';
       }
-      drawCamHUD();
+      setTimeout(drawCamOverlay, 50);
     });
 
     function closeCameraModal() {
       camModal.classList.remove('open');
-      window.removeEventListener('deviceorientation', handleOrientation);
-      if (camAnimId) cancelAnimationFrame(camAnimId);
       if (camStream) {
         camStream.getTracks().forEach((t) => t.stop());
         camStream = null;
@@ -662,35 +750,15 @@
 
     document.getElementById('btnCloseCam').addEventListener('click', closeCameraModal);
 
-    document.getElementById('btnCamP1').addEventListener('click', () => {
-      camStart = { yaw: currentYaw, pitch: currentPitch };
-      camEnd = null;
-      camReadout.textContent = 'Início marcado! Mova até o fim e marque P2';
-      playBeep();
-    });
-
-    document.getElementById('btnCamP2').addEventListener('click', () => {
-      if (!camStart) {
-        camStart = { yaw: currentYaw, pitch: currentPitch };
-      }
-      camEnd = { yaw: currentYaw, pitch: currentPitch };
-      const finalM = computeCameraMeters();
-      camMeasuredVal.value = finalM.toFixed(2);
-      camLiveDist.textContent = fmtVal(finalM);
-      camReadout.textContent = `Medida travada: ${fmtVal(finalM)} (ajuste se quiser)`;
-      playBeep();
-    });
-
     document.getElementById('btnCamReset').addEventListener('click', () => {
-      camStart = null;
-      camEnd = null;
-      camMeasuredVal.value = '0.00';
-      camLiveDist.textContent = '0.00 m';
-      camReadout.textContent = 'Aponte a mira e marque P1';
+      camPts = [];
+      updateCameraCalculation();
+      drawCamOverlay();
+      camReadout.textContent = 'Toque no 1º ponto na imagem';
     });
 
     document.getElementById('btnCamCommit').addEventListener('click', () => {
-      const distM = Math.max(0.01, parseFloat(camMeasuredVal.value) || 0);
+      const distM = Math.max(0.01, fromInputUnit(camMeasuredVal.value));
       const dirRad = (parseFloat(camDirSelect.value) * Math.PI) / 180;
 
       if (state.points.length === 0) {
@@ -925,6 +993,7 @@
       camera.aspect = container3d.clientWidth / container3d.clientHeight;
       camera.updateProjectionMatrix();
       draw2D();
+      if (camModal.classList.contains('open')) drawCamOverlay();
     });
 
     renderAll();
