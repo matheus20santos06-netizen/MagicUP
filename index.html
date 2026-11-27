@@ -217,7 +217,7 @@
         osc.frequency.setValueAtTime(920, audioCtx.currentTime);
 
         gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.18, audioCtx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.9, audioCtx.currentTime + 0.01);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
 
         osc.connect(gain);
