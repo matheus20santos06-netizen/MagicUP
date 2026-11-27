@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>GPS 2D/3D Trace</title>
+  <title>GPS + Câmera 2D/3D Trace</title>
   <style>
     :root {
       --bg: #000000;
@@ -13,6 +13,7 @@
       --muted: #888888;
       --accent: #2ea043;
       --danger: #da3633;
+      --cam: #1f6feb;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
@@ -57,6 +58,7 @@
       cursor: pointer;
     }
     button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    button.cam-btn { background: var(--cam); border-color: var(--cam); color: #fff; font-weight: 600; }
     button.danger { background: #3d1414; border-color: var(--danger); color: #ffb3b3; }
     button.sound-on { border-color: #2ea043; color: #7ee787; }
     button.sound-off { border-color: #444444; color: #888888; }
@@ -100,7 +102,7 @@
       gap: 6px;
       margin-top: 8px;
     }
-    .editor-row label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); }
+    .editor-row label, .cam-params label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); }
     .pts-list { max-height: 110px; overflow-y: auto; margin-top: 6px; font-family: monospace; font-size: 11px; }
     .pts-item {
       display: flex;
@@ -112,21 +114,97 @@
     }
     .pts-item.active { background: #1c2b3a; }
     .color-wrap { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
+
+    /* Modal Modo Câmera */
+    #camModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      z-index: 999;
+      flex-direction: column;
+    }
+    #camModal.open { display: flex; }
+    .cam-top {
+      padding: 8px 12px;
+      background: #0a0a0a;
+      border-bottom: 1px solid #222;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .cam-stage {
+      position: relative;
+      flex: 1;
+      background: #000;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    video#camVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    canvas#camOverlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .cam-hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.72);
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-family: monospace;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .cam-bottom {
+      background: #0a0a0a;
+      border-top: 1px solid #222;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .cam-params {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .cam-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .cam-actions button { flex: 1; padding: 9px 8px; font-weight: 600; }
   </style>
 </head>
 <body>
   <header>
-    <strong>GPS 2D/3D Trace</strong>
+    <strong>GPS + Câmera 2D/3D</strong>
     <div class="gps-box" id="gpsStatus">GPS: aguardando permissão...</div>
   </header>
 
   <div class="controls">
-    <button class="primary" id="btnMark">+ Marcar Ponto</button>
+    <button class="primary" id="btnMark">+ Ponto GPS</button>
+    <button class="cam-btn" id="btnOpenCam">Modo Câmera</button>
     <button class="sound-on" id="btnSound">Som: ON</button>
     <button id="btnCloseLoop">Fechar Cerco</button>
-    <button id="btnUndo">Desfazer Último</button>
-    <button class="danger" id="btnRemoveSel">Remover Selecionado</button>
-    <button class="danger" id="btnClear">Limpar Tudo</button>
+    <button id="btnUndo">Desfazer</button>
+    <button class="danger" id="btnRemoveSel">Remover Sel.</button>
+    <button class="danger" id="btnClear">Limpar</button>
 
     <label class="color-wrap" title="Cor das linhas 2D e 3D">
       Cor:
@@ -188,6 +266,52 @@
     </div>
   </div>
 
+  <!-- MODAL MODO CÂMERA -->
+  <div id="camModal">
+    <div class="cam-top">
+      <strong>Medição Óptica / Câmera</strong>
+      <button class="danger" id="btnCloseCam">Fechar Câmera</button>
+    </div>
+
+    <div class="cam-stage">
+      <video id="camVideo" autoplay playsinline muted></video>
+      <canvas id="camOverlay"></canvas>
+      <div class="cam-hud">
+        <span id="camReadout">Aponte a mira e marque P1</span>
+        <span id="camLiveDist" style="color:#00ff88;font-weight:700;">0.00 m</span>
+      </div>
+    </div>
+
+    <div class="cam-bottom">
+      <div class="cam-params">
+        <label>
+          Dist. até alvo (m)
+          <input type="number" step="0.1" id="camTargetDist" value="2.0" />
+        </label>
+        <label>
+          Direção na planta
+          <select id="camDirSelect">
+            <option value="0">Direita (0°)</option>
+            <option value="90">Frente / Cima (90°)</option>
+            <option value="180">Esquerda (180°)</option>
+            <option value="-90">Trás / Baixo (-90°)</option>
+          </select>
+        </label>
+        <label>
+          Medida final (editável)
+          <input type="number" step="0.01" id="camMeasuredVal" value="0.00" />
+        </label>
+      </div>
+
+      <div class="cam-actions">
+        <button class="cam-btn" id="btnCamP1">1. Marcar Início</button>
+        <button class="cam-btn" id="btnCamP2">2. Marcar Fim</button>
+        <button class="primary" id="btnCamCommit">+ Adicionar à Planta</button>
+        <button id="btnCamReset">Zerar</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     const state = {
@@ -211,19 +335,21 @@
         if (!audioCtx) audioCtx = new AudioContextClass();
         if (audioCtx.state === 'suspended') audioCtx.resume();
 
+        const now = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(920, audioCtx.currentTime);
 
-        gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.9, audioCtx.currentTime + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(1180, now);
+
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(0.9, now + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
 
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.13);
+        osc.start(now);
+        osc.stop(now + 0.15);
       } catch (_) {}
     }
 
@@ -271,12 +397,12 @@
           gpsStatus.textContent = `GPS OK | ±${accuracy.toFixed(1)}m | ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
         },
         (err) => {
-          gpsStatus.textContent = `GPS erro (${err.code}): ${err.message} — use Edição Manual`;
+          gpsStatus.textContent = `GPS erro (${err.code}): ${err.message}`;
         },
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
       );
     } else {
-      gpsStatus.textContent = 'Geolocalização não suportada neste navegador';
+      gpsStatus.textContent = 'Geolocalização não suportada';
     }
 
     btnSound.addEventListener('click', () => {
@@ -403,6 +529,186 @@
       renderAll();
     });
 
+    /* ================= MODO CÂMERA ================= */
+    const camModal = document.getElementById('camModal');
+    const camVideo = document.getElementById('camVideo');
+    const camOverlay = document.getElementById('camOverlay');
+    const camCtx = camOverlay.getContext('2d');
+    const camReadout = document.getElementById('camReadout');
+    const camLiveDist = document.getElementById('camLiveDist');
+    const camTargetDist = document.getElementById('camTargetDist');
+    const camMeasuredVal = document.getElementById('camMeasuredVal');
+    const camDirSelect = document.getElementById('camDirSelect');
+
+    let camStream = null;
+    let camAnimId = null;
+    let currentYaw = 0;
+    let currentPitch = 0;
+    let camStart = null;
+    let camEnd = null;
+
+    function handleOrientation(e) {
+      if (e.alpha !== null) currentYaw = e.alpha;
+      if (e.beta !== null) currentPitch = e.beta;
+    }
+
+    function angularDiffDeg(a, b) {
+      let d = (a - b + 540) % 360 - 180;
+      return d;
+    }
+
+    function computeCameraMeters() {
+      if (!camStart) return 0;
+      const targetD = Math.max(0.2, parseFloat(camTargetDist.value) || 2.0);
+      const refYaw = camEnd ? camEnd.yaw : currentYaw;
+      const refPitch = camEnd ? camEnd.pitch : currentPitch;
+
+      const dYawRad = (angularDiffDeg(refYaw, camStart.yaw) * Math.PI) / 180;
+      const dPitchRad = ((refPitch - camStart.pitch) * Math.PI) / 180;
+      const totalAngle = Math.hypot(dYawRad, dPitchRad);
+
+      // Cálculo trigonométrico: L = 2 * D * tan(theta / 2)
+      const dist = 2 * targetD * Math.tan(Math.min(totalAngle, 1.4) / 2);
+      return Math.max(0, dist);
+    }
+
+    function drawCamHUD() {
+      if (!camModal.classList.contains('open')) return;
+      const w = camOverlay.clientWidth;
+      const h = camOverlay.clientHeight;
+      if (camOverlay.width !== w || camOverlay.height !== h) {
+        camOverlay.width = w;
+        camOverlay.height = h;
+      }
+      camCtx.clearRect(0, 0, w, h);
+
+      const cx = w / 2;
+      const cy = h / 2;
+      const color = state.lineColor;
+
+      // Mira central
+      camCtx.strokeStyle = color;
+      camCtx.lineWidth = 2;
+      camCtx.beginPath();
+      camCtx.arc(cx, cy, 18, 0, Math.PI * 2);
+      camCtx.moveTo(cx - 28, cy); camCtx.lineTo(cx + 28, cy);
+      camCtx.moveTo(cx, cy - 28); camCtx.lineTo(cx, cy + 28);
+      camCtx.stroke();
+
+      // Linha virtual projetada conforme movimento do aparelho
+      if (camStart) {
+        const refYaw = camEnd ? camEnd.yaw : currentYaw;
+        const refPitch = camEnd ? camEnd.pitch : currentPitch;
+        const dxPx = angularDiffDeg(camStart.yaw, refYaw) * 6;
+        const dyPx = (refPitch - camStart.pitch) * 6;
+
+        const p1x = cx + dxPx;
+        const p1y = cy + dyPx;
+
+        camCtx.strokeStyle = color;
+        camCtx.lineWidth = 3;
+        camCtx.beginPath();
+        camCtx.moveTo(p1x, p1y);
+        camCtx.lineTo(cx, cy);
+        camCtx.stroke();
+
+        camCtx.fillStyle = color;
+        camCtx.beginPath();
+        camCtx.arc(p1x, p1y, 7, 0, Math.PI * 2);
+        camCtx.fill();
+
+        const liveM = computeCameraMeters();
+        camLiveDist.textContent = fmtVal(liveM);
+        if (!camEnd) camMeasuredVal.value = liveM.toFixed(2);
+      }
+
+      camAnimId = requestAnimationFrame(drawCamHUD);
+    }
+
+    document.getElementById('btnOpenCam').addEventListener('click', async () => {
+      camModal.classList.add('open');
+      camStart = null;
+      camEnd = null;
+      camMeasuredVal.value = '0.00';
+      camLiveDist.textContent = '0.00 m';
+      camReadout.textContent = 'Aponte a mira e marque P1';
+
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try { await DeviceOrientationEvent.requestPermission(); } catch (_) {}
+      }
+      window.addEventListener('deviceorientation', handleOrientation);
+
+      try {
+        camStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false
+        });
+        camVideo.srcObject = camStream;
+      } catch (err) {
+        camReadout.textContent = 'Câmera indisponível — digite a medida abaixo';
+      }
+      drawCamHUD();
+    });
+
+    function closeCameraModal() {
+      camModal.classList.remove('open');
+      window.removeEventListener('deviceorientation', handleOrientation);
+      if (camAnimId) cancelAnimationFrame(camAnimId);
+      if (camStream) {
+        camStream.getTracks().forEach((t) => t.stop());
+        camStream = null;
+      }
+    }
+
+    document.getElementById('btnCloseCam').addEventListener('click', closeCameraModal);
+
+    document.getElementById('btnCamP1').addEventListener('click', () => {
+      camStart = { yaw: currentYaw, pitch: currentPitch };
+      camEnd = null;
+      camReadout.textContent = 'Início marcado! Mova até o fim e marque P2';
+      playBeep();
+    });
+
+    document.getElementById('btnCamP2').addEventListener('click', () => {
+      if (!camStart) {
+        camStart = { yaw: currentYaw, pitch: currentPitch };
+      }
+      camEnd = { yaw: currentYaw, pitch: currentPitch };
+      const finalM = computeCameraMeters();
+      camMeasuredVal.value = finalM.toFixed(2);
+      camLiveDist.textContent = fmtVal(finalM);
+      camReadout.textContent = `Medida travada: ${fmtVal(finalM)} (ajuste se quiser)`;
+      playBeep();
+    });
+
+    document.getElementById('btnCamReset').addEventListener('click', () => {
+      camStart = null;
+      camEnd = null;
+      camMeasuredVal.value = '0.00';
+      camLiveDist.textContent = '0.00 m';
+      camReadout.textContent = 'Aponte a mira e marque P1';
+    });
+
+    document.getElementById('btnCamCommit').addEventListener('click', () => {
+      const distM = Math.max(0.01, parseFloat(camMeasuredVal.value) || 0);
+      const dirRad = (parseFloat(camDirSelect.value) * Math.PI) / 180;
+
+      if (state.points.length === 0) {
+        state.points.push({ x: 0, y: 0 });
+      }
+      const last = state.points[state.points.length - 1];
+      state.points.push({
+        x: last.x + Math.cos(dirRad) * distM,
+        y: last.y + Math.sin(dirRad) * distM
+      });
+      state.selectedIdx = state.points.length - 1;
+      playBeep();
+      syncEditor();
+      renderAll();
+      closeCameraModal();
+    });
+
+    /* ================= DESENHO 2D ================= */
     function resizeCanvas2D() {
       const rect = canvas2d.getBoundingClientRect();
       canvas2d.width = rect.width * devicePixelRatio;
@@ -513,6 +819,7 @@
       });
     }
 
+    /* ================= CENA 3D ================= */
     const container3d = document.getElementById('view3d');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
